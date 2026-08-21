@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>Заметки</title>
+</head>
+<body>
+    <div class="bg-glow" id="bgLayer"></div>
+
+    <div class="app-container">
+        <aside class="main-menu">
+            <nav class="main-menu-nav">
+                <ul class="menu-list">
+                    <li><button class="menu-btn active">Media Library</button></li>
+                    <li><button class="menu-btn">Roadmap</button></li>
+                    <li><button class="menu-btn">Backlog</button></li>
+                    <li><button class="menu-btn">Sprint</button></li>
+                    <li><button class="menu-btn">Settings</button></li>
+                </ul>
+            </nav>
+        </aside>
+        <div class="content-wrapper">
+            <header class="header">
+                <div class="container">
+                    <img src="images/text.png" alt="Born to win">
+                </div>
+            </header>
+            <main class="notes-area">
+                <div class="main-container">
+                    <!-- Заметки -->
+                </div>
+            </main>
+            <footer class="app-footer">
+                <div class="footer-container">
+                    <!-- Добавили id для поиска и плюсика -->
+                    <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
+                    <button type="button" class="action-btn add-btn" id="addNoteBtn">+</button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Всплывающее окно создания заметки -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Новая заметка</h2>
+            
+            <input type="text" id="noteTitleInput" class="modal-input" placeholder="Заголовок..." />
+            <textarea id="noteTextInput" class="modal-textarea" placeholder="Текст заметки..."></textarea>
+            
+            <div class="hashtag-field-wrapper">
+                <input type="text" id="noteHashtagInput" class="modal-input" placeholder="#Хэштег" />
+            </div>
+
+
+            <div class="modal-actions">
+                <!-- Поправили ID на closeModalBtn как у тебя в HTML -->
+                <button type="button" id="closeModalBtn" class="modal-btn cancel-btn">Отмена</button>
+                <button type="button" id="saveNoteBtn" class="modal-btn save-btn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно выбора обоев -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Темы и обои</h2>
+            
+            <p class="modal-subtitle">Выберите обои:</p>
+            <div class="bg-gallery" id="bgGallery"></div>
+
+            <div class="scale-group" style="margin-top: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <p class="modal-subtitle" style="margin: 0;">Масштаб (зум):</p>
+                    <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
+                </div>
+                <input type="range" id="bgScaleRange" min="100" max="220" value="100" class="modal-range" />
+            </div>
+
+            <p class="modal-subtitle" style="margin-top: 16px;">Загрузить файл с ПК:</p>
+            <div class="custom-bg-input-group">
+                <input type="text" id="customBgTitleInput" class="modal-input" placeholder="Название обоев..." />
+                <label class="file-upload-btn">
+                    📁 Выбрать файл
+                    <input type="file" id="bgFileInput" accept="image/*" hidden />
+                </label>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" id="closeSettingsBtn" class="modal-btn cancel-btn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ПОИСКА ПО ХЭШТЕГАМ -->
+    <div class="modal-overlay" id="searchModal">
+        <div class="modal-content">
+            <div class="modal-title">Поиск по хэштегам</div>
+            <input type="text" class="modal-input" id="hashtagSearchInput" placeholder="Введите хэштег (например: #design)...">
+            <div class="modal-actions">
+                <button class="modal-btn cancel-btn" id="closeSearchBtn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
