@@ -495,7 +495,7 @@ input:focus,
         padding: 0;
     }
 
-    /* Отменяем фиксированное меню слева, чтобы оно стало шапкой-табами */
+    /* Опускаем меню ниже статус-бара айфона */
     .main-menu {
         position: relative;
         width: 100%;
@@ -505,7 +505,13 @@ input:focus,
         border-radius: 0 0 16px 16px;
         border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-top: none !important;
-        padding: 12px;
+        
+        /* Добавили отступ сверху для айфонов с вырезами */
+        padding-top: calc(env(safe-area-inset-top, 12px) + 8px);
+        padding-bottom: 12px;
+        padding-left: 16px;
+        padding-right: 16px;
+        
         margin-bottom: 16px;
     }
 
@@ -516,6 +522,11 @@ input:focus,
         gap: 8px;
         overflow-x: auto;
         padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+    }
+
+    .menu-list::-webkit-scrollbar {
+        display: none; /* Гасим уродливый скроллбар у вкладок на мобилках */
     }
 
     .menu-list li {
@@ -530,7 +541,7 @@ input:focus,
         font-size: 14px;
     }
 
-    /* Возвращаем контенту нормальный отступ вместо десктопного слева */
+    /* Возвращаем контенту нормальный отступ */
     .content-wrapper {
         margin-left: 0;
         padding: 12px;
@@ -546,7 +557,7 @@ input:focus,
         max-width: 140px;
     }
 
-    /* Смещаем плавающие кнопки чуть выше и правее, чтобы не перекрывали текст */
+    /* Смещаем плавающие кнопки */
     .app-footer {
         bottom: 16px;
         right: 16px;
@@ -558,6 +569,7 @@ input:focus,
         font-size: 18px;
     }
 }
+
 
 /* --- Стили для медиа в постах (как в Telegram) --- */
 
