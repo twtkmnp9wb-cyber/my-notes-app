@@ -195,9 +195,22 @@ input:focus,
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: 220px; /* Фикс скролла ленты */
+    padding-bottom: 220px;
     box-sizing: border-box;
+    
+    /* Полное скрытие полосы прокрутки */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE и Edge */
 }
+
+/* Скрываем скроллбар для WebKit браузеров (Safari, Chrome) */
+.scrollable-content::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
 
 .content-wrapper {
     width: 100%;
