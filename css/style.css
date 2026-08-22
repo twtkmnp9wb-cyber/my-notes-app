@@ -9,9 +9,8 @@
 html, body {
     margin: 0;
     padding: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 100vh;
+    width: 100vw;
+    height: 100dvh;
     font-family: "Inter", sans-serif;
     color: #ffffff;
     background-color: #09090b;
@@ -24,14 +23,13 @@ input:focus,
     outline: none !important;
 }
 
-/* Жесткий слой обоев на фоне с максимальным приоритетом */
+/* Жесткий слой обоев на весь экран без полос */
 #bgLayer.bg-glow {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
-    min-height: -webkit-fill-available !important;
+    height: 100dvh !important;
     z-index: 0 !important;
     background-color: #09090b;
     background-size: cover !important;
@@ -43,10 +41,27 @@ input:focus,
 
 .app-container {
     position: relative;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100dvh;
     overflow: hidden;
     z-index: 1;
+}
+
+/* БЛЮР СВЕРХУ (как в Telegram под статус-бар и Dynamic Island) */
+.app-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(env(safe-area-inset-top, 20px) + 50px);
+    background: rgba(15, 15, 20, 0.45);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    z-index: 900;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
 }
 
 /* Фиксированный блок сверху (Меню + Строка поиска) */
@@ -317,7 +332,7 @@ input:focus,
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: 100dvh !important;
     background: rgba(0, 0, 0, 0.75) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -547,7 +562,7 @@ input:focus,
 .note-images-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    gap: 12px;
     margin-top: 12px;
 }
 
