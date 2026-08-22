@@ -46,11 +46,11 @@
             display: flex;
             flex-direction: column;
             min-height: 100dvh;
-            padding-top: calc(env(safe-area-inset-top, 20px) + 75px); /* Место под фиксированное меню */
+            padding-top: calc(env(safe-area-inset-top, 20px) + 75px);
             padding-bottom: 100px;
         }
 
-        /* Верхнее меню (фиксированное, как в ТГ) */
+        /* Верхнее меню (прозрачность и стиль кнопок + и лупы) */
         .main-menu {
             position: fixed !important;
             top: 10px !important;
@@ -59,12 +59,13 @@
             z-index: 1000 !important;
             width: calc(100% - 24px) !important;
             max-width: 600px;
-            background: rgba(18, 18, 22, 0.85) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background-color: rgba(25, 25, 30, 0.85) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
             padding: 12px 16px !important;
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
             box-sizing: border-box;
         }
 
@@ -84,6 +85,25 @@
             margin: 0;
             padding: 0;
             white-space: nowrap;
+        }
+
+        /* === ФИКСИРОВАННАЯ ПЛАШКА ФИЛЬТРОВ/ПОИСКА (Чтобы не улетала при клике) === */
+        .hashtag-filter-bar, .search-results-bar, .tag-navigation-container {
+            position: fixed !important;
+            top: 75px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: calc(100% - 24px) !important;
+            max-width: 600px;
+            z-index: 999 !important;
+            background-color: rgba(25, 25, 30, 0.9) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px;
+            padding: 10px 16px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
         }
 
         /* === КНОПКИ В ФУТЕРЕ === */
@@ -183,9 +203,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* === ЖЕСТКИЙ ФИКС КРЕСТИКА В ЛАЙТБОКСЕ ===
-           Гарантируем абсолютное позиционирование в правом верхнем углу экрана
-        */
+        /* === ИДЕАЛЬНЫЙ ФИКС КРЕСТИКА В ЛАЙТБОКСЕ === */
         #lightboxModal {
             position: fixed !important;
             top: 0 !important;
@@ -205,9 +223,9 @@
 
         .lightbox-close {
             position: fixed !important;
-            top: 20px !important;
+            top: 55px !important;
             right: 20px !important;
-            background: rgba(40, 40, 45, 0.8) !important;
+            background: rgba(25, 25, 30, 0.85) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
             backdrop-filter: blur(10px) !important;
             -webkit-backdrop-filter: blur(10px) !important;
@@ -218,11 +236,12 @@
             align-items: center !important;
             justify-content: center !important;
             color: #ffffff !important;
-            font-size: 24px !important;
-            line-height: 1 !important;
+            font-size: 26px !important;
             cursor: pointer !important;
             z-index: 100000000 !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
     </style>
 </head>
@@ -230,7 +249,7 @@
     <div class="bg-glow" id="bgLayer"></div>
 
     <div class="app-container">
-        <!-- Фиксированное меню (как в ТГ) -->
+        <!-- Фиксированное верхнее меню -->
         <aside class="main-menu">
             <nav class="main-menu-nav">
                 <ul class="menu-list">
@@ -333,7 +352,6 @@
         </div>
     </div>
 
-    <!-- СКРИПТ ПРИЛОЖЕНИЯ (Обрати внимание на правку направления рендеринга постов) -->
     <script src="js/app.js"></script>
 
     <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
@@ -347,7 +365,7 @@
                 <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
             </div>
 
-            <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
+            <button type="buffer" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
         </div>
     </div>
 </body>
