@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'theme-aurora', title: 'Emerald Glow', value: 'radial-gradient(circle at 80% 20%, rgba(0, 180, 100, 0.3) 0%, rgba(10, 30, 20, 0.85) 50%, rgba(6, 12, 10, 1) 90%)' }
     ];
 
-        function applyBackground(bgValue, scale = currentScale) {
+    function applyBackground(bgValue, scale = currentScale) {
         currentBg = bgValue;
         currentScale = scale;
         localStorage.setItem('app_background', bgValue);
@@ -34,12 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
         bgLayer.style.transform = `scale(${scaleFactor})`;
         bgLayer.style.transformOrigin = 'center center';
         
-        // Сбрасываем старые стили фона
         bgLayer.style.background = '';
         bgLayer.style.backgroundColor = '';
         bgLayer.style.backgroundImage = '';
 
-        // Применяем новый фон мгновенно
         if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
             bgLayer.style.backgroundImage = `url("${bgValue}")`;
             bgLayer.style.backgroundSize = 'cover';
@@ -50,10 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
             bgLayer.style.backgroundColor = bgValue;
         }
         
-        // Перерисовываем галерею в самом конце
         renderWallpapers();
     }
-
 
     function renderWallpapers() {
         if (!bgGallery) return;
@@ -161,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!searchBarContainer) {
         searchBarContainer = document.createElement('div');
         searchBarContainer.id = 'telegramSearchBar';
-        searchBarContainer.style.cssText = 'display: none; align-items: center; gap: 10px; background: rgba(24, 24, 27, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 14px; border-radius: 12px; margin-bottom: 16px; backdrop-filter: blur(10px);';
         searchBarContainer.innerHTML = `
             <input type="text" id="tgSearchInput" placeholder="Поиск по хэштегу (#tag)..." style="flex: 1; background: transparent; border: none; color: #fff; outline: none; font-size: 14px;">
             <span id="tgSearchCounter" style="color: #a1a1aa; font-size: 13px; white-space: nowrap;">0 из 0</span>
@@ -429,7 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const timeString = now.toISOString();
 
-            notes.unshift({
+            // СТРОГО ПУШ В КОНЕЦ (.push), ЧТОБЫ ПОСТЫ СОЗДАВАЛИСЬ ВНИЗУ ЛЕНТЫ
+            notes.push({
                 folder: activeFolder,
                 title: title || 'Без названия',
                 text: text,
@@ -493,7 +489,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchResults.length === 0) return;
         renderNotes(tgSearchInput.value.trim(), currentSearchIndex);
         const targetCard = document.querySelector(`[data-search-id="${currentSearchIndex}"]`);
-        if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (targetCard) {
+            // Мягкий скролл карточки чуть ниже плашки поиска, чтобы не перекрывать её
+            const yOffset = -140; 
+            const y = targetCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
     }
 
     if (tgPrevBtn) {
@@ -521,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderNotes();
 });
 
-// --- ЛАЙТБОКС (МГТНОВЕННОЕ ПЕРЕКЛЮЧЕНИЕ БЕЗ БАГОВ) ---
+// --- ЛАЙТБОКС ---
 let currentLightboxImages = [];
 let currentLightboxIndex = 0;
 
@@ -548,7 +549,6 @@ function closeLightbox() {
 function changeLightboxImage(direction) {
     if (currentLightboxImages.length <= 1) return;
     
-    // Считаем новый индекс по кругу
     currentLightboxIndex = (currentLightboxIndex + direction + currentLightboxImages.length) % currentLightboxImages.length;
     
     const img = document.getElementById('lightboxImg');
@@ -557,7 +557,6 @@ function changeLightboxImage(direction) {
     }
 }
 
-// Навешиваем обработчики
 document.addEventListener('DOMContentLoaded', () => {
     const lightboxModal = document.getElementById('lightboxModal');
     const closeBtn = document.getElementById('lightboxCloseBtn');
@@ -565,7 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextBtn = document.getElementById('lightboxNextBtn');
 
     if (lightboxModal) {
-        // Закрытие по клику на темный фон
         lightboxModal.addEventListener('click', (e) => {
             if (e.target === lightboxModal) {
                 closeLightbox();

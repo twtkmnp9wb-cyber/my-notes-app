@@ -53,6 +53,7 @@ input:focus,
     position: relative;
 }
 
+/* Мобильная шапка/меню (фиксирована под Dynamic Island на мобилках) */
 .main-menu {
     width: 240px;
     padding: 24px 16px;
@@ -62,7 +63,7 @@ input:focus,
     left: 0;
     height: 100vh;
     box-sizing: border-box;
-    z-index: 100;
+    z-index: 1000;
     
     background: rgba(30, 30, 38, 0.75) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
@@ -399,7 +400,6 @@ input:focus,
     transform: scale(1.1);
 }
 
-/* ИСПРАВЛЕННЫЙ БЛОК ВЫБОРА ФАЙЛА В НАСТРОЙКАХ (теперь адаптивный, не вылезает) */
 .custom-bg-input-group {
     display: flex;
     flex-direction: column;
@@ -474,28 +474,39 @@ input:focus,
     .app-container {
         flex-direction: column;
         padding: 0;
+        /* Большой отступ сверху, чтобы контент не залезал под плавающее меню и поиск */
+        padding-top: calc(env(safe-area-inset-top, 20px) + 125px) !important;
     }
+
+    /* Верхнее меню фиксируется ПОД Dynamic Island */
     .main-menu {
-        position: relative;
-        width: 100%;
-        height: auto;
-        top: auto;
-        left: auto;
-        border-radius: 0 0 16px 16px;
-        border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-top: none !important;
-        padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-        padding-bottom: 12px;
-        padding-left: 16px;
-        padding-right: 16px;
-        margin-bottom: 16px;
+        position: fixed !important;
+        top: calc(env(safe-area-inset-top, 20px) + 8px) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: calc(100% - 24px) !important;
+        max-width: 600px !important;
+        height: auto !important;
+        
+        background: rgba(25, 25, 30, 0.85) !important;
+        backdrop-filter: blur(14px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+        
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 14px !important;
+        padding: 8px 12px !important;
+        margin-bottom: 0 !important;
+        z-index: 1000 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
+
     .menu-list {
         display: flex;
-        justify-content: flex-start;
-        gap: 8px;
+        justify-content: space-around;
+        align-items: center;
+        gap: 6px;
         overflow-x: auto;
-        padding-bottom: 4px;
+        padding-bottom: 0;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -509,10 +520,33 @@ input:focus,
     }
 
     .menu-btn {
-        padding: 8px 14px;
+        padding: 6px 12px;
         text-align: center;
         white-space: nowrap;
-        font-size: 14px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    /* Плашка поиска (#telegramSearchBar) встает прямо под верхним меню */
+    #telegramSearchBar {
+        position: fixed !important;
+        top: calc(env(safe-area-inset-top, 20px) + 62px) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: calc(100% - 24px) !important;
+        max-width: 600px !important;
+        z-index: 999 !important;
+        background: rgba(25, 25, 30, 0.9) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 12px;
+        padding: 6px 12px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        display: none; /* Управляется JS */
+        align-items: center;
+        gap: 8px;
     }
 
     .content-wrapper {
@@ -541,14 +575,14 @@ input:focus,
     }
 }
 
-/* --- Стили для медиа в постах (исправление обрезанных крестиков) --- */
+/* --- Стили для медиа в постах --- */
 .media-preview-item {
     position: relative;
     flex-shrink: 0;
     width: 70px;
     height: 70px;
     border-radius: 10px;
-    overflow: visible; /* Чтобы крестик не обрезался границами */
+    overflow: visible;
 }
 
 .media-preview-item img {
