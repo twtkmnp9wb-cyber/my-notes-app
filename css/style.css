@@ -485,41 +485,80 @@ input:focus,
     border-radius: 10px;
 }
 
+/* ==========================================
+   АДАПТИВ ДЛЯ МОБИЛЬНЫХ ТЕЛЕФОНОВ
+   ========================================== */
 @media (max-width: 768px) {
+    /* Делаем контейнер гибким колонкой */
     .app-container {
         flex-direction: column;
+        padding: 0;
     }
 
+    /* Отменяем фиксированное меню слева, чтобы оно стало шапкой-табами */
     .main-menu {
-        width: calc(100% - 32px);
-        max-width: 800px;
-        margin: 16px auto 0;
-        padding: 8px 16px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
+        position: relative;
+        width: 100%;
+        height: auto;
+        top: auto;
+        left: auto;
+        border-radius: 0 0 16px 16px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-top: none !important;
+        padding: 12px;
+        margin-bottom: 16px;
     }
 
+    /* Список вкладок делаем с горизонтальной прокруткой */
     .menu-list {
         display: flex;
-        justify-content: space-around;
+        justify-content: flex-start;
         gap: 8px;
         overflow-x: auto;
+        padding-bottom: 4px;
     }
 
     .menu-list li {
         margin-bottom: 0;
+        flex-shrink: 0;
     }
 
     .menu-btn {
-        padding: 8px 12px;
+        padding: 8px 14px;
         text-align: center;
         white-space: nowrap;
+        font-size: 14px;
     }
 
+    /* Возвращаем контенту нормальный отступ вместо десктопного слева */
+    .content-wrapper {
+        margin-left: 0;
+        padding: 12px;
+        width: 100%;
+    }
+
+    /* Шапка с логотипом чуть компактнее */
+    .header {
+        margin-bottom: 16px;
+    }
+    
+    .header img {
+        max-width: 140px;
+    }
+
+    /* Смещаем плавающие кнопки чуть выше и правее, чтобы не перекрывали текст */
     .app-footer {
-        left: 50%;
+        bottom: 16px;
+        right: 16px;
+    }
+    
+    .action-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
     }
 }
+
 /* --- Стили для медиа в постах (как в Telegram) --- */
 
 .note-image-container {
