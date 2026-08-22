@@ -12,12 +12,15 @@
 html, body {
     margin: 0;
     padding: 0;
-    min-height: 100vh;
+    width: 100%;
+    height: 100vh;
     font-family: "Inter", sans-serif;
     color: #ffffff;
-    background: transparent; /* Убираем #09090b, делаем прозрачным */
-    overflow-x: hidden;
+    background: transparent;
+    overflow-x: hidden !important; /* Жестко гасим горизонтальный скролл */
 }
+
+
 
 
 button:focus, 
@@ -49,18 +52,26 @@ input:focus,
    ========================================== */
 .app-container {
     display: flex; 
+    width: 100%;
     min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
 }
 
-/* Сбалансированный полутемный стиль для меню и карточек */
 .main-menu {
     width: 240px;
-    margin: 0;
     padding: 24px 16px;
     flex-shrink: 0;
     
-    /* Делаем чуть светлее и мягче */
-    background: rgba(30, 30, 38, 0.65) !important;
+    /* Делаем меню полностью фиксированным */
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    box-sizing: border-box;
+    z-index: 100;
+    
+    background: rgba(30, 30, 38, 0.75) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     
@@ -68,9 +79,10 @@ input:focus,
     border-radius: 0 20px 20px 0;
     border-left: none !important;
     
-    transform: translateZ(0);
-    overflow: hidden;
+    overflow-y: auto;
 }
+
+
 .menu-list {
     list-style: none;
 }
@@ -107,7 +119,12 @@ input:focus,
    ========================================== */
 .content-wrapper {
     flex-grow: 1;
+    margin-left: 240px; /* Смещаем контент ровно на ширину фиксированного меню */
     padding: 24px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Центрируем содержимое (посты и шапку) */
 }
 
 .header {
@@ -202,16 +219,19 @@ input:focus,
 /* ==========================================
    4. ПЛАВАЮЩИЙ ФУТЕР
    ========================================== */
+
+/* Плавающие кнопки — привязываем к правому нижнему углу блока контента или экрана */
 .app-footer {
     position: fixed;
     bottom: 24px;
-    left: calc(50% + 120px);
-    transform: translateX(-50%);
+    right: 32px;
+    z-index: 999;
 }
 
 .footer-container {
     display: flex;
-    gap: 16px;
+    flex-direction: column; /* Делаем кнопки друг под другом, как в веб-версии телеги */
+    gap: 12px;
 }
 
 .action-btn {
@@ -499,4 +519,36 @@ input:focus,
     .app-footer {
         left: 50%;
     }
+}
+/* --- Стили для медиа в постах (как в Telegram) --- */
+
+.note-image-container {
+    margin-top: 12px;
+    width: 100%;
+}
+
+/* Одиночная картинка: адаптивная по ширине, с красивой максимальной высотой */
+.note-image-container img {
+    display: block;
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Сетка для нескольких картинок */
+.note-images-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* По 2 штуки в ряд, как в тг */
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.note-images-grid img {
+    width: 100%;
+    height: 160px; /* Фиксированная комфортная высота для сетки */
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }

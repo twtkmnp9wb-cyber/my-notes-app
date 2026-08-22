@@ -22,62 +22,34 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     function applyBackground(bgValue, scale = currentScale) {
-    currentBg = bgValue;
-    currentScale = scale;
-    localStorage.setItem('app_background', bgValue);
-    localStorage.setItem('app_background_scale', scale);
+        currentBg = bgValue;
+        currentScale = scale;
+        localStorage.setItem('app_background', bgValue);
+        localStorage.setItem('app_background_scale', scale);
 
-    const bgLayer = document.getElementById('bgLayer'); // Ищем элемент при каждом вызове
-    if (!bgLayer) {
-        console.error('Ошибка: Элемент #bgLayer не найден в HTML!');
-        return;
-    }
+        const bgLayer = document.getElementById('bgLayer');
+        if (!bgLayer) return;
 
-    const scaleFactor = scale / 100;
-    bgLayer.style.transform = `scale(${scaleFactor})`;
-    bgLayer.style.transformOrigin = 'center center';
-    
-    // Сбрасываем всё
-    bgLayer.style.background = '';
-    bgLayer.style.backgroundColor = '';
-    bgLayer.style.backgroundImage = '';
-
-    // Применяем
-    if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
-        bgLayer.style.backgroundImage = `url("${bgValue}")`;
-        bgLayer.style.backgroundSize = 'cover';
-        bgLayer.style.backgroundPosition = 'center';
-    } else if (bgValue.includes('gradient')) {
-        bgLayer.style.background = bgValue;
-    } else {
-        bgLayer.style.backgroundColor = bgValue;
-    }
-    
-    console.log('Фон успешно применен:', bgValue);
-    renderWallpapers();
-}
-
-// Перепиши обработчик загрузки файла вот так:
-bgFileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const base64 = event.target.result;
-        customWallpapers.push({ 
-            id: 'custom-' + Date.now(), 
-            title: 'Свои обои', 
-            value: base64 
-        });
-        localStorage.setItem('my_custom_wallpapers', JSON.stringify(customWallpapers));
+        const scaleFactor = scale / 100;
+        bgLayer.style.transform = `scale(${scaleFactor})`;
+        bgLayer.style.transformOrigin = 'center center';
         
-        // ВАЖНО: вызываем функцию сразу
-        applyBackground(base64);
-    };
-    reader.readAsDataURL(file);
-});
+        bgLayer.style.background = '';
+        bgLayer.style.backgroundColor = '';
+        bgLayer.style.backgroundImage = '';
 
+        if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
+            bgLayer.style.backgroundImage = `url("${bgValue}")`;
+            bgLayer.style.backgroundSize = 'cover';
+            bgLayer.style.backgroundPosition = 'center';
+        } else if (bgValue.includes('gradient')) {
+            bgLayer.style.background = bgValue;
+        } else {
+            bgLayer.style.backgroundColor = bgValue;
+        }
+        
+        renderWallpapers();
+    }
 
     function renderWallpapers() {
         if (!bgGallery) return;
@@ -86,11 +58,7 @@ bgFileInput.addEventListener('change', (e) => {
         defaultWallpapers.forEach(item => {
             const card = document.createElement('div');
             card.classList.add('wallpaper-card');
-            if (item.value.startsWith('radial-gradient')) {
-                card.style.background = item.value;
-            } else {
-                card.style.backgroundColor = item.value;
-            }
+            card.style.background = item.value;
             if (item.value === currentBg) card.classList.add('active');
             card.innerHTML = `<span class="wallpaper-card-title">${item.title}</span>`;
             card.addEventListener('click', () => applyBackground(item.value));
@@ -164,7 +132,6 @@ bgFileInput.addEventListener('change', (e) => {
 
     applyBackground(currentBg, currentScale);
 
-
     // --- 2. МЕНЮ, ПАПКИ И ЗАМЕТКИ ---
     const menuButtons = document.querySelectorAll('.menu-btn');
     const searchBtn = document.getElementById('searchBtn');
@@ -222,7 +189,7 @@ bgFileInput.addEventListener('change', (e) => {
         return `${dayMonth} ${time}`;
     }
 
-    function renderNotes(filterTag = '', highlightIndex = -1) {
+    window.renderNotes = function(filterTag = '', highlightIndex = -1) {
         if (!notesContainer) return;
         notesContainer.innerHTML = '';
 
@@ -263,9 +230,22 @@ bgFileInput.addEventListener('change', (e) => {
 
             const cleanTime = formatCleanDate(note.time);
 
+            let imagesHtml = '';
+            if (note.images && note.images.length > 0) {
+                const imgsJson = JSON.stringify(note.images).replace(/"/g, '&quot;');
+                const imgsGrid = note.images.map((img, imgIdx) => `
+                    <img src="${img}" onclick="openLightbox(${imgsJson}, ${imgIdx})" alt="Attached media" />
+                `).join('');
+                imagesHtml = `<div class="note-images-grid">${imgsGrid}</div>`;
+            } else if (note.image) {
+                const imgsJson = JSON.stringify([note.image]).replace(/"/g, '&quot;');
+                imagesHtml = `<div class="note-image-container"><img src="${note.image}" onclick="openLightbox(${imgsJson}, 0)" alt="Attached media" /></div>`;
+            }
+
             card.innerHTML = `
                 <h3 class="note-title">${escapeHtml(note.title)}</h3>
                 <p class="note-text">${escapeHtml(note.text)}</p>
+                ${imagesHtml}
                 <div class="note-footer">
                     ${hashtagHtml}
                     <span class="note-time">${cleanTime}</span>
@@ -292,30 +272,22 @@ bgFileInput.addEventListener('change', (e) => {
     }
 
     function updateFolderUI() {
-    const isMediaFolder = activeFolder.includes('media');
-
-    if (searchBtn) {
-        searchBtn.style.display = isMediaFolder ? 'flex' : 'none';
+        const isMediaFolder = activeFolder.includes('media');
+        if (searchBtn) searchBtn.style.display = isMediaFolder ? 'flex' : 'none';
+        const hashtagWrapper = document.querySelector('.hashtag-field-wrapper');
+        if (hashtagWrapper) {
+            hashtagWrapper.style.display = isMediaFolder ? 'block' : 'none';
+        } else if (noteHashtagInput) {
+            noteHashtagInput.style.display = isMediaFolder ? 'block' : 'none';
+        }
     }
-
-    // Управляем видимостью поля хэштега
-    const hashtagWrapper = document.querySelector('.hashtag-field-wrapper');
-    if (hashtagWrapper) {
-        hashtagWrapper.style.display = isMediaFolder ? 'block' : 'none';
-    } else if (noteHashtagInput) {
-        noteHashtagInput.style.display = isMediaFolder ? 'block' : 'none';
-    }
-}
-
 
     function switchFolder(folderName, btnElement) {
         activeFolder = folderName.toLowerCase();
         localStorage.setItem('app_active_folder', activeFolder);
 
         menuButtons.forEach(b => b.classList.remove('active'));
-        if (btnElement) {
-            btnElement.classList.add('active');
-        }
+        if (btnElement) btnElement.classList.add('active');
 
         updateFolderUI();
 
@@ -330,7 +302,6 @@ bgFileInput.addEventListener('change', (e) => {
     menuButtons.forEach(btn => {
         const text = btn.textContent.trim().toLowerCase();
         
-        // Универсальный поиск кнопки настроек (и по классу, и по тексту)
         if (text.includes('settings') || text.includes('настройк') || btn.id === 'settingsBtn') {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -366,6 +337,8 @@ bgFileInput.addEventListener('change', (e) => {
             if (noteTitleInput) noteTitleInput.value = '';
             if (noteTextInput) noteTextInput.value = '';
             if (noteHashtagInput) noteHashtagInput.value = '';
+            attachedImages = [];
+            renderMediaPreviews();
             if (noteModal) noteModal.classList.add('active');
         });
     }
@@ -384,6 +357,59 @@ bgFileInput.addEventListener('change', (e) => {
         });
     }
 
+    const noteMediaInput = document.getElementById('noteMediaInput');
+    const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
+    let attachedImages = [];
+
+    if (noteMediaInput) {
+        noteMediaInput.addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    attachedImages.push(e.target.result);
+                    renderMediaPreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            noteMediaInput.value = '';
+        });
+    }
+
+    function renderMediaPreviews() {
+        if (!mediaPreviewContainer) return;
+        mediaPreviewContainer.innerHTML = '';
+
+        if (attachedImages.length === 0) {
+            mediaPreviewContainer.style.display = 'none';
+            return;
+        }
+
+        mediaPreviewContainer.style.display = 'flex';
+
+        attachedImages.forEach((imgBase64, index) => {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position: relative; flex-shrink: 0;';
+            const imgsJson = JSON.stringify(attachedImages).replace(/"/g, '&quot;');
+            wrap.innerHTML = `
+                <img src="${imgBase64}" onclick="openLightbox(${imgsJson}, ${index})" alt="Preview" style="height: 70px; width: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #444; cursor: pointer;" />
+                <button type="button" class="remove-preview-btn" data-index="${index}" style="position: absolute; top: -6px; right: -6px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+            `;
+            mediaPreviewContainer.appendChild(wrap);
+        });
+
+        mediaPreviewContainer.querySelectorAll('.remove-preview-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.getAttribute('data-index'));
+                attachedImages.splice(idx, 1);
+                renderMediaPreviews();
+            });
+        });
+    }
+
     if (saveNoteBtn) {
         saveNoteBtn.addEventListener('click', () => {
             const title = noteTitleInput ? noteTitleInput.value.trim() : '';
@@ -391,8 +417,8 @@ bgFileInput.addEventListener('change', (e) => {
             const isMediaFolder = activeFolder.includes('media');
             const hashtag = (isMediaFolder && noteHashtagInput) ? noteHashtagInput.value.trim() : '';
 
-            if (!title && !text) {
-                alert('Заполните заголовок или текст заметки!');
+            if (!title && !text && attachedImages.length === 0) {
+                alert('Заполните заголовок, текст или прикрепите файлы к заметке!');
                 return;
             }
 
@@ -404,7 +430,8 @@ bgFileInput.addEventListener('change', (e) => {
                 title: title || 'Без названия',
                 text: text,
                 hashtag: hashtag ? (hashtag.startsWith('#') ? hashtag : '#' + hashtag) : '',
-                time: timeString
+                time: timeString,
+                images: [...attachedImages]
             });
 
             localStorage.setItem('app_notes', JSON.stringify(notes));
@@ -412,13 +439,16 @@ bgFileInput.addEventListener('change', (e) => {
             if (noteTitleInput) noteTitleInput.value = '';
             if (noteTextInput) noteTextInput.value = '';
             if (noteHashtagInput) noteHashtagInput.value = '';
+            
+            attachedImages = [];
+            renderMediaPreviews();
 
             if (noteModal) noteModal.classList.remove('active');
             renderNotes(isSearchActive ? tgSearchInput.value.trim() : '');
         });
     }
 
-    // --- TELEGRAM-СТИЛЬ ИНЛАЙН-ПОИСКА ---
+    // --- ПОИСК ---
     function openSearch() {
         if (!activeFolder.includes('media')) return;
         isSearchActive = true;
@@ -440,17 +470,12 @@ bgFileInput.addEventListener('change', (e) => {
     if (searchBtn) {
         searchBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            if (isSearchActive) {
-                closeSearch();
-            } else {
-                openSearch();
-            }
+            if (isSearchActive) closeSearch();
+            else openSearch();
         });
     }
 
-    if (tgCloseBtn) {
-        tgCloseBtn.addEventListener('click', closeSearch);
-    }
+    if (tgCloseBtn) tgCloseBtn.addEventListener('click', closeSearch);
 
     if (tgSearchInput) {
         tgSearchInput.addEventListener('input', (e) => {
@@ -463,11 +488,8 @@ bgFileInput.addEventListener('change', (e) => {
     function jumpToSearchIndex() {
         if (searchResults.length === 0) return;
         renderNotes(tgSearchInput.value.trim(), currentSearchIndex);
-
         const targetCard = document.querySelector(`[data-search-id="${currentSearchIndex}"]`);
-        if (targetCard) {
-            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     if (tgPrevBtn) {
@@ -481,7 +503,7 @@ bgFileInput.addEventListener('change', (e) => {
     if (tgNextBtn) {
         tgNextBtn.addEventListener('click', () => {
             if (searchResults.length === 0) return;
-            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            currentSearchIndex = (currentSearchIndex + 1 + searchResults.length) % searchResults.length;
             jumpToSearchIndex();
         });
     }
@@ -495,3 +517,65 @@ bgFileInput.addEventListener('change', (e) => {
     renderNotes();
 });
 
+// --- ЛАЙТБОКС (МГТНОВЕННОЕ ПЕРЕКЛЮЧЕНИЕ БЕЗ БАГОВ) ---
+let currentLightboxImages = [];
+let currentLightboxIndex = 0;
+
+function openLightbox(images, index = 0) {
+    currentLightboxImages = Array.isArray(images) ? images : [images];
+    currentLightboxIndex = index;
+
+    const modal = document.getElementById('lightboxModal');
+    const img = document.getElementById('lightboxImg');
+
+    if (modal && img) {
+        img.src = currentLightboxImages[currentLightboxIndex];
+        modal.style.display = 'flex';
+    }
+}
+
+function closeLightbox() {
+    const modal = document.getElementById('lightboxModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function changeLightboxImage(direction) {
+    if (currentLightboxImages.length <= 1) return;
+    
+    // Считаем новый индекс по кругу
+    currentLightboxIndex = (currentLightboxIndex + direction + currentLightboxImages.length) % currentLightboxImages.length;
+    
+    const img = document.getElementById('lightboxImg');
+    if (img) {
+        img.src = currentLightboxImages[currentLightboxIndex];
+    }
+}
+
+// Навешиваем обработчики
+document.addEventListener('DOMContentLoaded', () => {
+    const lightboxModal = document.getElementById('lightboxModal');
+    const closeBtn = document.getElementById('lightboxCloseBtn');
+    const prevBtn = document.getElementById('lightboxPrevBtn');
+    const nextBtn = document.getElementById('lightboxNextBtn');
+
+    if (lightboxModal) {
+        // Закрытие по клику на темный фон
+        lightboxModal.addEventListener('click', (e) => {
+            if (e.target === lightboxModal) {
+                closeLightbox();
+            }
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+    if (prevBtn) prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        changeLightboxImage(-1);
+    });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        changeLightboxImage(1);
+    });
+});
