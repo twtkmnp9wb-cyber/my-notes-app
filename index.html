@@ -13,7 +13,7 @@
     
     <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
     <style>
-        /* Полная очистка фона и фиксация высоты под мобилки */
+        /* Базовые настройки экрана */
         html, body {
             background: #000000 !important;
             background-color: #000000 !important;
@@ -21,18 +21,18 @@
             margin: 0;
             padding: 0;
             width: 100vw;
-            height: 100dvh;
+            min-height: 100vh;
             overflow-x: hidden;
             box-sizing: border-box;
         }
 
-        /* Обои в оригинальном цвете без темных фильтров */
+        /* Обои на заднем плане */
         .bg-glow {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             width: 100vw !important;
-            height: 100dvh !important;
+            height: 100vh !important;
             z-index: 0 !important;
             background-size: cover !important;
             background-position: center !important;
@@ -45,20 +45,25 @@
             z-index: 2 !important;
             display: flex;
             flex-direction: column;
-            min-height: 100dvh;
-            padding-top: env(safe-area-inset-top, 20px);
+            min-height: 100vh;
+            padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
+            padding-bottom: 90px;
         }
 
-        /* Меню без разрезов и скроллбара */
+        /* Верхнее меню: полноценная панель */
         .main-menu {
             position: sticky !important;
-            top: 0 !important;
+            top: 10px !important;
             z-index: 100 !important;
-            background: rgba(15, 15, 18, 0.9) !important;
+            width: calc(100% - 24px) !important;
+            margin: 0 auto 15px auto !important;
+            background: rgba(18, 18, 22, 0.85) !important;
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            padding: 10px 16px !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 16px !important;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
         }
 
         .main-menu-nav {
@@ -101,7 +106,7 @@
             box-sizing: border-box !important;
         }
 
-        /* Контейнер превью фото — убираем наплывы друг на друга */
+        /* Превью фото */
         #mediaPreviewContainer {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -109,7 +114,6 @@
             margin-top: 10px !important;
         }
 
-        /* Превью карточки фото */
         .media-preview-item {
             position: relative !important;
             flex-shrink: 0 !important;
@@ -127,7 +131,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        /* Крестик удаления */
+        /* Крестик удаления файлов */
         .remove-media-btn {
             position: absolute !important;
             top: -6px !important;
@@ -145,6 +149,28 @@
             cursor: pointer !important;
             z-index: 20 !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Единый стиль для крестиков закрытия (в лайтбоксе и модалках) */
+        .lightbox-close, .close-modal-btn, .modal-close, [id*="close"] {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #fff !important;
+            font-size: 18px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+
+        /* Жесткий фикс для Лайтбокса */
+        #lightboxModal {
+            z-index: 9999999 !important;
+            background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
 
