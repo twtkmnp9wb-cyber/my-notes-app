@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+Document.addEventListener('DOMContentLoaded', () => {
     console.log('App loaded successfully.');
 
     // --- 1. ОБОИ И ТЕМЫ ---
@@ -370,7 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Добавили paddingTop: 10px, чтобы крестики сверху не обрезались краем контейнера!
         mediaPreviewContainer.style.cssText = 'display: flex !important; gap: 10px !important; overflow-x: auto !important; flex-wrap: nowrap !important; margin-top: 10px !important; padding-top: 10px !important; padding-bottom: 6px !important; width: 100% !important;';
 
         attachedImages.forEach((imgBase64, index) => {
@@ -408,7 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const timeString = now.toISOString();
 
-            notes.unshift({
+            // Изменили unshift на push, чтобы новые посты уходили в самый низ
+            notes.push({
                 folder: activeFolder,
                 title: title || 'Без названия',
                 text: text,
