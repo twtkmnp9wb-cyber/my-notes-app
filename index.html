@@ -12,7 +12,7 @@
     <title>Заметки</title>
     
     <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
-        <style>
+    <style>
         /* Базовые настройки экрана */
         html, body {
             background: #000000 !important;
@@ -47,7 +47,7 @@
             flex-direction: column;
             min-height: 100dvh;
             padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-            padding-bottom: 140px;
+            padding-bottom: 100px; /* Запас снизу, чтобы карточки не резались */
         }
 
         /* Верхнее меню */
@@ -84,67 +84,60 @@
             white-space: nowrap;
         }
 
-        /* === ЖЕСТКИЙ ФИКС НИЖНИХ КНОПОК === */
-        /* Создаем единый контейнер, который ПЛАВАЕТ над всем */
-        .floating-fab-container {
-            position: fixed !important;
-            right: 20px !important;
-            bottom: 100px !important; /* Точно выше системной полоски iOS */
-            z-index: 1000 !important; /* Максимальный приоритет */
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 16px !important;
-            pointer-events: auto !important; /* Чтобы клики работали */
-            background: transparent !important;
+        /* === КНОПКИ В ФУТЕРЕ (КАК БЫЛО) === */
+        .app-footer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background: transparent;
         }
 
-        /* Сами кнопки внутри контейнера */
+        .footer-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
         #searchBtn, #addNoteBtn {
-            position: static !important; /* Внутри флоата позиция статична */
-            margin: 0 !important;
-            width: 56px !important;
-            height: 56px !important;
+            width: 52px !important;
+            height: 52px !important;
             border-radius: 50% !important;
-            background-color: rgba(255, 255, 255, 0.15) !important;
-            backdrop-filter: blur(10px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+            background-color: rgba(25, 25, 30, 0.85) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             color: #fff !important;
-            font-size: 24px !important;
+            font-size: 22px !important;
             cursor: pointer !important;
-            transition: background-color 0.2s ease, transform 0.2s ease !important;
         }
         
         #searchBtn:active, #addNoteBtn:active {
             transform: scale(0.95) !important;
-            background-color: rgba(255, 255, 255, 0.25) !important;
+            background-color: rgba(45, 45, 55, 0.95) !important;
         }
 
-        /* === ФИКС ВЫБОРА ФАЙЛА (Убираем желтый цвет) === */
+        /* === ФИКС ВЫБОРА ФАЙЛА (Убран желтый цвет) === */
         .file-upload-btn {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             width: 100% !important;
             padding: 12px !important;
-            /* Жестко задаем темно-серый цвет, убирая желтый */
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
             border-radius: 8px !important;
             color: #fff !important;
             font-size: 14px !important;
             cursor: pointer !important;
             box-sizing: border-box !important;
-            transition: background-color 0.2s ease !important;
-        }
-        .file-upload-btn:hover {
-            background: rgba(255, 255, 255, 0.15) !important;
         }
 
-        /* === Крестики удаления (нормального размера) === */
+        /* === Крестики удаления (нормальный размер) === */
         .remove-media-btn, .remove-bg-btn {
             position: absolute !important;
             top: -8px !important;
@@ -191,7 +184,7 @@
         /* === Крестик в лайтбоксе === */
         .lightbox-close {
             position: absolute !important;
-            top: 70px !important;
+            top: 60px !important;
             right: 20px !important;
             background: rgba(0, 0, 0, 0.6) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -213,8 +206,6 @@
             background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
-
-
 </head>
 <body>
     <div class="bg-glow" id="bgLayer"></div>
@@ -242,6 +233,7 @@
                     <!-- Заметки -->
                 </div>
             </main>
+            <!-- Возвращенный футер с кнопками на свое место -->
             <footer class="app-footer">
                 <div class="footer-container">
                     <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
@@ -322,26 +314,18 @@
 
     <script src="js/app.js"></script>
 
-    <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА (КРЕСТИК ОПУЩЕН НИЖЕ СТАТУС-БАРА, СТРЕЛКИ ПО КРАЯМ) -->
+    <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
     <div id="lightboxModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.96); backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; box-sizing: border-box;">
+        <button type="button" id="lightboxCloseBtn" class="lightbox-close">&times;</button>
         
-        <!-- Крестик закрытия смещен ниже зоны динамического острова/часов -->
-        <button type="button" id="lightboxCloseBtn" style="position: absolute; top: 60px; right: 20px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 50;">&times;</button>
-        
-        <!-- Основной контейнер просмотрщика -->
         <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 500px; height: 70vh; padding: 0 50px; box-sizing: border-box;">
-            
-            <!-- Стрелка НАЗАД (слева от картинки) -->
             <button type="button" id="lightboxPrevBtn" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">‹</button>
             
-            <!-- Картинка -->
             <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                 <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
             </div>
 
-            <!-- Стрелка ВПЕРЕД (справа от картинки) -->
             <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
-            
         </div>
     </div>
 </body>
