@@ -47,7 +47,7 @@ input:focus,
     z-index: 1;
 }
 
-/* БЛЮР СВЕРХУ (накрывает всю зону под часами и Dynamic Island, как в Telegram) */
+/* БЛЮР СВЕРХУ */
 .app-container::before {
     content: '';
     position: fixed;
@@ -64,7 +64,6 @@ input:focus,
     -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
 }
 
-/* Фиксированный блок сверху (уходит под статус-бар, как в TG) */
 .fixed-top-bar {
     position: fixed;
     top: 0;
@@ -196,7 +195,7 @@ input:focus,
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 260px); /* Увеличено до 260px, чтобы самый нижний пост полностью прокручивался */
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 340px); /* УВЕЛИЧЕНО до 340px, чтобы низ ленты прокручивался с запасом ниже плавающих кнопок */
     box-sizing: border-box;
 }
 

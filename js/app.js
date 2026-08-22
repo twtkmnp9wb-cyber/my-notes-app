@@ -370,17 +370,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Жестко задаем стили контейнеру превью через JS, чтобы исключить наложения
-        mediaPreviewContainer.style.cssText = 'display: flex !important; gap: 10px !important; overflow-x: auto !important; flex-wrap: nowrap !important; margin-top: 10px !important; padding-bottom: 6px !important; width: 100% !important;';
+        // Добавили paddingTop: 10px, чтобы крестики сверху не обрезались краем контейнера!
+        mediaPreviewContainer.style.cssText = 'display: flex !important; gap: 10px !important; overflow-x: auto !important; flex-wrap: nowrap !important; margin-top: 10px !important; padding-top: 10px !important; padding-bottom: 6px !important; width: 100% !important;';
 
         attachedImages.forEach((imgBase64, index) => {
             const wrap = document.createElement('div');
-            // Жестко фиксируем размеры обертки, запрещаем сжатие (flex-shrink: 0)
-            wrap.style.cssText = 'position: relative !important; flex: 0 0 70px !important; width: 70px !important; height: 70px !important;';
+            wrap.style.cssText = 'position: relative !important; flex: 0 0 70px !important; width: 70px !important; height: 70px !important; margin-top: 4px !important;';
             const imgsJson = JSON.stringify(attachedImages).replace(/"/g, '&quot;');
             wrap.innerHTML = `
                 <img src="${imgBase64}" onclick="openLightbox(${imgsJson}, ${index})" alt="Preview" style="width: 70px !important; height: 70px !important; object-fit: cover !important; border-radius: 8px !important; border: 1px solid rgba(255,255,255,0.2) !important; cursor: pointer !important; display: block !important;" />
-                <button type="button" class="remove-preview-btn" data-index="${index}" style="position: absolute !important; top: -6px !important; right: -6px !important; background: rgba(0,0,0,0.85) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.3) !important; border-radius: 50% !important; width: 22px !important; height: 22px !important; font-size: 11px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 10 !important;">✕</button>
+                <button type="button" class="remove-preview-btn" data-index="${index}" style="position: absolute !important; top: -8px !important; right: -8px !important; background: rgba(0,0,0,0.85) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.3) !important; border-radius: 50% !important; width: 22px !important; height: 22px !important; font-size: 11px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 10 !important;">✕</button>
             `;
             mediaPreviewContainer.appendChild(wrap);
         });
