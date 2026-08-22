@@ -494,8 +494,6 @@ input:focus,
         flex-direction: column;
         padding: 0;
     }
-
-    /* Опускаем меню ниже статус-бара айфона */
     .main-menu {
         position: relative;
         width: 100%;
@@ -506,15 +504,13 @@ input:focus,
         border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-top: none !important;
         
-        /* Добавили отступ сверху для айфонов с вырезами */
-        padding-top: calc(env(safe-area-inset-top, 12px) + 8px);
+        /* Четкий отступ, чтобы меню не липло к часам */
+        padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
         padding-bottom: 12px;
         padding-left: 16px;
         padding-right: 16px;
-        
         margin-bottom: 16px;
     }
-
     /* Список вкладок делаем с горизонтальной прокруткой */
     .menu-list {
         display: flex;

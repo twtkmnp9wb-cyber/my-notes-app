@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'theme-aurora', title: 'Emerald Glow', value: 'radial-gradient(circle at 80% 20%, rgba(0, 180, 100, 0.3) 0%, rgba(10, 30, 20, 0.85) 50%, rgba(6, 12, 10, 1) 90%)' }
     ];
 
-    function applyBackground(bgValue, scale = currentScale) {
+        function applyBackground(bgValue, scale = currentScale) {
         currentBg = bgValue;
         currentScale = scale;
         localStorage.setItem('app_background', bgValue);
@@ -34,10 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
         bgLayer.style.transform = `scale(${scaleFactor})`;
         bgLayer.style.transformOrigin = 'center center';
         
+        // Сбрасываем старые стили фона
         bgLayer.style.background = '';
         bgLayer.style.backgroundColor = '';
         bgLayer.style.backgroundImage = '';
 
+        // Применяем новый фон мгновенно
         if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
             bgLayer.style.backgroundImage = `url("${bgValue}")`;
             bgLayer.style.backgroundSize = 'cover';
@@ -48,8 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
             bgLayer.style.backgroundColor = bgValue;
         }
         
+        // Перерисовываем галерею в самом конце
         renderWallpapers();
     }
+
 
     function renderWallpapers() {
         if (!bgGallery) return;
