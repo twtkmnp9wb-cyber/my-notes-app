@@ -376,14 +376,15 @@ input:focus,
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0, 0, 0, 0.75) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.65) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 99999 !important;
 }
+
 
 .modal-overlay.active {
     display: flex !important;
@@ -392,22 +393,23 @@ input:focus,
 /* Нативный стиль всплывающих окон/меню под iOS */
 .modal-content {
     width: 90% !important;
-    max-width: 380px !important;
-    padding: 12px !important; /* Уменьшаем отступы, как в меню iOS */
+    max-width: 450px !important;
+    padding: 24px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important; /* Плотное расположение элементов */
+    gap: 12px !important;
     
-    /* Тот самый глубокий и темный стиль стекла iOS */
-    background: rgba(35, 35, 40, 0.82) !important;
-    backdrop-filter: blur(25px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    /* Тот самый плотный стеклянный вайб iOS */
+    background: rgba(30, 30, 36, 0.85) !important;
+    backdrop-filter: blur(25px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
     
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 20px !important; /* Характерное для iOS сильное скругление */
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.3) inset !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 22px !important; /* Прям фирменное айфоновское скругление */
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
     z-index: 100000 !important;
 }
+
 
 /* Если внутри модалки есть список опций/кнопок (как на скрине с айфона) */
 .ios-menu-item {
