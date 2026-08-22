@@ -39,7 +39,7 @@
             background-repeat: no-repeat !important;
         }
 
-        /* Контейнер приложения с огромным запасом снизу для плавающих кнопок */
+        /* Контейнер приложения с запасом снизу */
         .app-container {
             position: relative !important;
             z-index: 2 !important;
@@ -47,10 +47,10 @@
             flex-direction: column;
             min-height: 100dvh;
             padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-            padding-bottom: 140px; 
+            padding-bottom: 150px; 
         }
 
-        /* Верхнее меню: полноценная плашка */
+        /* Верхнее меню */
         .main-menu {
             position: sticky !important;
             top: 10px !important;
@@ -84,11 +84,11 @@
             white-space: nowrap;
         }
 
-        /* Фикс плавающих нижних кнопок (поиск, плюс), чтобы они всегда были выше полоски айфона */
-        #searchBtn, #addNoteBtn, .floating-actions, .action-buttons-fixed {
+        /* Фикс нижних плавающих кнопок над полоской айфона */
+        #searchBtn, #addNoteBtn {
             position: fixed !important;
             z-index: 900 !important;
-            bottom: 30px !important;
+            bottom: 35px !important;
         }
 
         /* Кнопка выбора файла */
@@ -104,7 +104,7 @@
             justify-content: center !important;
             width: 100% !important;
             padding: 12px !important;
-            background: rgba(255, 255, 255, 0.1) !important;
+            background: rgba(255, 255, 25, 0.1) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 8px !important;
             color: #fff !important;
@@ -113,7 +113,7 @@
             box-sizing: border-box !important;
         }
 
-        /* Превью фото */
+        /* Превью фото и обоев */
         #mediaPreviewContainer {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -121,7 +121,7 @@
             margin-top: 10px !important;
         }
 
-        .media-preview-item {
+        .media-preview-item, .custom-bg-preview {
             position: relative !important;
             flex-shrink: 0 !important;
             width: 74px !important;
@@ -130,7 +130,7 @@
             overflow: visible !important;
             margin: 0 !important;
         }
-        .media-preview-item img {
+        .media-preview-item img, .custom-bg-preview img {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
@@ -138,38 +138,33 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        /* ИСПРАВЛЕНИЕ: Крестики удаления фото — возвращаем нормальный удобный размер */
-        .remove-media-btn {
+        /* ТОЧЕЧНЫЙ ФИКС: Крестики удаления на фото и обоях (нормальный размер 26px) */
+        .remove-media-btn, .remove-bg-btn {
             position: absolute !important;
-            top: -7px !important;
-            right: -7px !important;
-            width: 24px !important;
-            height: 24px !important;
+            top: -8px !important;
+            right: -8px !important;
+            width: 26px !important;
+            height: 26px !important;
             background: #ff4d4d !important;
             border: 2px solid #000 !important;
             border-radius: 50% !important;
             color: #fff !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             cursor: pointer !important;
-            z-index: 20 !important;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+            z-index: 30 !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.7);
         }
 
-        /* Кнопки в модалках («Отмена», «Сохранить») — возвращаем им стандартные стили, убирая черный цвет */
-        .modal button, .modal-content button, .popup button {
-            backdrop-filter: none;
-        }
-
-        /* ИСПРАВЛЕНИЕ: Точный стильный крестик в лайтбоксе в едином стиле со стрелками */
+        /* ТОЧЕЧНЫЙ ФИКС: Крестик в лайтбоксе — опускаем ниже и делаем стилем 1-в-1 как стрелки */
         .lightbox-close, #lightboxClose, .close-lightbox {
             position: absolute !important;
-            top: 20px !important;
+            top: 70px !important;
             right: 20px !important;
-            background: rgba(0, 0, 0, 0.4) !important;
-            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
             backdrop-filter: blur(10px) !important;
             -webkit-backdrop-filter: blur(10px) !important;
             border-radius: 50% !important;
@@ -182,7 +177,7 @@
             font-size: 20px !important;
             cursor: pointer !important;
             z-index: 10000000 !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
         }
 
         /* Жесткий фикс для Лайтбокса */
@@ -191,6 +186,7 @@
             background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
+
 
 
 
