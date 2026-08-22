@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="css/style.css">
@@ -10,6 +10,75 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <title>Заметки</title>
+    
+    <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
+    <style>
+        html, body {
+            background-color: #000000 !important;
+            background: #000000 !important;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        /* Кнопка "Выбрать файл" в настройках на всю ширину */
+        .custom-bg-input-group {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        .file-upload-btn {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            padding: 12px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+            color: #fff !important;
+            font-size: 14px !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+        /* Превью фото с крестиком наружу */
+        .media-preview-item {
+            position: relative !important;
+            flex-shrink: 0 !important;
+            width: 70px !important;
+            height: 70px !important;
+            border-radius: 10px !important;
+            overflow: visible !important;
+            margin: 8px 8px 0 0 !important;
+        }
+        .media-preview-item img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 10px !important;
+        }
+        .remove-media-btn {
+            position: absolute !important;
+            top: -8px !important;
+            right: -8px !important;
+            width: 24px !important;
+            height: 24px !important;
+            background: #ff4d4d !important;
+            border: 2px solid #000 !important;
+            border-radius: 50% !important;
+            color: #fff !important;
+            font-size: 14px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            z-index: 10 !important;
+            line-height: 1 !important;
+        }
+    </style>
 </head>
 <body>
     <div class="bg-glow" id="bgLayer"></div>
@@ -63,7 +132,7 @@
                     📎 <span>Прикрепить файлы</span>
                     <input type="file" id="noteMediaInput" accept="image/*" multiple hidden />
                 </label>
-                <div id="mediaPreviewContainer" style="display: none; margin-top: 10px; gap: 8px; overflow-x: auto; padding-bottom: 4px;"></div>
+                <div id="mediaPreviewContainer" style="display: none; margin-top: 10px; flex-wrap: wrap;"></div>
             </div>
 
             <div class="modal-actions">
@@ -117,25 +186,25 @@
 
     <script src="js/app.js"></script>
 
-    <!-- МОДАЛЬНОЕ ОКНО ГАЛЕРЕИ (ЛАЙТБОКС С ИСПРАВЛЕННЫМИ КНОПКАМИ И КРЕСТИКОМ) -->
-    <div id="lightboxModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; overscroll-behavior: contain; touch-action: none; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;">
+    <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА (КРЕСТИК ОПУЩЕН НИЖЕ СТАТУС-БАРА, СТРЕЛКИ ПО КРАЯМ) -->
+    <div id="lightboxModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.96); backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; box-sizing: border-box;">
         
-        <!-- Крестик опущен еще ниже (добавлено + 24px) -->
-        <button type="button" id="lightboxCloseBtn" style="position: absolute; top: calc(env(safe-area-inset-top, 20px) + 36px); right: 20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 30;">&times;</button>
+        <!-- Крестик закрытия смещен ниже зоны динамического острова/часов -->
+        <button type="button" id="lightboxCloseBtn" style="position: absolute; top: 60px; right: 20px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 50;">&times;</button>
         
-        <!-- Обертка картинки -->
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 600px; height: 75vh; padding: 0 44px;">
+        <!-- Основной контейнер просмотрщика -->
+        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 500px; height: 70vh; padding: 0 50px; box-sizing: border-box;">
             
-            <!-- Стрелка НАЗАД вынесена влево за пределы картинки -->
-            <button type="button" id="lightboxPrevBtn" style="position: absolute; left: -10px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(6px);">‹</button>
+            <!-- Стрелка НАЗАД (слева от картинки) -->
+            <button type="button" id="lightboxPrevBtn" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">‹</button>
             
             <!-- Картинка -->
             <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                 <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
             </div>
 
-            <!-- Стрелка ВПЕРЕД вынесена вправо за пределы картинки -->
-            <button type="button" id="lightboxNextBtn" style="position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(6px);">›</button>
+            <!-- Стрелка ВПЕРЕД (справа от картинки) -->
+            <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
             
         </div>
     </div>
