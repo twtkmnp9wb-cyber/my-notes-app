@@ -196,9 +196,10 @@ input:focus,
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: 120px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 160px); /* Увеличили отступ снизу */
     box-sizing: border-box;
 }
+
 
 .content-wrapper {
     width: 100%;
