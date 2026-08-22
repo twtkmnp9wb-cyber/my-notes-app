@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         targetBgLayer.style.transform = `scale(${scaleFactor})`;
         targetBgLayer.style.transformOrigin = 'center center';
         
-        // Сбрасываем стили перед применением новых
         targetBgLayer.style.background = '';
         targetBgLayer.style.backgroundColor = '';
         targetBgLayer.style.backgroundImage = '';
@@ -371,15 +370,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        mediaPreviewContainer.style.display = 'flex';
+        // Жестко задаем стили контейнеру превью через JS, чтобы исключить наложения
+        mediaPreviewContainer.style.cssText = 'display: flex !important; gap: 10px !important; overflow-x: auto !important; flex-wrap: nowrap !important; margin-top: 10px !important; padding-bottom: 6px !important; width: 100% !important;';
 
         attachedImages.forEach((imgBase64, index) => {
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'position: relative; flex-shrink: 0;';
+            // Жестко фиксируем размеры обертки, запрещаем сжатие (flex-shrink: 0)
+            wrap.style.cssText = 'position: relative !important; flex: 0 0 70px !important; width: 70px !important; height: 70px !important;';
             const imgsJson = JSON.stringify(attachedImages).replace(/"/g, '&quot;');
             wrap.innerHTML = `
-                <img src="${imgBase64}" onclick="openLightbox(${imgsJson}, ${index})" alt="Preview" style="height: 70px; width: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #444; cursor: pointer;" />
-                <button type="button" class="remove-preview-btn" data-index="${index}" style="position: absolute; top: -6px; right: -6px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                <img src="${imgBase64}" onclick="openLightbox(${imgsJson}, ${index})" alt="Preview" style="width: 70px !important; height: 70px !important; object-fit: cover !important; border-radius: 8px !important; border: 1px solid rgba(255,255,255,0.2) !important; cursor: pointer !important; display: block !important;" />
+                <button type="button" class="remove-preview-btn" data-index="${index}" style="position: absolute !important; top: -6px !important; right: -6px !important; background: rgba(0,0,0,0.85) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.3) !important; border-radius: 50% !important; width: 22px !important; height: 22px !important; font-size: 11px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 10 !important;">✕</button>
             `;
             mediaPreviewContainer.appendChild(wrap);
         });
