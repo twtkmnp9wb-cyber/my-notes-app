@@ -1,4 +1,4 @@
-Document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     console.log('App loaded successfully.');
 
     // --- 1. ОБОИ И ТЕМЫ ---
@@ -407,7 +407,6 @@ Document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const timeString = now.toISOString();
 
-            // Изменили unshift на push, чтобы новые посты уходили в самый низ
             notes.push({
                 folder: activeFolder,
                 title: title || 'Без названия',
