@@ -27,25 +27,34 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('app_background', bgValue);
         localStorage.setItem('app_background_scale', scale);
 
-        const bgLayer = document.getElementById('bgLayer');
-        if (!bgLayer) return;
+        const targetBgLayer = document.getElementById('bgLayer');
+        if (!targetBgLayer) return;
 
         const scaleFactor = scale / 100;
-        bgLayer.style.transform = `scale(${scaleFactor})`;
-        bgLayer.style.transformOrigin = 'center center';
+        targetBgLayer.style.transform = `scale(${scaleFactor})`;
+        targetBgLayer.style.transformOrigin = 'center center';
         
-        bgLayer.style.background = '';
-        bgLayer.style.backgroundColor = '';
-        bgLayer.style.backgroundImage = '';
+        // Сбрасываем стили фона перед установкой новых
+        targetBgLayer.style.background = '';
+        targetBgLayer.style.backgroundColor = '';
+        targetBgLayer.style.backgroundImage = '';
 
         if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
-            bgLayer.style.backgroundImage = `url("${bgValue}")`;
-            bgLayer.style.backgroundSize = 'cover';
-            bgLayer.style.backgroundPosition = 'center';
+            targetBgLayer.style.backgroundImage = `url("${bgValue}")`;
+            targetBgLayer.style.backgroundSize = 'cover';
+            targetBgLayer.style.backgroundPosition = 'center';
+            targetBgLayer.style.backgroundRepeat = 'no-repeat';
         } else if (bgValue.includes('gradient')) {
-            bgLayer.style.background = bgValue;
+            targetBgLayer.style.background = bgValue;
         } else {
-            bgLayer.style.backgroundColor = bgValue;
+            targetBgLayer.style.backgroundColor = bgValue;
+        }
+
+        if (scaleValueText) {
+            scaleValueText.textContent = `${scale}%`;
+        }
+        if (bgScaleRange && bgScaleRange.value !== String(scale)) {
+            bgScaleRange.value = scale;
         }
         
         renderWallpapers();
@@ -478,7 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (targetCard && scrollContainer) {
             const cardTop = targetCard.offsetTop;
-            // Аккуратно подтягиваем карточку ровно под зафиксированную шапку
             scrollContainer.scrollTo({ 
                 top: cardTop - 140, 
                 behavior: 'smooth' 

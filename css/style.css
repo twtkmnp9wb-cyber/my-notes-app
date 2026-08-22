@@ -33,11 +33,11 @@ input:focus,
     width: 100vw;
     height: 100dvh;
     z-index: -1;
-    background-color: #000000;
+    background-color: #09090b;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    transition: transform 0.15s ease-out, background 0.3s ease;
+    transition: transform 0.15s ease-out;
     transform-origin: center center;
     overflow: hidden;
 }
@@ -185,7 +185,6 @@ input:focus,
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    /* Большой отступ сверху, чтобы контент не заезжал под плавающее меню */
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
     padding-bottom: 120px;
     box-sizing: border-box;
