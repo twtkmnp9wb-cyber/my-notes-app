@@ -46,17 +46,19 @@
             display: flex;
             flex-direction: column;
             min-height: 100dvh;
-            padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-            padding-bottom: 100px; /* Запас снизу, чтобы карточки не резались */
+            padding-top: calc(env(safe-area-inset-top, 20px) + 75px); /* Место под фиксированное меню */
+            padding-bottom: 100px;
         }
 
-        /* Верхнее меню */
+        /* Верхнее меню (фиксированное, как в ТГ) */
         .main-menu {
-            position: sticky !important;
+            position: fixed !important;
             top: 10px !important;
-            z-index: 100 !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 1000 !important;
             width: calc(100% - 24px) !important;
-            margin: 0 auto 15px auto !important;
+            max-width: 600px;
             background: rgba(18, 18, 22, 0.85) !important;
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
@@ -84,7 +86,7 @@
             white-space: nowrap;
         }
 
-        /* === КНОПКИ В ФУТЕРЕ (КАК БЫЛО) === */
+        /* === КНОПКИ В ФУТЕРЕ === */
         .app-footer {
             position: fixed;
             bottom: 20px;
@@ -121,7 +123,7 @@
             background-color: rgba(45, 45, 55, 0.95) !important;
         }
 
-        /* === ФИКС ВЫБОРА ФАЙЛА (Убран желтый цвет) === */
+        /* === ФИКС ВЫБОРА ФАЙЛА === */
         .file-upload-btn {
             display: flex !important;
             align-items: center !important;
@@ -137,7 +139,7 @@
             box-sizing: border-box !important;
         }
 
-        /* === Крестики удаления (нормальный размер) === */
+        /* === Крестики удаления === */
         .remove-media-btn, .remove-bg-btn {
             position: absolute !important;
             top: -8px !important;
@@ -181,29 +183,46 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* === Крестик в лайтбоксе === */
+        /* === ЖЕСТКИЙ ФИКС КРЕСТИКА В ЛАЙТБОКСЕ ===
+           Гарантируем абсолютное позиционирование в правом верхнем углу экрана
+        */
+        #lightboxModal {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            background: rgba(0, 0, 0, 0.96) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            display: none;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 99999999 !important;
+            box-sizing: border-box !important;
+        }
+
         .lightbox-close {
-            position: absolute !important;
-            top: 60px !important;
+            position: fixed !important;
+            top: 20px !important;
             right: 20px !important;
-            background: rgba(0, 0, 0, 0.6) !important;
+            background: rgba(40, 40, 45, 0.8) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
             backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
             border-radius: 50% !important;
             width: 44px !important;
             height: 44px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            color: #fff !important;
-            font-size: 20px !important;
+            color: #ffffff !important;
+            font-size: 24px !important;
+            line-height: 1 !important;
             cursor: pointer !important;
-            z-index: 10000000 !important;
+            z-index: 100000000 !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
-        }
-        #lightboxModal {
-            z-index: 9999999 !important;
-            background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
 </head>
@@ -211,6 +230,7 @@
     <div class="bg-glow" id="bgLayer"></div>
 
     <div class="app-container">
+        <!-- Фиксированное меню (как в ТГ) -->
         <aside class="main-menu">
             <nav class="main-menu-nav">
                 <ul class="menu-list">
@@ -222,6 +242,7 @@
                 </ul>
             </nav>
         </aside>
+
         <div class="content-wrapper">
             <header class="header">
                 <div class="container">
@@ -233,7 +254,7 @@
                     <!-- Заметки -->
                 </div>
             </main>
-            <!-- Возвращенный футер с кнопками на свое место -->
+            <!-- Футер с кнопками -->
             <footer class="app-footer">
                 <div class="footer-container">
                     <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
@@ -312,10 +333,11 @@
         </div>
     </div>
 
+    <!-- СКРИПТ ПРИЛОЖЕНИЯ (Обрати внимание на правку направления рендеринга постов) -->
     <script src="js/app.js"></script>
 
     <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
-    <div id="lightboxModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.96); backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; box-sizing: border-box;">
+    <div id="lightboxModal">
         <button type="button" id="lightboxCloseBtn" class="lightbox-close">&times;</button>
         
         <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 500px; height: 70vh; padding: 0 50px; box-sizing: border-box;">
