@@ -59,7 +59,7 @@ input:focus,
     overflow: hidden;
 }
 
-/* БЛЮР СВЕРХУ */
+/* Ультра-воздушный блюр сверху */
 .app-container::before {
     content: '';
     position: fixed;
@@ -67,9 +67,9 @@ input:focus,
     left: 0;
     width: 100%;
     height: calc(env(safe-area-inset-top, 20px) + 70px);
-    background: rgba(15, 15, 20, 0.45);
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    background: rgba(15, 15, 20, 0.35);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
     z-index: 900;
     pointer-events: none;
     mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
@@ -91,21 +91,20 @@ input:focus,
     pointer-events: none;
 }
 
-/* Возвращаем клики на меню и поиск */
 .main-menu, 
 .hashtag-filter-bar {
     pointer-events: auto;
 }
 
-/* Единый стиль настоящего тонированного стекла */
+/* Еще более прозрачное и «стеклянное» тонирование */
 .main-menu, 
 .hashtag-filter-bar {
     width: 100%;
-    background: rgba(22, 22, 28, 0.5) !important;
-    backdrop-filter: blur(25px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    background: rgba(20, 20, 26, 0.38) !important;
+    backdrop-filter: blur(30px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
     box-sizing: border-box;
 }
 
@@ -149,7 +148,7 @@ input:focus,
 }
 
 .menu-btn.active {
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.18);
     color: #ffffff;
 }
 
@@ -203,7 +202,6 @@ input:focus,
     font-size: 18px;
 }
 
-/* РОДИТЕЛЬ-МАСКА */
 .scroll-viewport {
     position: absolute;
     top: 0;
@@ -213,7 +211,6 @@ input:focus,
     overflow: hidden;
 }
 
-/* СКРОЛЛЯЩИЙСЯ КОНТЕЙНЕР */
 .scrollable-content {
     position: absolute;
     top: 0;
@@ -272,17 +269,17 @@ input:focus,
     margin: 0 auto;
 }
 
-/* Карточки заметок в стиле стекла */
+/* Карточки заметок */
 .note-card {
     position: relative;
     width: 100%;
     padding: 20px;
-    background: rgba(22, 22, 28, 0.5) !important;
-    backdrop-filter: blur(25px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(20, 20, 26, 0.38) !important;
+    backdrop-filter: blur(30px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
     border-radius: 20px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     box-sizing: border-box;
 }
 
@@ -347,7 +344,7 @@ input:focus,
     gap: 12px;
 }
 
-/* Круглые кнопки внизу */
+/* Круглые кнопки */
 .action-btn {
     width: 52px;
     height: 52px;
@@ -355,14 +352,14 @@ input:focus,
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(22, 22, 28, 0.5) !important;
-    backdrop-filter: blur(25px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(20, 20, 26, 0.38) !important;
+    backdrop-filter: blur(30px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
     color: #ffffff;
     font-size: 22px;
     cursor: pointer;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     transition: transform 0.2s ease;
 }
 
@@ -377,8 +374,8 @@ input:focus,
     width: 100vw !important;
     height: 100vh !important;
     background: rgba(0, 0, 0, 0.6) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
     display: none;
     align-items: center;
     justify-content: center;
@@ -389,7 +386,7 @@ input:focus,
     display: flex !important;
 }
 
-/* Модальные окна в стиле iOS Glass */
+/* Модальные окна */
 .modal-content {
     width: 90% !important;
     max-width: 450px !important;
@@ -398,17 +395,16 @@ input:focus,
     flex-direction: column !important;
     gap: 12px !important;
     
-    background: rgba(22, 22, 28, 0.65) !important;
-    backdrop-filter: blur(30px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+    background: rgba(20, 20, 26, 0.5) !important;
+    backdrop-filter: blur(35px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(35px) saturate(220%) !important;
     
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 24px !important;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
     z-index: 100000 !important;
 }
 
-/* Пункты меню (если используются) */
 .ios-menu-item {
     display: flex;
     align-items: center;
@@ -448,7 +444,7 @@ input:focus,
 .modal-textarea {
     padding: 10px 14px;
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
     color: #fff;
     font-family: inherit;
@@ -489,33 +485,45 @@ input:focus,
 .bg-gallery {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    max-height: 200px;
-    padding: 6px;
+    gap: 14px;
+    max-height: 210px;
+    padding: 8px;
     overflow-y: auto;
 }
 
-/* Аккуратные карточки обоев с мягким свечением */
+/* ИСПРАВЛЕНИЕ: Убрали overflow: hidden, чтобы рамка и свечение не обрезались */
 .wallpaper-card {
     position: relative;
-    height: 60px;
+    height: 65px;
     box-sizing: border-box;
     border-radius: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.15);
     background-size: cover;
     background-position: center;
     cursor: pointer;
-    overflow: hidden;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.wallpaper-card:hover {
-    transform: scale(1.02);
+/* Скругляем саму картинку внутри через псевдоэлемент, чтобы края были гладкими, а внешняя обводка не резалась */
+.wallpaper-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background-image: inherit;
+    background-size: cover;
+    background-position: center;
+    z-index: 1;
 }
 
+.wallpaper-card:hover {
+    transform: scale(1.03);
+}
+
+/* Красивая полная рамка со свечением, которая теперь выступает наружу и не срезается */
 .wallpaper-card.active {
-    border-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.35), inset 0 0 6px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.45), inset 0 0 8px rgba(255, 255, 255, 0.25);
 }
 
 .wallpaper-card-title {
@@ -526,7 +534,7 @@ input:focus,
     font-weight: 600;
     color: #fff;
     text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-    z-index: 2;
+    z-index: 3;
 }
 
 .delete-bg-btn {
@@ -546,6 +554,7 @@ input:focus,
     justify-content: center;
     padding: 0;
     line-height: 1;
+    z-index: 4;
 }
 
 .custom-bg-input-group {
