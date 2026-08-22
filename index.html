@@ -12,7 +12,8 @@
     <title>Заметки</title>
 </head>
 <body>
-    <div class="bg-glow" id="bgLayer"></div>
+    <!-- Слой обоев вынесен в самый корень для абсолютной видимости -->
+    <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
         <!-- ЕДИНЫЙ ФИКСИРОВАННЫЙ БЛОК СВЕРХУ (Меню + Поиск) -->
@@ -29,7 +30,7 @@
                 </nav>
             </aside>
 
-            <!-- ПЛАШКА ПОИСКА / ТЕГОВ (Закреплена под меню) -->
+            <!-- ПЛАШКА ПОИСКА / ТЕГОВ -->
             <div id="telegramSearchBar" class="hashtag-filter-bar" style="display: none;">
                 <input type="text" id="tgSearchInput" placeholder="Поиск по хэштегу (#tag)..." autocomplete="off">
                 <span id="tgSearchCounter">0 из 0</span>

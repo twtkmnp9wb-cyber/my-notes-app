@@ -34,10 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
         targetBgLayer.style.transform = `scale(${scaleFactor})`;
         targetBgLayer.style.transformOrigin = 'center center';
         
-        // Полный сброс перед натяжением нового фона
-        targetBgLayer.style.removeProperty('background');
-        targetBgLayer.style.removeProperty('background-color');
-        targetBgLayer.style.removeProperty('background-image');
+        // Сбрасываем стили перед применением новых
+        targetBgLayer.style.background = '';
+        targetBgLayer.style.backgroundColor = '';
+        targetBgLayer.style.backgroundImage = '';
 
         if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
             targetBgLayer.style.setProperty('background-image', `url("${bgValue}")`, 'important');
@@ -336,14 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', () => {
-            if (noteModal) noteModal.classList.remove('active');
-        });
-    }
-
-    const cancelNoteBtn = document.querySelector('#noteModal .cancel-btn, #noteModal [data-action="close"]');
-    if (cancelNoteBtn) {
-        cancelNoteBtn.addEventListener('click', (e) => {
-            e.preventDefault();
             if (noteModal) noteModal.classList.remove('active');
         });
     }
