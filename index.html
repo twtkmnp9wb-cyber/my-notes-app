@@ -12,7 +12,7 @@
     <title>Заметки</title>
     
     <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
-    <style>
+        <style>
         /* Базовые настройки экрана */
         html, body {
             background: #000000 !important;
@@ -47,7 +47,7 @@
             flex-direction: column;
             min-height: 100dvh;
             padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-            padding-bottom: 120px; 
+            padding-bottom: 140px;
         }
 
         /* Верхнее меню */
@@ -84,49 +84,53 @@
             white-space: nowrap;
         }
 
-        /* ЖЕСТКИЙ ФИКС НИЖНИХ КНОПОК: сажаем их в общую плавающую панель выше системной полоски */
+        /* === ЖЕСТКИЙ ФИКС НИЖНИХ КНОПОК === */
+        /* Создаем единый контейнер, который ПЛАВАЕТ над всем */
+        .floating-fab-container {
+            position: fixed !important;
+            right: 20px !important;
+            bottom: 100px !important; /* Точно выше системной полоски iOS */
+            z-index: 1000 !important; /* Максимальный приоритет */
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 16px !important;
+            pointer-events: auto !important; /* Чтобы клики работали */
+            background: transparent !important;
+        }
+
+        /* Сами кнопки внутри контейнера */
         #searchBtn, #addNoteBtn {
-            position: static !important; /* сбрасываем старое позиционирование */
-        }
-
-        /* Создаем контейнер для плавающих кнопок (или цепляем существующий) */
-        .floating-actions, .action-buttons-fixed, .fab-container {
-            position: fixed !important;
-            right: 20px !important;
-            bottom: 90px !important; /* подняли выше зоны айфоновской полоски */
-            z-index: 999 !important;
+            position: static !important; /* Внутри флоата позиция статична */
+            margin: 0 !important;
+            width: 56px !important;
+            height: 56px !important;
+            border-radius: 50% !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(10px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
             display: flex !important;
-            flex-direction: column !important;
-            gap: 12px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #fff !important;
+            font-size: 24px !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease, transform 0.2s ease !important;
+        }
+        
+        #searchBtn:active, #addNoteBtn:active {
+            transform: scale(0.95) !important;
+            background-color: rgba(255, 255, 255, 0.25) !important;
         }
 
-        /* Если кнопки разбросаны отдельно, принудительно держим их видимыми */
-        #searchBtn {
-            position: fixed !important;
-            right: 20px !important;
-            bottom: 90px !important;
-            z-index: 999 !important;
-        }
-        #addNoteBtn {
-            position: fixed !important;
-            right: 20px !important;
-            bottom: 150px !important; /* разводим их вертикально, чтобы не налегали друг на друга */
-            z-index: 999 !important;
-        }
-
-        /* Кнопка выбора файла */
-        .custom-bg-input-group {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-            width: 100% !important;
-        }
+        /* === ФИКС ВЫБОРА ФАЙЛА (Убираем желтый цвет) === */
         .file-upload-btn {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             width: 100% !important;
             padding: 12px !important;
+            /* Жестко задаем темно-серый цвет, убирая желтый */
             background: rgba(255, 255, 255, 0.1) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 8px !important;
@@ -134,34 +138,13 @@
             font-size: 14px !important;
             cursor: pointer !important;
             box-sizing: border-box !important;
+            transition: background-color 0.2s ease !important;
+        }
+        .file-upload-btn:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
         }
 
-        /* Превью фото и обоев */
-        #mediaPreviewContainer {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            gap: 10px !important;
-            margin-top: 10px !important;
-        }
-
-        .media-preview-item, .custom-bg-preview {
-            position: relative !important;
-            flex-shrink: 0 !important;
-            width: 74px !important;
-            height: 74px !important;
-            border-radius: 10px !important;
-            overflow: visible !important;
-            margin: 0 !important;
-        }
-        .media-preview-item img, .custom-bg-preview img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            border-radius: 10px !important;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        /* Крестики удаления фото/обоев */
+        /* === Крестики удаления (нормального размера) === */
         .remove-media-btn, .remove-bg-btn {
             position: absolute !important;
             top: -8px !important;
@@ -180,16 +163,39 @@
             z-index: 30 !important;
             box-shadow: 0 2px 6px rgba(0,0,0,0.7);
         }
+        
+        /* === Превью фото === */
+        #mediaPreviewContainer {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+            margin-top: 10px !important;
+        }
+        .media-preview-item {
+            position: relative !important;
+            flex-shrink: 0 !important;
+            width: 74px !important;
+            height: 74px !important;
+            border-radius: 10px !important;
+            overflow: visible !important;
+            margin: 0 !important;
+        }
+        .media-preview-item img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 10px !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
 
-        /* Крестик в лайтбоксе */
-        .lightbox-close, #lightboxClose, .close-lightbox {
+        /* === Крестик в лайтбоксе === */
+        .lightbox-close {
             position: absolute !important;
             top: 70px !important;
             right: 20px !important;
             background: rgba(0, 0, 0, 0.6) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
             backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
             border-radius: 50% !important;
             width: 44px !important;
             height: 44px !important;
@@ -202,12 +208,12 @@
             z-index: 10000000 !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
         }
-
         #lightboxModal {
             z-index: 9999999 !important;
             background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
+
 
 </head>
 <body>
