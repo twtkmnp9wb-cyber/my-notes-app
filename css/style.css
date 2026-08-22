@@ -47,32 +47,33 @@ input:focus,
     z-index: 1;
 }
 
-/* БЛЮР СВЕРХУ (как в Telegram под статус-бар и Dynamic Island) */
+/* БЛЮР СВЕРХУ (накрывает всю зону под часами и Dynamic Island, как в Telegram) */
 .app-container::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(env(safe-area-inset-top, 20px) + 50px);
-    background: rgba(15, 15, 20, 0.45);
+    height: calc(env(safe-area-inset-top, 20px) + 70px);
+    background: rgba(15, 15, 20, 0.65);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     z-index: 900;
     pointer-events: none;
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
 }
 
-/* Фиксированный блок сверху (Меню + Строка поиска) */
+/* Фиксированный блок сверху (уходит под статус-бар, как в TG) */
 .fixed-top-bar {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 20px) + 6px);
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
     width: calc(100% - 24px);
     max-width: 600px;
+    padding-top: calc(env(safe-area-inset-top, 20px) + 6px);
     display: flex;
     flex-direction: column;
     gap: 8px;
