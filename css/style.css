@@ -192,15 +192,13 @@ input:focus,
     top: 0;
     left: 0;
     width: 100%;
-    bottom: 0; /* Растягиваем на всю высоту экрана */
+    bottom: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 180px); /* Большой запас снизу под кнопки */
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 220px); /* Увеличенный отступ, чтобы последний пост не срезался */
     box-sizing: border-box;
 }
-
-
 
 .content-wrapper {
     width: 100%;
@@ -519,13 +517,23 @@ input:focus,
     -webkit-appearance: none;
 }
 
+/* Контейнер превью файлов (теперь с нормальным gap и скроллом) */
+.modal-content .media-preview-container,
+.media-preview-container {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    width: 100%;
+}
+
 .media-preview-item {
     position: relative;
     flex-shrink: 0;
     width: 70px;
     height: 70px;
     border-radius: 10px;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .media-preview-item img {
@@ -537,8 +545,8 @@ input:focus,
 
 .remove-media-btn {
     position: absolute;
-    top: -6px;
-    right: -6px;
+    top: 4px;
+    right: 4px;
     width: 20px;
     height: 20px;
     background: rgba(0, 0, 0, 0.8);
