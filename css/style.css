@@ -195,7 +195,7 @@ input:focus,
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 340px); /* УВЕЛИЧЕНО до 340px, чтобы низ ленты прокручивался с запасом ниже плавающих кнопок */
+    padding-bottom: 220px; /* Фикс скролла ленты */
     box-sizing: border-box;
 }
 
@@ -204,7 +204,7 @@ input:focus,
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 16px 180px 16px; /* Дополнительный нижний отступ, чтобы последний пост уходил далеко вверх над кнопкой */
     box-sizing: border-box;
 }
 
