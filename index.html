@@ -13,7 +13,7 @@
     
     <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
     <style>
-        /* Базовые настройки экрана */
+        /* Базовые настройки экрана с жестким фиксом под мобильные бары */
         html, body {
             background: #000000 !important;
             background-color: #000000 !important;
@@ -21,7 +21,7 @@
             margin: 0;
             padding: 0;
             width: 100vw;
-            min-height: 100vh;
+            min-height: 100dvh;
             overflow-x: hidden;
             box-sizing: border-box;
         }
@@ -32,7 +32,7 @@
             top: 0 !important;
             left: 0 !important;
             width: 100vw !important;
-            height: 100vh !important;
+            height: 100dvh !important;
             z-index: 0 !important;
             background-size: cover !important;
             background-position: center !important;
@@ -45,9 +45,9 @@
             z-index: 2 !important;
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            min-height: 100dvh;
             padding-top: calc(env(safe-area-inset-top, 20px) + 10px);
-            padding-bottom: 90px;
+            padding-bottom: 100px; /* Запас снизу, чтобы контент не перекрывался */
         }
 
         /* Верхнее меню: полноценная панель */
@@ -151,8 +151,19 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* Единый стиль для крестиков закрытия (в лайтбоксе и модалках) */
-        .lightbox-close, .close-modal-btn, .modal-close, [id*="close"] {
+        /* ИСПРАВЛЕНИЕ: Возвращаем текстовым кнопкам модалок («Отмена», «Закрыть») нормальный вид без кругляшков */
+        .modal button:not([class*="close"]), 
+        .modal-content button:not([class*="close"]),
+        .popup button:not([class*="close"]) {
+            width: auto !important;
+            height: auto !important;
+            border-radius: 8px !important;
+            background: initial;
+            backdrop-filter: none;
+        }
+
+        /* Аккуратный стиль только для реальных иконок-крестиков (в лайтбоксе и т.д.) */
+        .lightbox-close {
             background: rgba(255, 255, 255, 0.1) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             backdrop-filter: blur(10px);
@@ -164,7 +175,6 @@
             justify-content: center !important;
             color: #fff !important;
             font-size: 18px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
         }
 
         /* Жесткий фикс для Лайтбокса */
@@ -173,6 +183,7 @@
             background: rgba(0, 0, 0, 0.98) !important;
         }
     </style>
+
 
 </head>
 <body>
