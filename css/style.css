@@ -6,15 +6,27 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Переносим скролл на сам документ и полностью вырубаем любые полосы */
 html, body {
     margin: 0;
     padding: 0;
     width: 100vw;
-    height: 100dvh;
+    min-height: 100dvh;
     font-family: "Inter", sans-serif;
     color: #ffffff;
     background-color: #09090b;
-    overflow: hidden !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.scrollable-content::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 button:focus, 
@@ -42,8 +54,7 @@ input:focus,
 .app-container {
     position: relative;
     width: 100vw;
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100dvh;
     z-index: 1;
 }
 
@@ -186,38 +197,20 @@ input:focus,
     font-size: 18px;
 }
 
+/* Делаем блок обычным контейнером без внутренних конфликтов скролла */
 .scrollable-content {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
-    bottom: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: 220px;
+    padding-bottom: 200px;
     box-sizing: border-box;
-    
-    /* Полное скрытие полосы прокрутки */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE и Edge */
 }
-
-/* Скрываем скроллбар для WebKit браузеров (Safari, Chrome) */
-.scrollable-content::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    background: transparent !important;
-}
-
 
 .content-wrapper {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 16px 180px 16px; /* Дополнительный нижний отступ, чтобы последний пост уходил далеко вверх над кнопкой */
+    padding: 0 16px;
     box-sizing: border-box;
 }
 
@@ -533,6 +526,7 @@ input:focus,
     display: block;
     width: 100%;
     max-height: 400px;
+    object-clear: cover;
     object-fit: cover;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.05);
