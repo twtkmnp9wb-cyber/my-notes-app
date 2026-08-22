@@ -34,20 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
         targetBgLayer.style.transform = `scale(${scaleFactor})`;
         targetBgLayer.style.transformOrigin = 'center center';
         
-        // Сбрасываем стили фона перед установкой новых
-        targetBgLayer.style.background = '';
-        targetBgLayer.style.backgroundColor = '';
-        targetBgLayer.style.backgroundImage = '';
+        // Полный сброс перед натяжением нового фона
+        targetBgLayer.style.removeProperty('background');
+        targetBgLayer.style.removeProperty('background-color');
+        targetBgLayer.style.removeProperty('background-image');
 
         if (bgValue.startsWith('data:') || bgValue.startsWith('http') || bgValue.startsWith('blob:')) {
-            targetBgLayer.style.backgroundImage = `url("${bgValue}")`;
-            targetBgLayer.style.backgroundSize = 'cover';
-            targetBgLayer.style.backgroundPosition = 'center';
-            targetBgLayer.style.backgroundRepeat = 'no-repeat';
+            targetBgLayer.style.setProperty('background-image', `url("${bgValue}")`, 'important');
+            targetBgLayer.style.setProperty('background-size', 'cover', 'important');
+            targetBgLayer.style.setProperty('background-position', 'center', 'important');
+            targetBgLayer.style.setProperty('background-repeat', 'no-repeat', 'important');
         } else if (bgValue.includes('gradient')) {
-            targetBgLayer.style.background = bgValue;
+            targetBgLayer.style.setProperty('background', bgValue, 'important');
         } else {
-            targetBgLayer.style.backgroundColor = bgValue;
+            targetBgLayer.style.setProperty('background-color', bgValue, 'important');
         }
 
         if (scaleValueText) {

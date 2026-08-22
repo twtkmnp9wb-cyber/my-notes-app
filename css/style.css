@@ -16,7 +16,7 @@ html, body {
     height: 100dvh;
     font-family: "Inter", sans-serif;
     color: #ffffff;
-    background: #000000 !important;
+    background: transparent !important;
     overflow: hidden !important;
 }
 
@@ -27,19 +27,19 @@ input:focus,
 }
 
 .bg-glow {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100dvh;
-    z-index: -1;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 0 !important;
     background-color: #09090b;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
     transition: transform 0.15s ease-out;
     transform-origin: center center;
-    overflow: hidden;
+    pointer-events: none;
 }
 
 /* ==========================================
@@ -50,6 +50,7 @@ input:focus,
     width: 100vw;
     height: 100dvh;
     overflow: hidden;
+    z-index: 1;
 }
 
 /* Фиксированный блок сверху (Меню + Строка поиска) */
