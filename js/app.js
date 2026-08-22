@@ -424,8 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const timeString = now.toISOString();
 
-            // СТРОГО ПУШ В КОНЕЦ (.push), ЧТОБЫ ПОСТЫ СОЗДАВАЛИСЬ ВНИЗУ ЛЕНТЫ
-            notes.push({
+            // ИЗМЕНЕНО: Добавляем в начало массива (.unshift), чтобы посты падали наверх
+            notes.unshift({
                 folder: activeFolder,
                 title: title || 'Без названия',
                 text: text,
@@ -489,11 +489,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchResults.length === 0) return;
         renderNotes(tgSearchInput.value.trim(), currentSearchIndex);
         const targetCard = document.querySelector(`[data-search-id="${currentSearchIndex}"]`);
-        if (targetCard) {
-            // Мягкий скролл карточки чуть ниже плашки поиска, чтобы не перекрывать её
-            const yOffset = -140; 
-            const y = targetCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
-            window.scrollTo({ top: y, behavior: 'smooth' });
+        const scrollContainer = document.querySelector('.scrollable-content');
+        
+        // ИЗМЕНЕНО: Скроллим внутренний контейнер, а не всю страницу целиком
+        if (targetCard && scrollContainer) {
+            const cardTop = targetCard.offsetTop;
+            scrollContainer.scrollTo({ 
+                top: cardTop - 120, 
+                behavior: 'smooth' 
+            });
         }
     }
 

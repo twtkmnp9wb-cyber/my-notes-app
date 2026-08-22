@@ -10,246 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <title>Заметки</title>
-    
-    <!-- ИНЛАЙН-СТИЛИ ДЛЯ ГАРАНТИРОВАННОГО ИСПРАВЛЕНИЯ БЕЗ КЕША -->
-    <style>
-        /* Базовые настройки экрана */
-        html, body {
-            background: #000000 !important;
-            background-color: #000000 !important;
-            color: #ffffff;
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            min-height: 100dvh;
-            overflow-x: hidden;
-            box-sizing: border-box;
-        }
-
-        /* Обои на заднем плане */
-        .bg-glow {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100dvh !important;
-            z-index: 0 !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-        }
-
-        /* Контейнер приложения */
-        .app-container {
-            position: relative !important;
-            z-index: 2 !important;
-            display: flex;
-            flex-direction: column;
-            min-height: 100dvh;
-            padding-top: calc(env(safe-area-inset-top, 20px) + 75px);
-            padding-bottom: 100px;
-        }
-
-        /* Верхнее меню (прозрачность и стиль кнопок + и лупы) */
-        .main-menu {
-            position: fixed !important;
-            top: 10px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            z-index: 1000 !important;
-            width: calc(100% - 24px) !important;
-            max-width: 600px;
-            background-color: rgba(25, 25, 30, 0.85) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            padding: 12px 16px !important;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
-            box-sizing: border-box;
-        }
-
-        .main-menu-nav {
-            width: 100%;
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .main-menu-nav::-webkit-scrollbar {
-            display: none;
-        }
-
-        .menu-list {
-            display: flex;
-            gap: 16px;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            white-space: nowrap;
-        }
-
-        /* === ФИКСИРОВАННАЯ ПЛАШКА ФИЛЬТРОВ/ПОИСКА (Чтобы не улетала при клике) === */
-        .hashtag-filter-bar, .search-results-bar, .tag-navigation-container {
-            position: fixed !important;
-            top: 75px !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            width: calc(100% - 24px) !important;
-            max-width: 600px;
-            z-index: 999 !important;
-            background-color: rgba(25, 25, 30, 0.9) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 12px;
-            padding: 10px 16px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-        }
-
-        /* === КНОПКИ В ФУТЕРЕ === */
-        .app-footer {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 100;
-            background: transparent;
-        }
-
-        .footer-container {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        #searchBtn, #addNoteBtn {
-            width: 52px !important;
-            height: 52px !important;
-            border-radius: 50% !important;
-            background-color: rgba(25, 25, 30, 0.85) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: #fff !important;
-            font-size: 22px !important;
-            cursor: pointer !important;
-        }
-        
-        #searchBtn:active, #addNoteBtn:active {
-            transform: scale(0.95) !important;
-            background-color: rgba(45, 45, 55, 0.95) !important;
-        }
-
-        /* === ФИКС ВЫБОРА ФАЙЛА === */
-        .file-upload-btn {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 100% !important;
-            padding: 12px !important;
-            background: rgba(255, 255, 255, 0.08) !important;
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            border-radius: 8px !important;
-            color: #fff !important;
-            font-size: 14px !important;
-            cursor: pointer !important;
-            box-sizing: border-box !important;
-        }
-
-        /* === Крестики удаления === */
-        .remove-media-btn, .remove-bg-btn {
-            position: absolute !important;
-            top: -8px !important;
-            right: -8px !important;
-            width: 26px !important;
-            height: 26px !important;
-            background: #ff4d4d !important;
-            border: 2px solid #000 !important;
-            border-radius: 50% !important;
-            color: #fff !important;
-            font-size: 14px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            cursor: pointer !important;
-            z-index: 30 !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.7);
-        }
-        
-        /* === Превью фото === */
-        #mediaPreviewContainer {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            gap: 10px !important;
-            margin-top: 10px !important;
-        }
-        .media-preview-item {
-            position: relative !important;
-            flex-shrink: 0 !important;
-            width: 74px !important;
-            height: 74px !important;
-            border-radius: 10px !important;
-            overflow: visible !important;
-            margin: 0 !important;
-        }
-        .media-preview-item img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            border-radius: 10px !important;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* === ИДЕАЛЬНЫЙ ФИКС КРЕСТИКА В ЛАЙТБОКСЕ === */
-        #lightboxModal {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100dvh !important;
-            background: rgba(0, 0, 0, 0.96) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            display: none;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 99999999 !important;
-            box-sizing: border-box !important;
-        }
-
-        .lightbox-close {
-            position: fixed !important;
-            top: 55px !important;
-            right: 20px !important;
-            background: rgba(25, 25, 30, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            border-radius: 50% !important;
-            width: 44px !important;
-            height: 44px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: #ffffff !important;
-            font-size: 26px !important;
-            cursor: pointer !important;
-            z-index: 100000000 !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-    </style>
 </head>
 <body>
     <div class="bg-glow" id="bgLayer"></div>
 
     <div class="app-container">
-        <!-- Фиксированное верхнее меню -->
+        <!-- ФИКСИРОВАННОЕ ВЕРХНЕЕ МЕНЮ (Как в Telegram, не скроллится) -->
         <aside class="main-menu">
             <nav class="main-menu-nav">
                 <ul class="menu-list">
@@ -262,25 +28,34 @@
             </nav>
         </aside>
 
-        <div class="content-wrapper">
-            <header class="header">
-                <div class="container">
-                    <img src="images/text.png" alt="Born to win">
-                </div>
-            </header>
-            <main class="notes-area">
-                <div class="main-container">
-                    <!-- Заметки -->
-                </div>
-            </main>
-            <!-- Футер с кнопками -->
-            <footer class="app-footer">
-                <div class="footer-container">
-                    <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
-                    <button type="button" class="action-btn add-btn" id="addNoteBtn">+</button>
-                </div>
-            </footer>
+        <!-- ПЛАШКА ПОИСКА / ТЕГОВ (Тоже закреплена вверху) -->
+        <div id="telegramSearchBar" class="hashtag-filter-bar" style="display: none;">
+            <input type="text" class="modal-input" id="hashtagSearchInput" placeholder="Введите хэштег..." style="width: 100%; border: none; background: transparent; color: #fff;">
         </div>
+
+        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
+        <div class="scrollable-content">
+            <div class="content-wrapper">
+                <header class="header">
+                    <div class="container">
+                        <img src="images/text.png" alt="Born to win">
+                    </div>
+                </header>
+                <main class="notes-area">
+                    <div class="main-container">
+                        <!-- Заметки добавляются сюда -->
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Футер с кнопками -->
+        <footer class="app-footer">
+            <div class="footer-container">
+                <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
+                <button type="button" class="action-btn add-btn" id="addNoteBtn">+</button>
+            </div>
+        </footer>
     </div>
 
     <!-- Всплывающее окно создания заметки -->
@@ -341,17 +116,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ПОИСКА ПО ХЭШТЕГАМ -->
-    <div class="modal-overlay" id="searchModal">
-        <div class="modal-content">
-            <div class="modal-title">Поиск по хэштегам</div>
-            <input type="text" class="modal-input" id="hashtagSearchInput" placeholder="Введите хэштег (например: #design)...">
-            <div class="modal-actions">
-                <button class="modal-btn cancel-btn" id="closeSearchBtn">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
     <script src="js/app.js"></script>
 
     <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
@@ -365,7 +129,7 @@
                 <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
             </div>
 
-            <button type="buffer" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
+            <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
         </div>
     </div>
 </body>
