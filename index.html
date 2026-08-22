@@ -15,32 +15,38 @@
     <div class="bg-glow" id="bgLayer"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННОЕ ВЕРХНЕЕ МЕНЮ (Как в Telegram, не скроллится) -->
-        <aside class="main-menu">
-            <nav class="main-menu-nav">
-                <ul class="menu-list">
-                    <li><button class="menu-btn active">Media Library</button></li>
-                    <li><button class="menu-btn">Roadmap</button></li>
-                    <li><button class="menu-btn">Backlog</button></li>
-                    <li><button class="menu-btn">Sprint</button></li>
-                    <li><button class="menu-btn">Settings</button></li>
-                </ul>
-            </nav>
-        </aside>
+        <!-- ЕДИНЫЙ ФИКСИРОВАННЫЙ БЛОК СВЕРХУ (Меню + Поиск) -->
+        <header class="fixed-top-bar">
+            <aside class="main-menu">
+                <nav class="main-menu-nav">
+                    <ul class="menu-list">
+                        <li><button class="menu-btn active">Media Library</button></li>
+                        <li><button class="menu-btn">Roadmap</button></li>
+                        <li><button class="menu-btn">Backlog</button></li>
+                        <li><button class="menu-btn">Sprint</button></li>
+                        <li><button class="menu-btn">Settings</button></li>
+                    </ul>
+                </nav>
+            </aside>
 
-        <!-- ПЛАШКА ПОИСКА / ТЕГОВ (Тоже закреплена вверху) -->
-        <div id="telegramSearchBar" class="hashtag-filter-bar" style="display: none;">
-            <input type="text" class="modal-input" id="hashtagSearchInput" placeholder="Введите хэштег..." style="width: 100%; border: none; background: transparent; color: #fff;">
-        </div>
+            <!-- ПЛАШКА ПОИСКА / ТЕГОВ (Закреплена под меню) -->
+            <div id="telegramSearchBar" class="hashtag-filter-bar" style="display: none;">
+                <input type="text" id="tgSearchInput" placeholder="Поиск по хэштегу (#tag)..." autocomplete="off">
+                <span id="tgSearchCounter">0 из 0</span>
+                <div class="search-nav-btns">
+                    <button type="button" id="tgPrevBtn" title="Предыдущая">▲</button>
+                    <button type="button" id="tgNextBtn" title="Следующая">▼</button>
+                </div>
+                <button type="button" id="tgCloseBtn" title="Закрыть поиск">×</button>
+            </div>
+        </header>
 
         <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
         <div class="scrollable-content">
             <div class="content-wrapper">
-                <header class="header">
-                    <div class="container">
-                        <img src="images/text.png" alt="Born to win">
-                    </div>
-                </header>
+                <div class="header-logo-container">
+                    <img src="images/text.png" alt="Born to win">
+                </div>
                 <main class="notes-area">
                     <div class="main-container">
                         <!-- Заметки добавляются сюда -->

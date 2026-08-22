@@ -153,24 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSearchIndex = 0;
     let isSearchActive = false;
 
-    let searchBarContainer = document.getElementById('telegramSearchBar');
-    if (!searchBarContainer) {
-        searchBarContainer = document.createElement('div');
-        searchBarContainer.id = 'telegramSearchBar';
-        searchBarContainer.innerHTML = `
-            <input type="text" id="tgSearchInput" placeholder="Поиск по хэштегу (#tag)..." style="flex: 1; background: transparent; border: none; color: #fff; outline: none; font-size: 14px;">
-            <span id="tgSearchCounter" style="color: #a1a1aa; font-size: 13px; white-space: nowrap;">0 из 0</span>
-            <div style="display: flex; gap: 4px;">
-                <button type="button" id="tgPrevBtn" title="Предыдущая" style="background: rgba(255,255,255,0.08); border: none; color: #fff; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;">▲</button>
-                <button type="button" id="tgNextBtn" title="Следующая" style="background: rgba(255,255,255,0.08); border: none; color: #fff; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;">▼</button>
-            </div>
-            <button type="button" id="tgCloseBtn" title="Закрыть поиск" style="background: transparent; border: none; color: #a1a1aa; font-size: 18px; cursor: pointer; padding: 0 4px;">×</button>
-        `;
-        if (notesContainer && notesContainer.parentNode) {
-            notesContainer.parentNode.insertBefore(searchBarContainer, notesContainer);
-        }
-    }
-
+    const searchBarContainer = document.getElementById('telegramSearchBar');
     const tgSearchInput = document.getElementById('tgSearchInput');
     const tgSearchCounter = document.getElementById('tgSearchCounter');
     const tgPrevBtn = document.getElementById('tgPrevBtn');
@@ -424,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const timeString = now.toISOString();
 
-            // ИЗМЕНЕНО: Добавляем в начало массива (.unshift), чтобы посты падали наверх
             notes.unshift({
                 folder: activeFolder,
                 title: title || 'Без названия',
@@ -482,6 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = e.target.value.trim();
             currentSearchIndex = 0;
             renderNotes(query, query ? 0 : -1);
+            if (query && searchResults.length > 0) {
+                jumpToSearchIndex();
+            }
         });
     }
 
@@ -491,11 +476,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetCard = document.querySelector(`[data-search-id="${currentSearchIndex}"]`);
         const scrollContainer = document.querySelector('.scrollable-content');
         
-        // ИЗМЕНЕНО: Скроллим внутренний контейнер, а не всю страницу целиком
         if (targetCard && scrollContainer) {
             const cardTop = targetCard.offsetTop;
+            // Аккуратно подтягиваем карточку ровно под зафиксированную шапку
             scrollContainer.scrollTo({ 
-                top: cardTop - 120, 
+                top: cardTop - 140, 
                 behavior: 'smooth' 
             });
         }
