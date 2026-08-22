@@ -67,9 +67,9 @@ input:focus,
     left: 0;
     width: 100%;
     height: calc(env(safe-area-inset-top, 20px) + 70px);
-    background: rgba(15, 15, 20, 0.65);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(15, 15, 20, 0.45);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
     z-index: 900;
     pointer-events: none;
     mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
@@ -88,7 +88,7 @@ input:focus,
     display: flex;
     flex-direction: column;
     gap: 8px;
-    pointer-events: none; /* Сам контейнер не блокирует клики */
+    pointer-events: none;
 }
 
 /* Возвращаем клики на меню и поиск */
@@ -97,20 +97,20 @@ input:focus,
     pointer-events: auto;
 }
 
-/* Единый стиль стекломорфизма для верхнего меню и строки поиска */
+/* Единый стиль настоящего тонированного стекла */
 .main-menu, 
 .hashtag-filter-bar {
     width: 100%;
-    background: rgba(28, 28, 35, 0.75);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    background: rgba(22, 22, 28, 0.5) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
     box-sizing: border-box;
 }
 
 .main-menu {
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 10px 16px;
 }
 
@@ -135,7 +135,7 @@ input:focus,
 .menu-btn {
     padding: 6px 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
@@ -154,7 +154,7 @@ input:focus,
 }
 
 .hashtag-filter-bar {
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 8px 12px;
     display: flex;
     align-items: center;
@@ -189,7 +189,7 @@ input:focus,
     color: #fff;
     width: 28px;
     height: 28px;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -203,7 +203,7 @@ input:focus,
     font-size: 18px;
 }
 
-/* РОДИТЕЛЬ-МАСКА: обрезает всё, что вылезает за пределы экрана по ширине */
+/* РОДИТЕЛЬ-МАСКА */
 .scroll-viewport {
     position: absolute;
     top: 0;
@@ -272,17 +272,17 @@ input:focus,
     margin: 0 auto;
 }
 
-/* Единый стиль для карточек заметок */
+/* Карточки заметок в стиле стекла */
 .note-card {
     position: relative;
     width: 100%;
     padding: 20px;
-    background: rgba(28, 28, 35, 0.75);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    background: rgba(22, 22, 28, 0.5) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     box-sizing: border-box;
 }
 
@@ -322,7 +322,7 @@ input:focus,
     padding: 4px 8px;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #66666e;
     font-size: 18px;
     cursor: pointer;
@@ -347,7 +347,7 @@ input:focus,
     gap: 12px;
 }
 
-/* Единый стиль для круглых кнопок внизу */
+/* Круглые кнопки внизу */
 .action-btn {
     width: 52px;
     height: 52px;
@@ -355,14 +355,14 @@ input:focus,
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(28, 28, 35, 0.75);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(22, 22, 28, 0.5) !important;
+    backdrop-filter: blur(25px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     color: #ffffff;
     font-size: 22px;
     cursor: pointer;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
     transition: transform 0.2s ease;
 }
 
@@ -376,21 +376,20 @@ input:focus,
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0, 0, 0, 0.65) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 99999 !important;
 }
 
-
 .modal-overlay.active {
     display: flex !important;
 }
 
-/* Нативный стиль всплывающих окон/меню под iOS */
+/* Модальные окна в стиле iOS Glass */
 .modal-content {
     width: 90% !important;
     max-width: 450px !important;
@@ -399,19 +398,17 @@ input:focus,
     flex-direction: column !important;
     gap: 12px !important;
     
-    /* Тот самый плотный стеклянный вайб iOS */
-    background: rgba(30, 30, 36, 0.85) !important;
-    backdrop-filter: blur(25px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+    background: rgba(22, 22, 28, 0.65) !important;
+    backdrop-filter: blur(30px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
     
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 22px !important; /* Прям фирменное айфоновское скругление */
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
     z-index: 100000 !important;
 }
 
-
-/* Если внутри модалки есть список опций/кнопок (как на скрине с айфона) */
+/* Пункты меню (если используются) */
 .ios-menu-item {
     display: flex;
     align-items: center;
@@ -432,11 +429,9 @@ input:focus,
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Для опасных действий (например, «Удалить») */
 .ios-menu-item.destructive {
     color: #ff453a; 
 }
-
 
 .modal-title {
     font-size: 18px;
@@ -452,9 +447,9 @@ input:focus,
 .modal-input, 
 .modal-textarea {
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: 10px;
     color: #fff;
     font-family: inherit;
     font-size: 14px;
@@ -475,7 +470,7 @@ input:focus,
 .modal-btn {
     padding: 8px 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
     cursor: pointer;
 }
@@ -500,17 +495,18 @@ input:focus,
     overflow-y: auto;
 }
 
+/* Аккуратные карточки обоев с мягким свечением */
 .wallpaper-card {
     position: relative;
     height: 60px;
     box-sizing: border-box;
-    border-radius: 10px;
-    border: 2px solid transparent;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
     background-size: cover;
     background-position: center;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .wallpaper-card:hover {
@@ -518,8 +514,8 @@ input:focus,
 }
 
 .wallpaper-card.active {
-    border-color: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.35), inset 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
 .wallpaper-card-title {
@@ -530,6 +526,7 @@ input:focus,
     font-weight: 600;
     color: #fff;
     text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    z-index: 2;
 }
 
 .delete-bg-btn {
@@ -564,9 +561,9 @@ input:focus,
     justify-content: center;
     width: 100%;
     padding: 10px 14px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
     font-size: 13px;
     font-weight: 500;
