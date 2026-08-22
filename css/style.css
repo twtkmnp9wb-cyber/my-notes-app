@@ -192,13 +192,14 @@ input:focus,
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    bottom: 0; /* Растягиваем на всю высоту экрана */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: calc(env(safe-area-inset-top, 20px) + 135px);
-    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 160px); /* Увеличили отступ снизу */
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 180px); /* Большой запас снизу под кнопки */
     box-sizing: border-box;
 }
+
 
 
 .content-wrapper {
