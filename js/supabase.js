@@ -16,18 +16,15 @@ export const CloudStorage = {
             console.error('Ошибка загрузки из облака:', error);
             return null;
         }
-        // Если данные хранятся в поле payload, достаем их оттуда, иначе возвращаем как есть
         return data ? data.map(row => row.payload || row) : [];
     },
 
     // Сохранение / обновление записей в облаке
     async saveNote(note) {
-        // Передаем id, обязательное поле user_id и саму заметку в payload
         const { error } = await supabase
             .from('notes')
             .upsert({ 
                 id: String(note.id), 
-                user_id: 'default_user',
                 payload: note 
             });
 
