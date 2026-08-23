@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLightbox();
     initEditModalLogic(refresh);
     initLiveDumpLogic();
+    initSearchLogic(refresh); // <--- Инициализация поиска
 });
 
 function openEditModal(note) {
@@ -271,6 +272,114 @@ function initModalsAndCreation(refreshCallback) {
     document.getElementById('closeDumpBtn')?.addEventListener('click', () => dumpModal.classList.remove('active'));
     document.getElementById('closeRoadmapBtn')?.addEventListener('click', () => roadmapModal.classList.remove('active'));
     document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
+}
+
+/* --- Логика выдвижного поиска (как на скриншоте 14) --- */
+function initSearchLogic(refreshCallback) {
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    const searchDropdownBar = document.getElementById('searchDropdownBar');
+    const searchCloseBtn = document.getElementById('searchCloseBtn');
+    const feedSearchInput = document.getElementById('feedSearchInput');
+    const searchCounter = document.getElementById('searchCounter');
+    const searchUpBtn = document.getElementById('searchUpBtn');
+    const searchDownBtn = document.getElementById('searchDownBtn');
+
+    if (!searchToggleBtn || !searchDropdownBar) return;
+
+    let currentIndex = 0;
+    let matchedElements = [];
+
+    // Открытие/закрытие по клику на лупу
+    searchToggleBtn.addEventListener('click', () => {
+        searchDropdownBar.classList.toggle('active');
+        if (searchDropdownBar.classList.contains('active')) {
+            feedSearchInput.focus();
+        } else {
+            closeSearch();
+        }
+    });
+
+    // Кнопка закрытия (крестик)
+    searchCloseBtn?.addEventListener('click', () => {
+        closeSearch();
+    });
+
+    function closeSearch() {
+        searchDropdownBar.classList.remove('active');
+        feedSearchInput.value = '';
+        if (searchCounter) searchCounter.textContent = '0 из 0';
+        clearHighlights();
+        refreshCallback();
+    }
+
+    // Обработка ввода в строку поиска
+    feedSearchInput?.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        clearHighlights();
+
+        if (!query) {
+            searchCounter.textContent = '0 из 0';
+            refreshCallback();
+            return;
+        }
+
+        // Если в AppState есть метод поиска, либо фильтруем карточки на странице
+        const cards = document.querySelectorAll('.note-card');
+        matchedElements = [];
+
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            if (text.includes(query)) {
+                matchedElements.push(card);
+            }
+        });
+
+        if (matchedElements.length > 0) {
+            currentIndex = 0;
+            updateCounter();
+            scrollToMatch(currentIndex);
+        } else {
+            searchCounter.textContent = '0 из 0';
+        }
+    });
+
+    // Навигация стрелочками Вверх/Вниз
+    searchDownBtn?.addEventListener('click', () => {
+        if (matchedElements.length === 0) return;
+        currentIndex = (currentIndex + 1) % matchedElements.length;
+        updateCounter();
+        scrollToMatch(currentIndex);
+    });
+
+    searchUpBtn?.addEventListener('click', () => {
+        if (matchedElements.length === 0) return;
+        currentIndex = (currentIndex - 1 + matchedElements.length) % matchedElements.length;
+        updateCounter();
+        scrollToMatch(currentIndex);
+    });
+
+    function updateCounter() {
+        if (searchCounter) {
+            searchCounter.textContent = `${currentIndex + 1} из ${matchedElements.length}`;
+        }
+    }
+
+    function scrollToMatch(index) {
+        matchedElements.forEach(el => el.style.border = '1px solid rgba(255, 255, 255, 0.1)');
+        const target = matchedElements[index];
+        if (target) {
+            target.style.border = '1px solid #4caf50'; // Подсветка текущего результата
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.note-card').forEach(card => {
+            card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        });
+        matchedElements = [];
+        currentIndex = 0;
+    }
 }
 
 function initLiveDumpLogic() {

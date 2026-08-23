@@ -16,7 +16,7 @@
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ БЛОК СВЕРХУ -->
+        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (МЕНЮ) СВЕРХУ -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -32,15 +32,21 @@
             </aside>
         </header>
 
-        <!-- ПОИСК (встраивается сюда же в поток под меню, не накладывается) -->
-        <div id="telegramSearchBarContainer"></div>
+        <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
+        <div id="searchDropdownBar" class="search-dropdown-bar">
+            <input type="text" id="feedSearchInput" class="search-dropdown-input" placeholder="Поиск по хэштегу (#tag)...">
+            <span id="searchCounter" class="search-counter">0 из 0</span>
+            <button type="button" class="search-nav-btn" id="searchUpBtn">▲</button>
+            <button type="button" class="search-nav-btn" id="searchDownBtn">▼</button>
+            <button type="button" class="search-close-btn" id="searchCloseBtn">×</button>
+        </div>
 
         <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
         <div class="scroll-viewport">
             <div class="content-wrapper">
-                <!-- Надпись Born to win возвращена на свое место в поток -->
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h2 style="font-family: 'Caveat', cursive; font-size: 2.2rem; color: rgba(255,255,255,0.85); font-weight: 400; letter-spacing: 1px; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">Born to win.</h2>
+                <!-- Оригинальная надпись Born to win. -->
+                <div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
+                    <h2 style="font-family: 'Caveat', cursive; font-size: 2.3rem; color: rgba(255,255,255,0.9); font-weight: 400; letter-spacing: 1px; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.4);">Born to win.</h2>
                 </div>
 
                 <main class="notes-area">
@@ -142,7 +148,10 @@
     <!-- Окно настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
-            <h2 class="modal-header" style="margin-bottom:12px;"><span style="font-size:18px;">Темы и обои</span></h2>
+            <div class="modal-header">
+                <h3>Темы и обои</h3>
+                <button type="button" class="close-btn" id="closeSettingsBtn">×</button>
+            </div>
             <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Выберите обои:</p>
             <div class="bg-gallery" id="bgGallery" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
             
@@ -152,10 +161,6 @@
                     <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
                 </div>
                 <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%;" />
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <button type="button" id="closeSettingsBtn" class="menu-btn active" style="width:100%; background:rgba(255,255,255,0.2);">Закрыть</button>
             </div>
         </div>
     </div>
