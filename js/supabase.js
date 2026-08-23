@@ -19,14 +19,17 @@ export const CloudStorage = {
     },
 
     async saveNote(note) {
+        // Сохраняем строго id и json-объект в payload, избегая ошибок NOT NULL в других колонках
         const { error } = await supabase
             .from('notes')
             .upsert({ 
                 id: String(note.id),
                 payload: note 
-            });
+            }, { onConflict: 'id' });
 
-        if (error) console.error('Ошибка сохранения в облако:', error);
+        if (error) {
+            console.error('Ошибка сохранения в облако:', error);
+        }
     },
 
     async deleteNote(id) {
@@ -35,6 +38,8 @@ export const CloudStorage = {
             .delete()
             .eq('id', String(id));
 
-        if (error) console.error('Ошибка удаления из облака:', error);
+        if (error) {
+            console.error('Ошибка удаления из облака:', error);
+        }
     }
 };
