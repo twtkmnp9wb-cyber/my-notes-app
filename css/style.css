@@ -10,7 +10,7 @@ body {
     color: #fff;
     overflow: hidden;
     height: 100vh;
-    height: 100dvh; /* Жестко фиксируем для PWA на iOS */
+    height: 100dvh;
 }
 
 .app-container {
@@ -22,7 +22,7 @@ body {
     overflow: hidden;
 }
 
-/* Фиксированный топ-бар (меню) сверху с учетом челки/динамического острова */
+/* Верхнее меню — фиксировано сверху */
 .fixed-top-bar {
     position: fixed;
     top: 0;
@@ -71,10 +71,10 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Выдвижная плашка поиска — фиксирована строго под меню */
+/* Плашка поиска — строго под меню, ниже него, без наложений */
 .search-dropdown-bar {
     position: fixed;
-    top: 68px; /* Ровно под шапкой меню */
+    top: 72px; 
     left: 16px;
     right: 16px;
     z-index: 140;
@@ -112,7 +112,6 @@ body {
     white-space: nowrap;
 }
 
-/* Кнопки внутри поиска */
 .search-nav-btn, .search-close-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -131,13 +130,13 @@ body {
     font-size: 12px;
 }
 
-/* Прокручиваемая область — безопасный скролл посередине */
+/* Область скролла ленты с безопасными отступами */
 .scroll-viewport {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-top: 85px; /* Запас, чтобы контент не уходил под меню */
-    padding-bottom: 110px; /* Запас под плавающий футер */
+    padding-top: 85px;
+    padding-bottom: 110px;
 }
 
 .scroll-viewport::-webkit-scrollbar {
@@ -150,7 +149,7 @@ body {
     padding: 0 16px;
 }
 
-/* Карточки заметок */
+/* Карточки */
 .note-card {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -168,7 +167,7 @@ body {
     white-space: pre-wrap;
 }
 
-/* Футер с кнопками (лупа и плюс) — закреплен внизу справа поверх всего */
+/* Футер закреплен внизу справа */
 .app-footer {
     position: fixed;
     bottom: 0;
@@ -178,7 +177,7 @@ body {
     padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     background: linear-gradient(to top, rgba(18,18,18,0.95), rgba(18,18,18,0));
     backdrop-filter: blur(5px);
-    pointer-events: none; /* Пропускает клики сквозь пустую зону футера */
+    pointer-events: none;
 }
 
 .footer-container {
@@ -188,10 +187,9 @@ body {
     justify-content: flex-end;
     max-width: 600px;
     margin: 0 auto;
-    pointer-events: auto; /* Возвращает клики на сами кнопки */
+    pointer-events: auto;
 }
 
-/* Единый стиль для лупы и плюса */
 .action-btn {
     width: 48px;
     height: 48px;
@@ -219,7 +217,7 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Модалки */
+/* Модальные окна */
 .modal {
     display: none;
     position: fixed;
