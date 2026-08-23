@@ -49,12 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
             targetBgLayer.style.setProperty('background-color', bgValue, 'important');
         }
 
-        if (scaleValueText) {
-            scaleValueText.textContent = `${scale}%`;
-        }
-        if (bgScaleRange && bgScaleRange.value !== String(scale)) {
-            bgScaleRange.value = scale;
-        }
+        if (scaleValueText) scaleValueText.textContent = `${scale}%`;
+        if (bgScaleRange && bgScaleRange.value !== String(scale)) bgScaleRange.value = scale;
         
         renderWallpapers();
     }
@@ -79,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.style.backgroundImage = `url("${item.value}")`;
             card.style.backgroundSize = 'cover';
             card.style.backgroundPosition = 'center';
-            
             if (item.value === currentBg) card.classList.add('active');
             
             card.innerHTML = `
@@ -98,14 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.stopPropagation();
                     customWallpapers.splice(index, 1);
                     localStorage.setItem('my_custom_wallpapers', JSON.stringify(customWallpapers));
-                    if (currentBg === item.value) {
-                        applyBackground('#09090b');
-                    } else {
-                        renderWallpapers();
-                    }
+                    if (currentBg === item.value) applyBackground('#09090b');
+                    else renderWallpapers();
                 });
             }
-
             bgGallery.appendChild(card);
         });
     }
@@ -140,17 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyBackground(currentBg, currentScale);
 
-    // --- КЛИК ПО БЫСТРЫМ ТЕГАМ В МОДАЛКЕ ---
+    // Быстрые теги
     document.querySelectorAll('.tag-chip').forEach(chip => {
         chip.addEventListener('click', () => {
             const input = document.getElementById('noteHashtagInput');
-            if (input) {
-                input.value = chip.textContent.trim();
-            }
+            if (input) input.value = chip.textContent.trim();
         });
     });
 
-    // --- 2. МЕНЮ, ПАПКИ И ЗАМЕТКИ ---
+    // --- 2. МЕНЮ, ВКЛАДКИ И ЗАМЕТКИ/ЗАДАЧИ ---
     const menuButtons = document.querySelectorAll('.menu-btn');
     const searchBtn = document.getElementById('searchBtn');
     const addNoteBtn = document.getElementById('addNoteBtn');
@@ -164,7 +153,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteHashtagInput = document.getElementById('noteHashtagInput');
     const notesContainer = document.querySelector('.main-container');
 
-    let activeFolder = localStorage.getItem('app_active_folder') || 'media library';
+    // Новые элементы управления типом (Лента vs Задача)
+    const typeFeedBtn = document.getElementById('typeFeedBtn');
+    const typeTaskBtn = document.getElementById('typeTaskBtn');
+    const feedFieldsBlock = document.getElementById('feedFieldsBlock');
+    const taskFieldsBlock = document.getElementById('taskFieldsBlock');
+    const taskTargetFolder = document.getElementById('taskTargetFolder');
+    const taskDeadlineInput = document.getElementById('taskDeadlineInput');
+    const todoItemsContainer = document.getElementById('todoItemsContainer');
+    const addTodoItemBtn = document.getElementById('addTodoItemBtn');
+
+    let currentEntryType = 'feed'; // 'feed' или 'task'
+    let activeTab = localStorage.getItem('app_active_tab') || 'feed';
     let notes = JSON.parse(localStorage.getItem('app_notes')) || [];
 
     let searchResults = [];
@@ -181,30 +181,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatCleanDate(dateInput) {
         if (!dateInput) return '';
         let d = new Date(dateInput);
-        if (isNaN(d)) {
-            return dateInput.replace(/[,;]/g, '').replace(/\bв\b/gi, '').trim();
-        }
+        if (isNaN(d)) return dateInput.replace(/[,;]/g, '').replace(/\bв\b/gi, '').trim();
         const dayMonth = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
         const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         return `${dayMonth} ${time}`;
     }
 
+    // РЕНДЕР КАРТОЧЕК
     window.renderNotes = function(filterTag = '', highlightIndex = -1) {
         if (!notesContainer) return;
         notesContainer.innerHTML = '';
 
-        const isMediaFolder = activeFolder.includes('media');
-        const folderNotes = notes.filter(note => (note.folder || 'media library') === activeFolder);
+        const isFeed = activeTab === 'feed';
+        const folderNotes = notes.filter(note => (note.folder || 'feed') === activeTab);
 
         const filteredNotes = folderNotes.filter(note => {
-            if (!filterTag || !isMediaFolder) return true;
+            if (!filterTag || !isFeed) return true;
             const tag = note.hashtag ? note.hashtag.toLowerCase() : '';
             return tag.includes(filterTag.toLowerCase());
         });
 
         searchResults = filteredNotes;
 
-        if (isSearchActive && filterTag && isMediaFolder) {
+        if (isSearchActive && filterTag && isFeed) {
             tgSearchCounter.textContent = searchResults.length > 0 
                 ? `${currentSearchIndex + 1} из ${searchResults.length}` 
                 : '0 из 0';
@@ -216,45 +215,81 @@ document.addEventListener('DOMContentLoaded', () => {
             card.classList.add('note-card');
             card.setAttribute('data-search-id', fIndex);
 
-            if (isSearchActive && filterTag && fIndex === highlightIndex && isMediaFolder) {
+            if (isSearchActive && filterTag && fIndex === highlightIndex && isFeed) {
                 card.style.borderColor = '#ffffff';
                 card.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.4)';
-            } else {
-                card.style.borderColor = '';
-                card.style.boxShadow = '';
             }
-
-            const hashtagHtml = (isMediaFolder && note.hashtag) 
-                ? `<span class="note-hashtag">${escapeHtml(note.hashtag)}</span>` 
-                : '<span></span>';
 
             const cleanTime = formatCleanDate(note.time);
 
-            let imagesHtml = '';
-            if (note.images && note.images.length > 0) {
-                const imgsJson = JSON.stringify(note.images).replace(/"/g, '&quot;');
-                const imgsGrid = note.images.map((img, imgIdx) => `
-                    <img src="${img}" onclick="openLightbox(${imgsJson}, ${imgIdx})" alt="Attached media" />
-                `).join('');
-                imagesHtml = `<div class="note-images-grid">${imgsGrid}</div>`;
-            } else if (note.image) {
-                const imgsJson = JSON.stringify([note.image]).replace(/"/g, '&quot;');
-                imagesHtml = `<div class="note-image-container"><img src="${note.image}" onclick="openLightbox(${imgsJson}, 0)" alt="Attached media" /></div>`;
+            // Если карточка — Задача с чек-листом (Спринт или Бэклог)
+            if (note.type === 'task') {
+                let checklistHtml = '';
+                if (note.todos && note.todos.length > 0) {
+                    checklistHtml = '<div class="task-checklist">' + note.todos.map((todo, tIdx) => `
+                        <label class="task-todo-item ${todo.done ? 'done' : ''}">
+                            <input type="checkbox" data-note-idx="${realIndex}" data-todo-idx="${tIdx}" ${todo.done ? 'checked' : ''} class="todo-checkbox">
+                            <span>${escapeHtml(todo.text)}</span>
+                        </label>
+                    `).join('') + '</div>';
+                }
+
+                let deadlineHtml = note.deadline ? `<span class="task-deadline-badge">⏳ До: ${note.deadline}</span>` : '<span></span>';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                        ${deadlineHtml}
+                    </div>
+                    ${note.text ? `<p class="note-text">${escapeHtml(note.text)}</p>` : ''}
+                    ${checklistHtml}
+                    <div class="note-footer" style="margin-top: 12px;">
+                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">Создано: ${cleanTime}</span>
+                        <button type="button" class="delete-note-btn" data-index="${realIndex}">×</button>
+                    </div>
+                `;
+            } else {
+                // Карточка Ленты
+                const hashtagHtml = (isFeed && note.hashtag) 
+                    ? `<span class="note-hashtag">${escapeHtml(note.hashtag)}</span>` 
+                    : '<span></span>';
+
+                let imagesHtml = '';
+                if (note.images && note.images.length > 0) {
+                    const imgsJson = JSON.stringify(note.images).replace(/"/g, '&quot;');
+                    const imgsGrid = note.images.map((img, imgIdx) => `
+                        <img src="${img}" onclick="openLightbox(${imgsJson}, ${imgIdx})" alt="Attached media" />
+                    `).join('');
+                    imagesHtml = `<div class="note-images-grid">${imgsGrid}</div>`;
+                }
+
+                card.innerHTML = `
+                    <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                    <p class="note-text">${escapeHtml(note.text)}</p>
+                    ${imagesHtml}
+                    <div class="note-footer">
+                        ${hashtagHtml}
+                        <span class="note-time">${cleanTime}</span>
+                    </div>
+                    <button type="button" class="delete-note-btn" data-index="${realIndex}">×</button>
+                `;
             }
 
-            card.innerHTML = `
-                <h3 class="note-title">${escapeHtml(note.title)}</h3>
-                <p class="note-text">${escapeHtml(note.text)}</p>
-                ${imagesHtml}
-                <div class="note-footer">
-                    ${hashtagHtml}
-                    <span class="note-time">${cleanTime}</span>
-                </div>
-                <button type="button" class="delete-note-btn" data-index="${realIndex}">×</button>
-            `;
             notesContainer.appendChild(card);
         });
 
+        // Слушатели галочек подзадач
+        document.querySelectorAll('.todo-checkbox').forEach(chk => {
+            chk.addEventListener('change', (e) => {
+                const noteIdx = parseInt(e.target.getAttribute('data-note-idx'));
+                const todoIdx = parseInt(e.target.getAttribute('data-todo-idx'));
+                notes[noteIdx].todos[todoIdx].done = e.target.checked;
+                localStorage.setItem('app_notes', JSON.stringify(notes));
+                renderNotes(isSearchActive ? tgSearchInput.value.trim() : '');
+            });
+        });
+
+        // Удаление
         document.querySelectorAll('.delete-note-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = e.target.getAttribute('data-index');
@@ -266,43 +301,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeHtml(str) {
-        return str.replace(/[&<>'"]/g, 
+        return (str || '').replace(/[&<>'"]/g, 
             tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
         );
     }
 
-    function updateFolderUI() {
-        const isMediaFolder = activeFolder.includes('media');
-        if (searchBtn) searchBtn.style.display = isMediaFolder ? 'flex' : 'none';
-        const hashtagWrapper = document.querySelector('.hashtag-field-wrapper');
-        if (hashtagWrapper) {
-            hashtagWrapper.style.display = isMediaFolder ? 'block' : 'none';
-        } else if (noteHashtagInput) {
-            noteHashtagInput.style.display = isMediaFolder ? 'block' : 'none';
-        }
+    function updateTabUI() {
+        const isFeed = activeTab === 'feed';
+        if (searchBtn) searchBtn.style.display = isFeed ? 'flex' : 'none';
     }
 
-    function switchFolder(folderName, btnElement) {
-        activeFolder = folderName.toLowerCase();
-        localStorage.setItem('app_active_folder', activeFolder);
+    function switchTab(tabName, btnElement) {
+        activeTab = tabName.toLowerCase();
+        localStorage.setItem('app_active_tab', activeTab);
 
         menuButtons.forEach(b => b.classList.remove('active'));
         if (btnElement) btnElement.classList.add('active');
 
-        updateFolderUI();
+        updateTabUI();
 
-        if (isSearchActive && !activeFolder.includes('media')) {
-            closeSearch();
-        } else {
-            renderNotes();
-        }
+        if (isSearchActive && activeTab !== 'feed') closeSearch();
+        else renderNotes();
     }
 
-    let foundActive = false;
     menuButtons.forEach(btn => {
-        const text = btn.textContent.trim().toLowerCase();
-        
-        if (text.includes('settings') || text.includes('настройк') || btn.id === 'settingsBtn') {
+        const tab = btn.getAttribute('data-tab') || btn.textContent.trim().toLowerCase();
+
+        if (tab === 'settings') {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (settingsModal) settingsModal.classList.add('active');
@@ -311,34 +336,67 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (text.includes(activeFolder)) {
-            switchFolder(text, btn);
-            foundActive = true;
-        }
+        if (tab === activeTab) switchTab(tab, btn);
 
-        btn.addEventListener('click', () => {
-            switchFolder(text, btn);
-        });
+        btn.addEventListener('click', () => switchTab(tab, btn));
     });
 
-    if (!foundActive && menuButtons.length > 0) {
-        const defaultBtn = Array.from(menuButtons).find(b => {
-            const t = b.textContent.toLowerCase();
-            return !t.includes('settings') && !t.includes('настройк');
-        }) || menuButtons[0];
-        switchFolder(defaultBtn.textContent.trim(), defaultBtn);
-    } else {
-        updateFolderUI();
+    updateTabUI();
+
+    // --- 3. ПЕРЕКЛЮЧЕНИЕ ТИПА ЗАПИСИ (Лента / Задача) ---
+    function setEntryType(type) {
+        currentEntryType = type;
+        if (type === 'feed') {
+            typeFeedBtn.classList.add('active');
+            typeTaskBtn.classList.remove('active');
+            feedFieldsBlock.style.display = 'block';
+            taskFieldsBlock.style.display = 'none';
+        } else {
+            typeTaskBtn.classList.add('active');
+            typeFeedBtn.classList.remove('active');
+            feedFieldsBlock.style.display = 'none';
+            taskFieldsBlock.style.display = 'block';
+            if (activeTab === 'sprint' || activeTab === 'backlog') {
+                taskTargetFolder.value = activeTab;
+            }
+        }
     }
 
-    // --- 3. МОДАЛКИ И СОХРАНЕНИЕ ---
+    if (typeFeedBtn) typeFeedBtn.addEventListener('click', () => setEntryType('feed'));
+    if (typeTaskBtn) typeTaskBtn.addEventListener('click', () => setEntryType('task'));
+
+    // ЧЕК-ЛИСТ ДИНАМИКА
+    if (addTodoItemBtn) {
+        addTodoItemBtn.addEventListener('click', () => {
+            const row = document.createElement('div');
+            row.classList.add('todo-input-row');
+            row.innerHTML = `
+                <input type="text" placeholder="Подзадача..." class="modal-input todo-text-input">
+                <button type="button" class="remove-todo-btn">×</button>
+            `;
+            row.querySelector('.remove-todo-btn').addEventListener('click', () => row.remove());
+            todoItemsContainer.appendChild(row);
+        });
+    }
+
+    // МОДАЛКА И СОХРАНЕНИЕ
     if (addNoteBtn) {
         addNoteBtn.addEventListener('click', () => {
             if (noteTitleInput) noteTitleInput.value = '';
             if (noteTextInput) noteTextInput.value = '';
             if (noteHashtagInput) noteHashtagInput.value = '';
+            if (taskDeadlineInput) taskDeadlineInput.value = '';
+            if (todoItemsContainer) todoItemsContainer.innerHTML = '';
             attachedImages = [];
             renderMediaPreviews();
+
+            // Если открыто на вкладке sprint или backlog - ставим тип "Задача" автоматом
+            if (activeTab === 'sprint' || activeTab === 'backlog') {
+                setEntryType('task');
+            } else {
+                setEntryType('feed');
+            }
+
             if (noteModal) noteModal.classList.add('active');
         });
     }
@@ -349,6 +407,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // LIVE DUMP
+    const liveDumpBtn = document.getElementById('liveDumpBtn');
+    const dumpModal = document.getElementById('dumpModal');
+    const closeDumpBtn = document.getElementById('closeDumpBtn');
+    const liveDumpArea = document.getElementById('liveDumpArea');
+
+    if (liveDumpArea) {
+        liveDumpArea.value = localStorage.getItem('app_live_dump') || '';
+        liveDumpArea.addEventListener('input', (e) => {
+            localStorage.setItem('app_live_dump', e.target.value);
+        });
+    }
+
+    if (liveDumpBtn) {
+        liveDumpBtn.addEventListener('click', () => {
+            if (dumpModal) dumpModal.classList.add('active');
+        });
+    }
+
+    if (closeDumpBtn) {
+        closeDumpBtn.addEventListener('click', () => {
+            if (dumpModal) dumpModal.classList.remove('active');
+        });
+    }
+
+    // МЕДИА ПРИКРЕПЛЕНИЕ
     const noteMediaInput = document.getElementById('noteMediaInput');
     const mediaPreviewContainer = document.getElementById('mediaPreviewContainer');
     let attachedImages = [];
@@ -402,47 +486,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // КНОПКА СОХРАНИТЬ
     if (saveNoteBtn) {
         saveNoteBtn.addEventListener('click', () => {
             const title = noteTitleInput ? noteTitleInput.value.trim() : '';
             const text = noteTextInput ? noteTextInput.value.trim() : '';
-            const isMediaFolder = activeFolder.includes('media');
-            const hashtag = (isMediaFolder && noteHashtagInput) ? noteHashtagInput.value.trim() : '';
 
-            if (!title && !text && attachedImages.length === 0) {
-                alert('Заполните заголовок, текст или прикрепите файлы к заметке!');
-                return;
+            if (currentEntryType === 'feed') {
+                const hashtag = noteHashtagInput ? noteHashtagInput.value.trim() : '';
+                if (!title && !text && attachedImages.length === 0) {
+                    alert('Заполните заголовок, текст или прикрепите фото!');
+                    return;
+                }
+
+                notes.push({
+                    type: 'feed',
+                    folder: 'feed',
+                    title: title || 'Без названия',
+                    text: text,
+                    hashtag: hashtag ? (hashtag.startsWith('#') ? hashtag : '#' + hashtag) : '',
+                    time: new Date().toISOString(),
+                    images: [...attachedImages]
+                });
+            } else {
+                // Задача
+                if (!title) {
+                    alert('Введите название задачи!');
+                    return;
+                }
+
+                const todos = [];
+                document.querySelectorAll('.todo-text-input').forEach(inp => {
+                    const val = inp.value.trim();
+                    if (val) todos.push({ text: val, done: false });
+                });
+
+                notes.push({
+                    type: 'task',
+                    folder: taskTargetFolder.value,
+                    title: title,
+                    text: text,
+                    deadline: taskDeadlineInput.value || null,
+                    todos: todos,
+                    carryCount: 0, // Счетчик переносов для 3 правил Заповеди
+                    time: new Date().toISOString()
+                });
             }
 
-            const now = new Date();
-            const timeString = now.toISOString();
-
-            notes.push({
-                folder: activeFolder,
-                title: title || 'Без названия',
-                text: text,
-                hashtag: hashtag ? (hashtag.startsWith('#') ? hashtag : '#' + hashtag) : '',
-                time: timeString,
-                images: [...attachedImages]
-            });
-
             localStorage.setItem('app_notes', JSON.stringify(notes));
-
-            if (noteTitleInput) noteTitleInput.value = '';
-            if (noteTextInput) noteTextInput.value = '';
-            if (noteHashtagInput) noteHashtagInput.value = '';
-            
-            attachedImages = [];
-            renderMediaPreviews();
 
             if (noteModal) noteModal.classList.remove('active');
             renderNotes(isSearchActive ? tgSearchInput.value.trim() : '');
         });
     }
 
-    // --- ПОИСК ---
+    // ПОИСК
     function openSearch() {
-        if (!activeFolder.includes('media')) return;
+        if (activeTab !== 'feed') return;
         isSearchActive = true;
         if (searchBarContainer) searchBarContainer.style.display = 'flex';
         if (tgSearchInput) {
@@ -474,9 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = e.target.value.trim();
             currentSearchIndex = 0;
             renderNotes(query, query ? 0 : -1);
-            if (query && searchResults.length > 0) {
-                jumpToSearchIndex();
-            }
+            if (query && searchResults.length > 0) jumpToSearchIndex();
         });
     }
 
@@ -488,10 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (targetCard && scrollContainer) {
             const cardTop = targetCard.offsetTop;
-            scrollContainer.scrollTo({ 
-                top: cardTop - 140, 
-                behavior: 'smooth' 
-            });
+            scrollContainer.scrollTo({ top: cardTop - 140, behavior: 'smooth' });
         }
     }
 
@@ -520,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderNotes();
 });
 
-// --- ЛАЙТБОКС ---
+// ЛАЙТБОКС
 let currentLightboxImages = [];
 let currentLightboxIndex = 0;
 
@@ -539,20 +634,14 @@ function openLightbox(images, index = 0) {
 
 function closeLightbox() {
     const modal = document.getElementById('lightboxModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 }
 
 function changeLightboxImage(direction) {
     if (currentLightboxImages.length <= 1) return;
-    
     currentLightboxIndex = (currentLightboxIndex + direction + currentLightboxImages.length) % currentLightboxImages.length;
-    
     const img = document.getElementById('lightboxImg');
-    if (img) {
-        img.src = currentLightboxImages[currentLightboxIndex];
-    }
+    if (img) img.src = currentLightboxImages[currentLightboxIndex];
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -563,9 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (lightboxModal) {
         lightboxModal.addEventListener('click', (e) => {
-            if (e.target === lightboxModal) {
-                closeLightbox();
-            }
+            if (e.target === lightboxModal) closeLightbox();
         });
     }
 
