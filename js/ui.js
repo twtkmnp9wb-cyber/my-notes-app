@@ -1,5 +1,7 @@
 import { AppState } from './state.js';
 
+let isSearchOpen = false;
+
 function getDeadlineStatus(deadlineStr) {
     if (!deadlineStr) return null;
     const today = new Date();
@@ -21,32 +23,77 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         container.innerHTML = '';
 
-        // Панель поиска
-        const toolbar = document.createElement('div');
-        toolbar.style.cssText = 'display: flex; gap: 10px; margin-bottom: 16px; width: 100%;';
-        
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.placeholder = '🔍 Поиск по заметкам и задачам...';
-        searchInput.value = AppState.searchQuery || '';
-        searchInput.style.cssText = `
-            flex: 1;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 10px 14px;
-            border-radius: 12px;
-            color: white;
-            font-size: 13px;
-            outline: none;
-        `;
-        searchInput.oninput = (e) => {
-            AppState.searchQuery = e.target.value;
-            UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-        };
-        toolbar.appendChild(searchInput);
-        container.appendChild(toolbar);
+        // Панель управления (Кнопка лупы / Поисковая строка) только для Media Library (feed)
+        if (AppState.currentTab === 'feed') {
+            const toolbar = document.createElement('div');
+            toolbar.style.cssText = 'display: flex; justify-content: flex-end; align-items: center; margin-bottom: 16px; width: 100%;';
+            
+            if (!isSearchOpen) {
+                const searchToggleBtn = document.createElement('button');
+                searchToggleBtn.innerHTML = '🔍';
+                searchToggleBtn.style.cssText = `
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+                searchToggleBtn.onclick = () => {
+                    isSearchOpen = true;
+                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                };
+                toolbar.appendChild(searchToggleBtn);
+            } else {
+                const searchWrapper = document.createElement('div');
+                searchWrapper.style.cssText = 'display: flex; gap: 8px; width: 100%; align-items: center;';
 
-        // Чипсы фильтрации для Спринта и Бэклога
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = '🔍 Поиск по записям...';
+                searchInput.value = AppState.searchQuery || '';
+                searchInput.style.cssText = `
+                    flex: 1;
+                    background: rgba(255, 255, 255, 0.07);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 13px;
+                    outline: none;
+                `;
+                searchInput.oninput = (e) => {
+                    AppState.searchQuery = e.target.value;
+                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                };
+
+                const closeSearchBtn = document.createElement('button');
+                closeSearchBtn.textContent = '✕';
+                closeSearchBtn.style.cssText = `
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    color: white;
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    font-size: 13px;
+                `;
+                closeSearchBtn.onclick = () => {
+                    isSearchOpen = false;
+                    AppState.searchQuery = '';
+                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                };
+
+                searchWrapper.appendChild(searchInput);
+                searchWrapper.appendChild(closeSearchBtn);
+                toolbar.appendChild(searchWrapper);
+            }
+
+            container.appendChild(toolbar);
+        }
+
+        // Чипсы фильтрации для Sprint и Backlog
         if (AppState.currentTab === 'sprint' || AppState.currentTab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%;';

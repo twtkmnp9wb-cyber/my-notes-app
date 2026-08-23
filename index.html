@@ -21,10 +21,11 @@
             <aside class="main-menu">
                 <nav class="main-menu-nav">
                     <ul class="menu-list">
-                        <li><button class="menu-btn active" data-tab="feed">Лента</button></li>
-                        <li><button class="menu-btn" data-tab="sprint">Спринт</button></li>
-                        <li><button class="menu-btn" data-tab="backlog">Бэклог</button></li>
-                        <li><button class="menu-btn" data-tab="dump">Live Dump</button></li>
+                        <li><button class="menu-btn active" data-tab="feed">Media Library</button></li>
+                        <li><button class="menu-btn" data-tab="sprint">Sprint</button></li>
+                        <li><button class="menu-btn" data-tab="backlog">Backlog</button></li>
+                        <li><button class="menu-btn" data-tab="dump">Core Dump</button></li>
+                        <li><button class="menu-btn" data-tab="roadmap">Roadmap</button></li>
                         <li><button class="menu-btn" data-tab="settings">⚙️</button></li>
                     </ul>
                 </nav>
@@ -35,9 +36,6 @@
         <div class="scroll-viewport">
             <div class="scrollable-content">
                 <div class="content-wrapper">
-                    <div class="header-logo-container">
-                        <img src="images/text.png" alt="Born to win">
-                    </div>
                     <main class="notes-area">
                         <div class="main-container">
                             <!-- Заметки добавляются сюда -->
@@ -65,8 +63,8 @@
 
             <!-- Переключатель типа -->
             <div class="type-selector">
-                <button type="button" class="type-btn active" id="typeFeedBtn" data-type="feed">📝 Лента</button>
-                <button type="button" class="type-btn" id="typeTaskBtn" data-type="task">⚡ Задача (Спринт / Бэклог)</button>
+                <button type="button" class="type-btn active" id="typeFeedBtn" data-type="feed">📝 Media Library</button>
+                <button type="button" class="type-btn" id="typeTaskBtn" data-type="task">⚡ Задача (Sprint / Backlog)</button>
             </div>
 
             <div class="modal-body">
@@ -96,8 +94,8 @@
                 <div id="taskFieldsBlock" style="display: none; margin-top: 15px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
-                            <option value="sprint">🚀 В Спринт (Сегодня)</option>
-                            <option value="backlog">📦 В Бэклог (На потом)</option>
+                            <option value="sprint">🚀 В Sprint (Сегодня)</option>
+                            <option value="backlog">📦 В Backlog (На потом)</option>
                         </select>
                         <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
                     </div>
@@ -114,15 +112,28 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА LIVE DUMP -->
+    <!-- МОДАЛКА CORE DUMP -->
     <div class="modal" id="dumpModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🌙 Сброс тревоги (Live Dump)</h3>
+                <h3>🌙 Core Dump</h3>
                 <button type="button" class="close-btn" id="closeDumpBtn">×</button>
             </div>
             <div class="modal-body">
-                <textarea id="liveDumpArea" placeholder="Выгрузи из головы всё перед сном..." class="modal-textarea" style="height: 180px;"></textarea>
+                <textarea id="liveDumpArea" placeholder="Выгрузи из головы всё..." class="modal-textarea" style="height: 180px;"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ROADMAP -->
+    <div class="modal" id="roadmapModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗺 Roadmap</h3>
+                <button type="button" class="close-btn" id="closeRoadmapBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: rgba(255,255,255,0.7); font-size: 14px;">Здесь будет план развития проекта.</p>
             </div>
         </div>
     </div>
