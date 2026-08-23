@@ -19,72 +19,64 @@ function getDeadlineStatus(deadlineStr) {
     return { text: `Дедлайн: ${deadlineStr}`, color: 'rgba(255,255,255,0.6)', urgent: false };
 }
 
+function updateTelegramSearchBar(handlers) {
+    const searchBarContainer = document.getElementById('telegramSearchBarContainer');
+    if (!searchBarContainer) return;
+
+    searchBarContainer.innerHTML = '';
+
+    if (AppState.currentTab === 'feed' && isSearchOpen) {
+        const searchBar = document.createElement('div');
+        searchBar.className = 'telegram-search-bar';
+
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'telegram-search-input';
+        searchInput.placeholder = 'Поиск по хэштегу (#tag)...';
+        searchInput.value = AppState.searchQuery || '';
+        
+        searchInput.oninput = (e) => {
+            AppState.searchQuery = e.target.value;
+            const container = document.querySelector('.main-container');
+            if (container) {
+                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            }
+            updateTelegramSearchBar(handlers);
+        };
+
+        const notesCount = AppState.getFilteredNotes().length;
+        const totalFeedCount = AppState.notes.filter(n => n.type === 'feed').length;
+
+        const countSpan = document.createElement('span');
+        countSpan.textContent = `${notesCount} из ${totalFeedCount}`;
+        countSpan.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap;';
+
+        const closeSearchBtn = document.createElement('button');
+        closeSearchBtn.textContent = '✕';
+        closeSearchBtn.style.cssText = 'background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;';
+        closeSearchBtn.onclick = () => {
+            isSearchOpen = false;
+            AppState.searchQuery = '';
+            updateTelegramSearchBar(handlers);
+            const container = document.querySelector('.main-container');
+            if (container) {
+                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            }
+        };
+
+        searchBar.appendChild(searchInput);
+        searchBar.appendChild(countSpan);
+        searchBar.appendChild(closeSearchBtn);
+        searchBarContainer.appendChild(searchBar);
+    }
+}
+
 export const UIRenderer = {
     renderList(container, notes, handlers) {
+        window.currentHandlers = handlers;
         container.innerHTML = '';
 
-        // Панель поиска (как на скриншоте) появляется под верхним меню для Media Library
-        if (AppState.currentTab === 'feed' && isSearchOpen) {
-            const searchBar = document.createElement('div');
-            searchBar.style.cssText = `
-                background: rgba(30, 30, 30, 0.85);
-                backdrop-filter: blur(12px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                padding: 10px 14px;
-                border-radius: 14px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-bottom: 16px;
-                width: 100%;
-                box-sizing: border-box;
-            `;
-
-            const searchInput = document.createElement('input');
-            searchInput.type = 'text';
-            searchInput.placeholder = 'Поиск по хэштегу (#tag)...';
-            searchInput.value = AppState.searchQuery || '';
-            searchInput.style.cssText = `
-                flex: 1;
-                background: transparent;
-                border: none;
-                color: white;
-                font-size: 13px;
-                outline: none;
-            `;
-            searchInput.oninput = (e) => {
-                AppState.searchQuery = e.target.value;
-                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            };
-
-            const countSpan = document.createElement('span');
-            countSpan.textContent = `${notes.length} из ${AppState.notes.filter(n => n.type === 'feed').length}`;
-            countSpan.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap;';
-
-            const upBtn = document.createElement('button');
-            upBtn.textContent = '▲';
-            upBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px;';
-            
-            const downBtn = document.createElement('button');
-            downBtn.textContent = '▼';
-            downBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px;';
-
-            const closeSearchBtn = document.createElement('button');
-            closeSearchBtn.textContent = '✕';
-            closeSearchBtn.style.cssText = 'background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;';
-            closeSearchBtn.onclick = () => {
-                isSearchOpen = false;
-                AppState.searchQuery = '';
-                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            };
-
-            searchBar.appendChild(searchInput);
-            searchBar.appendChild(countSpan);
-            searchBar.appendChild(upBtn);
-            searchBar.appendChild(downBtn);
-            searchBar.appendChild(closeSearchBtn);
-            container.appendChild(searchBar);
-        }
+        updateTelegramSearchBar(handlers);
 
         // Чипсы фильтрации для Sprint и Backlog
         if (AppState.currentTab === 'sprint' || AppState.currentTab === 'backlog') {
@@ -126,7 +118,7 @@ export const UIRenderer = {
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'cursor: pointer; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 14px; margin-bottom: 12px;';
+            card.style.cssText = 'cursor: pointer;';
 
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
@@ -148,7 +140,7 @@ export const UIRenderer = {
                         <h3 style="margin: 0; font-size: 16px; color: #fff;">${note.title || ''}</h3>
                         <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
                     </div>
-                    <p style="margin: 0 0 8px 0; color: rgba(255,255,255,0.8); font-size: 14px; white-space: pre-wrap;">${note.text || ''}</p>
+                    <p>${note.text || ''}</p>
                     ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 6px; font-size: 12px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
                     ${mediaHtml}
                     <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
@@ -180,7 +172,7 @@ export const UIRenderer = {
                         <h3 style="margin: 0; font-size: 16px; color: #fff;">${note.title || 'Задача'}</h3>
                         <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
                     </div>
-                    <p style="margin: 0 0 8px 0; color: rgba(255,255,255,0.8); font-size: 14px;">${note.text || ''}</p>
+                    <p>${note.text || ''}</p>
                     ${deadlineHtml}
                     ${todosHtml}
                     <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 10px;">${note.createdAt}</div>
@@ -222,9 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
-        const container = document.querySelector('.main-container');
-        if (container) {
-            UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers || {});
+        updateTelegramSearchBar(window.currentHandlers);
+        
+        // Корректируем отступ ленты сверху в зависимости от того, открыт поиск или нет
+        const viewport = document.querySelector('.scroll-viewport');
+        if (viewport) {
+            viewport.style.paddingTop = isSearchOpen ? '125px' : '75px';
         }
     });
 });
