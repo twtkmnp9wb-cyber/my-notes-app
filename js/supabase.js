@@ -16,18 +16,28 @@ export const CloudStorage = {
             return null;
         }
 
-        // Поддерживаем оба варианта: если данные в payload или если таблица плоская
-        return data ? data.map(row => row.payload ? row.payload : row) : [];
+        return data ? data.map(row => row.payload || row) : [];
     },
 
     async saveNote(note) {
-        // Пробуем сохранить в виде одной JSON-колонки payload + id
+        // Заполняем абсолютно все поля дефолтными значениями, чтобы база не ругалась на null
+        const record = {
+            id: String(note.id || Date.now()),
+            title: note.title || '',
+            text: note.text || '',
+            type: note.type || 'feed',
+            folder: note.folder || 'general',
+            hashtag: note.hashtag || '',
+            deadline: note.deadline || null,
+            todos: note.todos || [],
+            media: note.media || [],
+            createdAt: note.createdAt || '',
+            payload: note
+        };
+
         const { error } = await supabase
             .from('notes')
-            .upsert({
-                id: String(note.id),
-                payload: note
-            }, { onConflict: 'id' });
+            .upsert(record, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
@@ -41,7 +51,7 @@ export const CloudStorage = {
             .eq('id', String(id));
 
         if (error) {
-            console.error('Ошибка удаления из облака:', error);
+            console.error('Ошибка удаления из облако:', error);
         }
     }
 };
