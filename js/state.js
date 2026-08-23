@@ -3,14 +3,13 @@ import { CloudStorage } from './supabase.js';
 export const AppState = {
     notes: [],
     currentTab: 'feed', // 'feed', 'sprint', 'backlog', 'dump'
-    currentFilter: 'Все', // для чипсов (Учеба, Проект и т.д.)
-    currentFolder: 'all', // для папок
-    searchQuery: '', // текст для поиска
+    currentFilter: 'Все', 
+    currentFolder: 'all',
+    searchQuery: '',
 
-    async init() {
-        const cloudData = await CloudStorage.fetchNotes();
-        if (cloudData) {
-            this.notes = cloudData;
+    init(notes) {
+        if (notes) {
+            this.notes = notes;
         }
     },
 
@@ -40,40 +39,21 @@ export const AppState = {
         await CloudStorage.deleteNote(id);
     },
 
-    async toggleTodo(noteId, todoIdx) {
-        const note = this.notes.find(n => n.id === noteId);
-        if (note && note.todos && note.todos[todoIdx]) {
-            note.todos[todoIdx].done = !note.todos[todoIdx].done;
-            await this.updateNote(note);
-        }
-    },
-
-    // Универсальная фильтрация с учетом вкладки, чипсов, папок и поиска
     getFilteredNotes() {
         let result = [...this.notes];
 
-        // 1. Фильтрация по вкладкам
         if (this.currentTab === 'feed') {
             result = result.filter(n => n.type === 'feed');
         } else if (this.currentTab === 'sprint') {
             result = result.filter(n => n.type === 'task' && n.folder === 'sprint');
         } else if (this.currentTab === 'backlog') {
             result = result.filter(n => n.type === 'task' && n.folder === 'backlog');
-        } else if (this.currentTab === 'dump') {
-            result = result.filter(n => n.type === 'dump' || !n.type);
         }
 
-        // 2. Фильтрация по чипсам категорий (если выбрано не «Все»)
         if (this.currentFilter && this.currentFilter !== 'Все') {
             result = result.filter(n => n.hashtag === this.currentFilter || n.category === this.currentFilter);
         }
 
-        // 3. Фильтрация по папке (если задана)
-        if (this.currentFolder && this.currentFolder !== 'all') {
-            result = result.filter(n => n.folder === this.currentFolder);
-        }
-
-        // 4. Фильтрация по поисковому запросу
         if (this.searchQuery && this.searchQuery.trim() !== '') {
             const query = this.searchQuery.toLowerCase().trim();
             result = result.filter(n => {

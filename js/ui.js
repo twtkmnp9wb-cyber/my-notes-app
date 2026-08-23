@@ -1,6 +1,5 @@
 import { AppState } from './state.js';
 
-// Вспомогательная функция для проверки дедлайна
 function getDeadlineStatus(deadlineStr) {
     if (!deadlineStr) return null;
     const today = new Date();
@@ -22,7 +21,7 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         container.innerHTML = '';
 
-        // 1. Панель поиска
+        // Панель поиска
         const toolbar = document.createElement('div');
         toolbar.style.cssText = 'display: flex; gap: 10px; margin-bottom: 16px; width: 100%;';
         
@@ -47,10 +46,9 @@ export const UIRenderer = {
         toolbar.appendChild(searchInput);
         container.appendChild(toolbar);
 
-        // 2. Чипсы фильтрации для Спринта и Бэклога
+        // Чипсы фильтрации для Спринта и Бэклога
         if (AppState.currentTab === 'sprint' || AppState.currentTab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            chipsContainer.className = 'filter-chips-container';
             chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%;';
             
             const categories = ['Все', 'Учеба', 'Проект', 'Личное'];
@@ -67,9 +65,7 @@ export const UIRenderer = {
                     cursor: pointer;
                     font-size: 13px;
                     white-space: nowrap;
-                    transition: all 0.2s ease;
                 `;
-                
                 chip.onclick = () => {
                     AppState.currentFilter = cat;
                     UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
@@ -87,13 +83,11 @@ export const UIRenderer = {
             return;
         }
 
-        // Рендеринг карточек
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'cursor: pointer; transition: transform 0.1s ease; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 14px; margin-bottom: 12px;';
+            card.style.cssText = 'cursor: pointer; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 14px; margin-bottom: 12px;';
 
-            // Клик по карточке для редактирования
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
                 if (handlers.onEditNote) handlers.onEditNote(note);
@@ -102,7 +96,7 @@ export const UIRenderer = {
             if (note.type === 'feed') {
                 let mediaHtml = '';
                 if (note.media && note.media.length > 0) {
-                    mediaHtml = '<div class="note-media-grid" style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
+                    mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
                     note.media.forEach((url, imgIdx) => {
                         mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);">`;
                     });
@@ -156,7 +150,6 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
-        // Навешиваем обработчики событий
         container.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();

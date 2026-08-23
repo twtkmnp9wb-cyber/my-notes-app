@@ -7,10 +7,8 @@ import { WallpaperService } from './wallpaper.js';
 let currentEditingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Инициализация обоев
     WallpaperService.init();
 
-    // 2. Загрузка данных (сначала из локалстора для скорости, потом подтягиваем из облака)
     let initialNotes = StorageService.load();
     initialNotes = StorageService.runMidnightCheck(initialNotes);
     AppState.init(initialNotes);
@@ -26,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     await CloudStorage.deleteNote(id);
                 } catch (e) {
-                    console.log('Удалено локально, облако недоступно');
+                    console.log('Удалено локально');
                 }
             },
             onToggleTodo: async (id, idx) => {
@@ -38,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         await CloudStorage.saveNote(entry);
                     } catch (e) {
-                        console.log('Изменения сохранены локально, облако недоступно');
+                        console.log('Изменения сохранены локально');
                     }
                 }
             },
@@ -54,13 +52,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // Делаем функцию refresh доступной для модалки редактирования
     window.renderCurrentTab = refresh;
-
-    // Первичный рендер из локальной памяти
     refresh();
 
-    // Синхронизация с облаком Supabase в фоне
     try {
         const cloudNotes = await CloudStorage.fetchNotes();
         if (cloudNotes && cloudNotes.length > 0) {
@@ -69,16 +63,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             refresh();
         }
     } catch (e) {
-        console.log('Работаем в офлайн-режиме (нет связи с облаком)');
+        console.log('Работаем в офлайн-режиме');
     }
 
-    // 3. Настройка модалок и сохранения новой записи
     initModalsAndCreation(refresh);
     initLightbox();
     initEditModalLogic(refresh);
+    initLiveDumpLogic();
 });
 
-// Функция открытия модалки редактирования
 function openEditModal(note) {
     currentEditingId = note.id;
     const titleInput = document.getElementById('editModalTitle');
@@ -90,7 +83,6 @@ function openEditModal(note) {
     if (modal) modal.style.display = 'flex';
 }
 
-// Логика модального окна редактирования
 function initEditModalLogic(refreshCallback) {
     const modal = document.getElementById('editModal');
     const cancelBtn = document.getElementById('editModalCancel');
@@ -106,7 +98,6 @@ function initEditModalLogic(refreshCallback) {
     if (saveBtn) {
         saveBtn.onclick = async () => {
             if (!currentEditingId) return;
-
             const note = AppState.notes.find(n => n.id === currentEditingId);
             if (note) {
                 const titleInput = document.getElementById('editModalTitle');
@@ -115,23 +106,15 @@ function initEditModalLogic(refreshCallback) {
                 if (titleInput) note.title = titleInput.value;
                 if (textInput) note.text = textInput.value;
 
-                // Обновляем в стейте и сохраняем в Supabase
-                if (typeof AppState.updateNote === 'function') {
-                    await AppState.updateNote(note);
-                } else {
-                    await CloudStorage.saveNote(note);
-                }
-                
+                await AppState.updateNote(note);
                 refreshCallback();
             }
-
             if (modal) modal.style.display = 'none';
             currentEditingId = null;
         };
     }
 }
 
-// Логика создания записи (с картинками, тегами и задачами)
 function initModalsAndCreation(refreshCallback) {
     const noteModal = document.getElementById('noteModal');
     const dumpModal = document.getElementById('dumpModal');
@@ -140,7 +123,6 @@ function initModalsAndCreation(refreshCallback) {
     document.getElementById('addNoteBtn')?.addEventListener('click', () => noteModal.classList.add('active'));
     document.getElementById('closeModalBtn')?.addEventListener('click', () => noteModal.classList.remove('active'));
 
-    // Переключение типов в модалке (Лента / Задача)
     let currentType = 'feed';
     document.getElementById('typeFeedBtn')?.addEventListener('click', (e) => {
         currentType = 'feed';
@@ -158,7 +140,6 @@ function initModalsAndCreation(refreshCallback) {
         document.getElementById('taskFieldsBlock').style.display = 'block';
     });
 
-    // Клик по быстрым тегам в модалке
     document.querySelectorAll('.tag-chip').forEach(chip => {
         chip.addEventListener('click', () => {
             const hashtagInput = document.getElementById('noteHashtagInput');
@@ -168,15 +149,12 @@ function initModalsAndCreation(refreshCallback) {
         });
     });
 
-    // Добавление пункта чек-листа динамически
     document.getElementById('addTodoItemBtn')?.addEventListener('click', () => {
         const container = document.getElementById('todoItemsContainer');
         if (!container) return;
         
         const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.gap = '8px';
-        div.style.marginBottom = '6px';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 6px;';
 
         const input = document.createElement('input');
         input.type = 'text';
@@ -196,7 +174,6 @@ function initModalsAndCreation(refreshCallback) {
         container.appendChild(div);
     });
 
-    // Предпросмотр выбранных фото перед сохранением
     document.getElementById('noteMediaInput')?.addEventListener('change', (e) => {
         const previewContainer = document.getElementById('mediaPreviewContainer');
         if (!previewContainer) return;
@@ -209,11 +186,7 @@ function initModalsAndCreation(refreshCallback) {
                 reader.onload = (event) => {
                     const img = document.createElement('img');
                     img.src = event.target.result;
-                    img.style.width = '50px';
-                    img.style.height = '50px';
-                    img.style.objectFit = 'cover';
-                    img.style.borderRadius = '6px';
-                    img.style.marginRight = '5px';
+                    img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 5px;';
                     previewContainer.appendChild(img);
                 };
                 reader.readAsDataURL(file);
@@ -221,7 +194,6 @@ function initModalsAndCreation(refreshCallback) {
         }
     });
 
-    // Кнопка сохранения записи
     document.getElementById('saveNoteBtn')?.addEventListener('click', async () => {
         const title = document.getElementById('noteTitleInput').value.trim();
         const text = document.getElementById('noteTextInput').value.trim();
@@ -241,11 +213,7 @@ function initModalsAndCreation(refreshCallback) {
             newEntry.hashtag = tag ? (tag.startsWith('#') ? tag : `#${tag}`) : '';
             
             const mediaFiles = document.getElementById('noteMediaInput')?.files;
-            if (mediaFiles && mediaFiles.length > 0) {
-                newEntry.media = await convertFilesToBase64(mediaFiles);
-            } else {
-                newEntry.media = [];
-            }
+            newEntry.media = (mediaFiles && mediaFiles.length > 0) ? await convertFilesToBase64(mediaFiles) : [];
         } else {
             newEntry.folder = document.getElementById('taskTargetFolder').value;
             newEntry.deadline = document.getElementById('taskDeadlineInput').value;
@@ -266,18 +234,16 @@ function initModalsAndCreation(refreshCallback) {
 
         AppState.addNote(newEntry);
         refreshCallback();
-
         resetForm();
         noteModal.classList.remove('active');
 
         try {
             await CloudStorage.saveNote(newEntry);
         } catch (err) {
-            console.log('Запись сохранена локально, облако не ответило');
+            console.log('Сохранено локально');
         }
     });
 
-    // Навигация по меню (табы)
     document.querySelectorAll('.menu-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tab = e.target.dataset.tab;
@@ -301,7 +267,16 @@ function initModalsAndCreation(refreshCallback) {
     document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
 }
 
-// Конвертация файлов в Base64
+function initLiveDumpLogic() {
+    const dumpArea = document.getElementById('liveDumpArea');
+    if (!dumpArea) return;
+    const DUMP_KEY = 'app_live_dump_content';
+    dumpArea.value = localStorage.getItem(DUMP_KEY) || '';
+    dumpArea.addEventListener('input', (e) => {
+        localStorage.setItem(DUMP_KEY, e.target.value);
+    });
+}
+
 async function convertFilesToBase64(fileList) {
     const promises = Array.from(fileList).map(file => {
         return new Promise((resolve) => {
@@ -323,7 +298,6 @@ function resetForm() {
     if (previewContainer) previewContainer.innerHTML = '';
 }
 
-// Лайтбокс для картинок
 function initLightbox() {
     const lightbox = document.getElementById('lightboxModal');
     const img = document.getElementById('lightboxImg');

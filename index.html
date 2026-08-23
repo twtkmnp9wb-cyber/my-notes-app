@@ -16,7 +16,7 @@
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ЕДИНЫЙ ФИКСИРОВАННЫЙ БЛОК СВЕРХУ (Меню + Поиск) -->
+        <!-- ЕДИНЫЙ ФИКСИРОВАННЫЙ БЛОК СВЕРХУ (Меню) -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -29,17 +29,6 @@
                     </ul>
                 </nav>
             </aside>
-
-            <!-- ПЛАШКА ПОИСКА / ТЕГОВ -->
-            <div id="telegramSearchBar" class="hashtag-filter-bar" style="display: none;">
-                <input type="text" id="tgSearchInput" placeholder="Поиск по хэштегу (#tag)..." autocomplete="off">
-                <span id="tgSearchCounter">0 из 0</span>
-                <div class="search-nav-btns">
-                    <button type="button" id="tgPrevBtn" title="Предыдущая">▲</button>
-                    <button type="button" id="tgNextBtn" title="Следующая">▼</button>
-                </div>
-                <button type="button" id="tgCloseBtn" title="Закрыть поиск">×</button>
-            </div>
         </header>
 
         <!-- РОДИТЕЛЬ-МАСКА + ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
@@ -61,7 +50,6 @@
         <!-- Футер с кнопками -->
         <footer class="app-footer">
             <div class="footer-container">
-                <button type="button" class="action-btn search-btn" id="searchBtn">🔍</button>
                 <button type="button" class="action-btn add-btn" id="addNoteBtn">+</button>
             </div>
         </footer>
@@ -173,33 +161,26 @@
     <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
     <div id="lightboxModal">
         <button type="button" id="lightboxCloseBtn" class="lightbox-close">&times;</button>
-        
         <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 500px; height: 70vh; padding: 0 50px; box-sizing: border-box;">
-            <button type="button" id="lightboxPrevBtn" style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">‹</button>
-            
             <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                 <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
             </div>
-
-            <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
         </div>
     </div>
-    <!-- Библиотека Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="js/main.js"></script>
+
     <!-- Модальное окно редактирования -->
-<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center;">
-    <div style="background: #1e1e1e; border: 1px solid rgba(255,255,255,0.15); padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        <h3 style="margin: 0; color: #fff; font-size: 18px;">Редактировать запись</h3>
-        <input type="text" id="editModalTitle" placeholder="Заголовок..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none;">
-        <textarea id="editModalText" placeholder="Текст заметки..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none; height: 100px; resize: none;"></textarea>
-        
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
-            <button id="editModalCancel" style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Отмена</button>
-            <button id="editModalSave" style="background: #4caf50; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold;">Сохранить</button>
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: #1e1e1e; border: 1px solid rgba(255,255,255,0.15); padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <h3 style="margin: 0; color: #fff; font-size: 18px;">Редактировать запись</h3>
+            <input type="text" id="editModalTitle" placeholder="Заголовок..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none;">
+            <textarea id="editModalText" placeholder="Текст заметки..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none; height: 100px; resize: none;"></textarea>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
+                <button id="editModalCancel" style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Отмена</button>
+                <button id="editModalSave" style="background: #4caf50; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold;">Сохранить</button>
+            </div>
         </div>
     </div>
-</div>
 
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
