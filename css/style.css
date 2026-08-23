@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -6,26 +10,28 @@ body {
     color: #fff;
     overflow: hidden;
     height: 100vh;
+    height: 100dvh; /* Жестко фиксируем для PWA на iOS */
 }
 
 .app-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     position: relative;
     overflow: hidden;
 }
 
-/* Фиксированный топ-бар (меню) сверху */
+/* Фиксированный топ-бар (меню) сверху с учетом челки/динамического острова */
 .fixed-top-bar {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 150;
     padding: max(12px, env(safe-area-inset-top)) 16px 8px 16px;
-    background: linear-gradient(to bottom, rgba(18,18,18,0.95) 70%, rgba(18,18,18,0));
-    backdrop-filter: blur(10px);
+    background: linear-gradient(to bottom, rgba(18,18,18,0.98) 70%, rgba(18,18,18,0));
+    backdrop-filter: blur(12px);
 }
 
 .main-menu-nav {
@@ -65,23 +71,22 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Выдвижная плашка поиска — располагается строго под меню */
+/* Выдвижная плашка поиска — фиксирована строго под меню */
 .search-dropdown-bar {
-    position: absolute;
-    top: 72px; /* Ниже шапки меню */
+    position: fixed;
+    top: 68px; /* Ровно под шапкой меню */
     left: 16px;
     right: 16px;
-    z-index: 90;
+    z-index: 140;
     display: none;
     align-items: center;
     gap: 8px;
     padding: 8px 14px;
-    background: rgba(30, 30, 30, 0.9);
+    background: rgba(30, 30, 30, 0.95);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    box-sizing: border-box;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 
 .search-dropdown-bar.active {
@@ -107,7 +112,7 @@ body {
     white-space: nowrap;
 }
 
-/* Кнопки управления внутри поиска (стрелочки и крестик) */
+/* Кнопки внутри поиска */
 .search-nav-btn, .search-close-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -120,25 +125,19 @@ body {
     justify-content: center;
     font-size: 11px;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .search-close-btn {
     font-size: 12px;
 }
 
-.search-nav-btn:active, .search-close-btn:active {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-/* Область скролла ленты */
+/* Прокручиваемая область — безопасный скролл посередине */
 .scroll-viewport {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-top: 80px;
-    padding-bottom: 90px;
-    box-sizing: border-box;
+    padding-top: 85px; /* Запас, чтобы контент не уходил под меню */
+    padding-bottom: 110px; /* Запас под плавающий футер */
 }
 
 .scroll-viewport::-webkit-scrollbar {
@@ -160,29 +159,26 @@ body {
     margin-bottom: 12px;
     backdrop-filter: blur(10px);
     word-break: break-word;
-    overflow-wrap: break-word;
 }
 
 .note-card p {
-    word-break: break-word;
-    overflow-wrap: break-word;
     margin: 0 0 8px 0;
     color: rgba(255, 255, 255, 0.85);
     font-size: 14px;
     white-space: pre-wrap;
 }
 
-/* Футер — фиксирован внизу справа */
+/* Футер с кнопками (лупа и плюс) — закреплен внизу справа поверх всего */
 .app-footer {
-    position: absolute;
+    position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    padding: 16px;
+    z-index: 150;
+    padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     background: linear-gradient(to top, rgba(18,18,18,0.95), rgba(18,18,18,0));
     backdrop-filter: blur(5px);
-    pointer-events: none;
+    pointer-events: none; /* Пропускает клики сквозь пустую зону футера */
 }
 
 .footer-container {
@@ -192,31 +188,30 @@ body {
     justify-content: flex-end;
     max-width: 600px;
     margin: 0 auto;
-    pointer-events: auto;
+    pointer-events: auto; /* Возвращает клики на сами кнопки */
 }
 
-/* Единый стиль для кнопки поиска (лупы) и кнопки добавления (плюса) */
+/* Единый стиль для лупы и плюса */
 .action-btn {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: rgba(30, 30, 30, 0.75);
+    background: rgba(30, 30, 30, 0.85);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     font-size: 18px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s ease;
 }
 
 .action-btn.add-btn {
     font-size: 24px;
     font-weight: 300;
-    background: rgba(30, 30, 30, 0.75);
 }
 
 .action-btn:active {
@@ -238,7 +233,6 @@ body {
     justify-content: center;
     align-items: center;
     padding: 16px;
-    box-sizing: border-box;
 }
 
 .modal.active {
@@ -254,7 +248,6 @@ body {
     max-height: 90vh;
     overflow-y: auto;
     padding: 20px;
-    box-sizing: border-box;
     box-shadow: 0 15px 35px rgba(0,0,0,0.6);
 }
 
