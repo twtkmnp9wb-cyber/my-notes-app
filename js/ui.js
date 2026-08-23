@@ -22,7 +22,33 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         container.innerHTML = '';
 
-        // Если мы на вкладке Спринт или Бэклог, рисуем панель чипсов-фильтров
+        // 1. Панель поиска
+        const toolbar = document.createElement('div');
+        toolbar.style.cssText = 'display: flex; gap: 10px; margin-bottom: 16px; width: 100%;';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = '🔍 Поиск по заметкам и задачам...';
+        searchInput.value = AppState.searchQuery || '';
+        searchInput.style.cssText = `
+            flex: 1;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        `;
+        searchInput.oninput = (e) => {
+            AppState.searchQuery = e.target.value;
+            // Перерисовываем список с учетом поиска
+            UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+        };
+        toolbar.appendChild(searchInput);
+        container.appendChild(toolbar);
+
+        // 2. Чипсы фильтрации для Спринта и Бэклога
         if (AppState.currentTab === 'sprint' || AppState.currentTab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.className = 'filter-chips-container';
@@ -33,7 +59,6 @@ export const UIRenderer = {
                 const chip = document.createElement('button');
                 const isActive = AppState.currentFilter === cat;
                 chip.textContent = cat;
-                chip.className = `filter-chip ${isActive ? 'active' : ''}`;
                 chip.style.cssText = `
                     background: ${isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'};
                     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -58,15 +83,22 @@ export const UIRenderer = {
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.5); margin-top: 40px; font-size: 14px;';
-            emptyEl.textContent = 'Здесь пока пусто';
+            emptyEl.textContent = 'Ничего не найдено';
             container.appendChild(emptyEl);
             return;
         }
 
-        // Рендерим каждую карточку
+        // Рендеринг карточек
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
+            card.style.cssText = 'cursor: pointer; transition: transform 0.1s ease;';
+
+            // Клик по карточке для редактирования (если не кликнули на интерактивные элементы)
+            card.onclick = (e) => {
+                if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
+                if (handlers.onEditNote) handlers.onEditNote(note);
+            };
 
             if (note.type === 'feed') {
                 let mediaHtml = '';
@@ -89,7 +121,6 @@ export const UIRenderer = {
                     <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
                 `;
             } else {
-                // Рендеринг задачи (спринт / бэклог) с подсветкой дедлайна
                 let todosHtml = '';
                 if (note.todos && note.todos.length > 0) {
                     todosHtml = '<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">';
@@ -126,9 +157,10 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
-        // Обработчики событий
+        // Навешиваем обработчики событий
         container.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.onclick = () => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
                 const id = Number(btn.dataset.id);
                 if (handlers.onDelete) handlers.onDelete(id);
             };
@@ -143,7 +175,8 @@ export const UIRenderer = {
         });
 
         container.querySelectorAll('.note-media-img').forEach(img => {
-            img.onclick = () => {
+            img.onclick = (e) => {
+                e.stopPropagation();
                 const id = Number(img.dataset.id);
                 const imgIdx = Number(img.dataset.imgidx);
                 if (handlers.onOpenLightbox) handlers.onOpenLightbox(id, imgIdx);
