@@ -16,39 +16,20 @@ export const CloudStorage = {
             return null;
         }
 
-        // Если данные приходят в виде колонок таблицы, возвращаем их
-        return data ? data.map(row => ({
-            id: row.id,
-            title: row.title || '',
-            text: row.text || '',
-            type: row.type || 'feed',
-            folder: row.folder || 'general',
-            hashtag: row.hashtag || '',
-            deadline: row.deadline || null,
-            todos: row.todos || [],
-            media: row.media || [],
-            createdAt: row.createdAt || ''
-        })) : [];
+        // Если данные хранятся через поле payload или развернуты напрямую
+        return data ? data.map(row => row.payload ? row.payload : row) : [];
     },
 
     async saveNote(note) {
-        // Передаем только те скалярные поля, которые ожидает стандартная таблица
-        const payload = {
+        // Сохраняем всю структуру целиком в колонку payload, оставляя id отдельно
+        const record = {
             id: String(note.id),
-            title: note.title || '',
-            text: note.text || '',
-            type: note.type || 'feed',
-            folder: note.folder || 'general',
-            hashtag: note.hashtag || '',
-            deadline: note.deadline || null,
-            todos: note.todos || [],
-            media: note.media || [],
-            createdAt: note.createdAt || ''
+            payload: note
         };
 
         const { error } = await supabase
             .from('notes')
-            .upsert(payload, { onConflict: 'id' });
+            .upsert(record, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
