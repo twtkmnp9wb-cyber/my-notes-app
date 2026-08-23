@@ -23,74 +23,67 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         container.innerHTML = '';
 
-        // Панель управления (Кнопка лупы / Поисковая строка) только для Media Library (feed)
-        if (AppState.currentTab === 'feed') {
-            const toolbar = document.createElement('div');
-            toolbar.style.cssText = 'display: flex; justify-content: flex-end; align-items: center; margin-bottom: 16px; width: 100%;';
+        // Панель поиска (как на скриншоте) появляется под верхним меню для Media Library
+        if (AppState.currentTab === 'feed' && isSearchOpen) {
+            const searchBar = document.createElement('div');
+            searchBar.style.cssText = `
+                background: rgba(30, 30, 30, 0.85);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                padding: 10px 14px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 16px;
+                width: 100%;
+                box-sizing: border-box;
+            `;
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Поиск по хэштегу (#tag)...';
+            searchInput.value = AppState.searchQuery || '';
+            searchInput.style.cssText = `
+                flex: 1;
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 13px;
+                outline: none;
+            `;
+            searchInput.oninput = (e) => {
+                AppState.searchQuery = e.target.value;
+                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            };
+
+            const countSpan = document.createElement('span');
+            countSpan.textContent = `${notes.length} из ${AppState.notes.filter(n => n.type === 'feed').length}`;
+            countSpan.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap;';
+
+            const upBtn = document.createElement('button');
+            upBtn.textContent = '▲';
+            upBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px;';
             
-            if (!isSearchOpen) {
-                const searchToggleBtn = document.createElement('button');
-                searchToggleBtn.innerHTML = '🔍';
-                searchToggleBtn.style.cssText = `
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    color: white;
-                    padding: 8px 12px;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    font-size: 14px;
-                `;
-                searchToggleBtn.onclick = () => {
-                    isSearchOpen = true;
-                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-                };
-                toolbar.appendChild(searchToggleBtn);
-            } else {
-                const searchWrapper = document.createElement('div');
-                searchWrapper.style.cssText = 'display: flex; gap: 8px; width: 100%; align-items: center;';
+            const downBtn = document.createElement('button');
+            downBtn.textContent = '▼';
+            downBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px;';
 
-                const searchInput = document.createElement('input');
-                searchInput.type = 'text';
-                searchInput.placeholder = '🔍 Поиск по записям...';
-                searchInput.value = AppState.searchQuery || '';
-                searchInput.style.cssText = `
-                    flex: 1;
-                    background: rgba(255, 255, 255, 0.07);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    padding: 10px 14px;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 13px;
-                    outline: none;
-                `;
-                searchInput.oninput = (e) => {
-                    AppState.searchQuery = e.target.value;
-                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-                };
+            const closeSearchBtn = document.createElement('button');
+            closeSearchBtn.textContent = '✕';
+            closeSearchBtn.style.cssText = 'background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;';
+            closeSearchBtn.onclick = () => {
+                isSearchOpen = false;
+                AppState.searchQuery = '';
+                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            };
 
-                const closeSearchBtn = document.createElement('button');
-                closeSearchBtn.textContent = '✕';
-                closeSearchBtn.style.cssText = `
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    color: white;
-                    padding: 10px 14px;
-                    border-radius: 12px;
-                    cursor: pointer;
-                    font-size: 13px;
-                `;
-                closeSearchBtn.onclick = () => {
-                    isSearchOpen = false;
-                    AppState.searchQuery = '';
-                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-                };
-
-                searchWrapper.appendChild(searchInput);
-                searchWrapper.appendChild(closeSearchBtn);
-                toolbar.appendChild(searchWrapper);
-            }
-
-            container.appendChild(toolbar);
+            searchBar.appendChild(searchInput);
+            searchBar.appendChild(countSpan);
+            searchBar.appendChild(upBtn);
+            searchBar.appendChild(downBtn);
+            searchBar.appendChild(closeSearchBtn);
+            container.appendChild(searchBar);
         }
 
         // Чипсы фильтрации для Sprint и Backlog
@@ -223,3 +216,15 @@ export const UIRenderer = {
         });
     }
 };
+
+// Привязка клика по кнопке лупы в футере
+document.addEventListener('DOMContentLoaded', () => {
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    searchToggleBtn?.addEventListener('click', () => {
+        isSearchOpen = !isSearchOpen;
+        const container = document.querySelector('.main-container');
+        if (container) {
+            UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers || {});
+        }
+    });
+});
