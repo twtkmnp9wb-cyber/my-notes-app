@@ -1,47 +1,39 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const SUPABASE_URL = 'https://efbgtwfbonvkpgsfnodp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmYmd0d2Zib252a3Bnc2Zub2RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0Mzk0MjksImV4cCI6MjEwMzAxNTQyOX0.dEjfiX_jOBTbfpg6Tb5X9GCSdYf0MEZo6VtGin4s_xk';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// Полностью переводим хранилище на локальный localStorage, чтобы забыть про ошибки сервера
 export const CloudStorage = {
     async fetchNotes() {
-        const { data, error } = await supabase
-            .from('notes')
-            .select('*');
-
-        if (error) {
-            console.error('Ошибка загрузки из облака:', error);
-            return null;
+        try {
+            const data = localStorage.getItem('app_notes');
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error('Ошибка чтения локальных данных:', e);
+            return [];
         }
-
-        // Достаем объект заметки из колонки payload
-        return data ? data.map(row => row.payload).filter(Boolean) : [];
     },
 
     async saveNote(note) {
-        // Отправляем строго id и обертку payload, больше никаких лишних колонок!
-        const { error } = await supabase
-            .from('notes')
-            .upsert({
-                id: String(note.id),
-                payload: note
-            }, { onConflict: 'id' });
-
-        if (error) {
-            console.error('Ошибка сохранения в облако:', error);
+        try {
+            let notes = await this.fetchNotes() || [];
+            const index = notes.findIndex(n => String(n.id) === String(note.id));
+            
+            if (index >= 0) {
+                notes[index] = note;
+            } else {
+                notes.push(note);
+            }
+            
+            localStorage.setItem('app_notes', JSON.stringify(notes));
+        } catch (e) {
+            console.error('Ошибка сохранения:', e);
         }
     },
 
     async deleteNote(id) {
-        const { error } = await supabase
-            .from('notes')
-            .delete()
-            .eq('id', String(id));
-
-        if (error) {
-            console.error('Ошибка удаления из облака:', error);
+        try {
+            let notes = await this.fetchNotes() || [];
+            notes = notes.filter(n => String(n.id) !== String(id));
+            localStorage.setItem('app_notes', JSON.stringify(notes));
+        } catch (e) {
+            console.error('Ошибка удаления:', e);
         }
     }
 };
