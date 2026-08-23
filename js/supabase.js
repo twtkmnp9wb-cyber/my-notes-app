@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// Твои ключи из панели Supabase
 const SUPABASE_URL = 'https://efbgtwfbonvkpgsfnodp.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_wKN1cbveZiaJd_uyCWizkQ_1M_Z2g20';
 
@@ -11,21 +10,25 @@ export const CloudStorage = {
     async fetchNotes() {
         const { data, error } = await supabase
             .from('notes')
-            .select('*')
-            .order('id', { ascending: false });
+            .select('*');
 
         if (error) {
             console.error('Ошибка загрузки из облака:', error);
             return null;
         }
-        return data;
+        // Если данные хранятся в поле payload, достаем их оттуда, иначе возвращаем как есть
+        return data ? data.map(row => row.payload || row) : [];
     },
 
     // Сохранение / обновление записей в облаке
     async saveNote(note) {
+        // Упаковываем всю заметку в объект с id и payload, чтобы база не искала несуществующие колонки
         const { error } = await supabase
             .from('notes')
-            .upsert(note);
+            .upsert({ 
+                id: String(note.id), 
+                payload: note 
+            });
 
         if (error) console.error('Ошибка сохранения в облако:', error);
     },
@@ -35,7 +38,7 @@ export const CloudStorage = {
         const { error } = await supabase
             .from('notes')
             .delete()
-            .eq('id', id);
+            .eq('id', String(id));
 
         if (error) console.error('Ошибка удаления из облака:', error);
     }
