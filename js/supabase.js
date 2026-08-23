@@ -22,11 +22,12 @@ export const CloudStorage = {
 
     // Сохранение / обновление записей в облаке
     async saveNote(note) {
-        // Упаковываем всю заметку в объект с id и payload, чтобы база не искала несуществующие колонки
+        // Передаем id, обязательное поле user_id и саму заметку в payload
         const { error } = await supabase
             .from('notes')
             .upsert({ 
                 id: String(note.id), 
+                user_id: 'default_user',
                 payload: note 
             });
 
