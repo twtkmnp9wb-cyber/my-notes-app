@@ -96,7 +96,7 @@ function initModalsAndCreation(refreshCallback) {
         document.getElementById('taskFieldsBlock').style.display = 'block';
     });
 
-    // Клик по быстрым тегам в модалке (автоподстановка в инпут)
+    // Клик по быстрым тегам в модалке
     document.querySelectorAll('.tag-chip').forEach(chip => {
         chip.addEventListener('click', () => {
             const hashtagInput = document.getElementById('noteHashtagInput');
@@ -104,6 +104,34 @@ function initModalsAndCreation(refreshCallback) {
                 hashtagInput.value = chip.textContent;
             }
         });
+    });
+
+    // Добавление пункта чек-листа динамически
+    document.getElementById('addTodoItemBtn')?.addEventListener('click', () => {
+        const container = document.getElementById('todoItemsContainer');
+        if (!container) return;
+        
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.gap = '8px';
+        div.style.marginBottom = '6px';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Текст подзадачи...';
+        input.className = 'modal-input todo-item-input';
+        input.style.flex = '1';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✕';
+        removeBtn.className = 'secondary-btn';
+        removeBtn.style.padding = '0 10px';
+        removeBtn.onclick = () => div.remove();
+
+        div.appendChild(input);
+        div.appendChild(removeBtn);
+        container.appendChild(div);
     });
 
     // Предпросмотр выбранных фото перед сохранением
@@ -136,7 +164,7 @@ function initModalsAndCreation(refreshCallback) {
         const title = document.getElementById('noteTitleInput').value.trim();
         const text = document.getElementById('noteTextInput').value.trim();
 
-        if (!title && !text) return;
+        if (!title && !text && currentType === 'feed') return;
 
         let newEntry = {
             id: Date.now(),
@@ -178,7 +206,7 @@ function initModalsAndCreation(refreshCallback) {
         AppState.addNote(newEntry);
         refreshCallback();
 
-        // 2. Сразу закрываем модалку и чистим форму, не дожидаясь сети
+        // 2. Сразу закрываем модалку и чистим форму
         resetForm();
         noteModal.classList.remove('active');
 
