@@ -1,0 +1,206 @@
+import { AppState } from './state.js';
+import { StorageService } from './storage.js';
+import { UIRenderer } from './ui.js';
+import { CloudStorage } from './supabase.js';
+import { WallpaperService } from './wallpaper.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Инициализация обоев
+    WallpaperService.init();
+
+    // 2. Загрузка данных (сначала из локалстора для скорости, потом подтягиваем из облака)
+    let initialNotes = StorageService.load();
+    initialNotes = StorageService.runMidnightCheck(initialNotes);
+    AppState.init(initialNotes);
+
+    const container = document.querySelector('.main-container');
+
+    const refresh = () => {
+        StorageService.save(AppState.notes);
+        UIRenderer.renderList(container, AppState.getFilteredNotes(), {
+            onDelete: async (id) => {
+                AppState.deleteNote(id);
+                refresh();
+                await CloudStorage.deleteNote(id);
+            },
+            onToggleTodo: async (id, idx) => {
+                const entry = AppState.notes.find(n => n.id === id);
+                if (entry && entry.todos[idx]) {
+                    entry.todos[idx].done = !entry.todos[idx].done;
+                    entry.completed = entry.todos.every(t => t.done);
+                    refresh();
+                    await CloudStorage.saveNote(entry);
+                }
+            }
+        });
+    };
+
+    // Первичный рендер из локальной памяти
+    refresh();
+
+    // Синхронизация с облаком Supabase в фоне
+    try {
+        const cloudNotes = await CloudStorage.fetchNotes();
+        if (cloudNotes && cloudNotes.length > 0) {
+            AppState.init(cloudNotes);
+            StorageService.save(cloudNotes);
+            refresh();
+        }
+    } catch (e) {
+        console.log('Работаем в офлайн-режиме (нет связи с облаком)');
+    }
+
+    // 3. Настройка модалок и сохранения новой записи
+    initModalsAndCreation(refresh);
+    initLightbox();
+});
+
+// Логика создания записи (с картинками и задачами)
+function initModalsAndCreation(refreshCallback) {
+    const noteModal = document.getElementById('noteModal');
+    const dumpModal = document.getElementById('dumpModal');
+    const settingsModal = document.getElementById('settingsModal');
+
+    document.getElementById('addNoteBtn')?.addEventListener('click', () => noteModal.classList.add('active'));
+    document.getElementById('closeModalBtn')?.addEventListener('click', () => noteModal.classList.remove('active'));
+
+    // Переключение типов в модалке (Лента / Задача)
+    let currentType = 'feed';
+    document.getElementById('typeFeedBtn')?.addEventListener('click', (e) => {
+        currentType = 'feed';
+        e.target.classList.add('active');
+        document.getElementById('typeTaskBtn').classList.remove('active');
+        document.getElementById('feedFieldsBlock').style.display = 'block';
+        document.getElementById('taskFieldsBlock').style.display = 'none';
+    });
+
+    document.getElementById('typeTaskBtn')?.addEventListener('click', (e) => {
+        currentType = 'task';
+        e.target.classList.add('active');
+        document.getElementById('typeFeedBtn').classList.remove('active');
+        document.getElementById('feedFieldsBlock').style.display = 'none';
+        document.getElementById('taskFieldsBlock').style.display = 'block';
+    });
+
+    // Кнопка сохранения записи
+    document.getElementById('saveNoteBtn')?.addEventListener('click', async () => {
+        const title = document.getElementById('noteTitleInput').value.trim();
+        const text = document.getElementById('noteTextInput').value.trim();
+
+        if (!title && !text) return;
+
+        let newEntry = {
+            id: Date.now(),
+            type: currentType,
+            title: title,
+            text: text,
+            createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        if (currentType === 'feed') {
+            const tag = document.getElementById('noteHashtagInput').value.trim();
+            newEntry.hashtag = tag ? (tag.startsWith('#') ? tag : `#${tag}`) : '';
+            
+            // Обработка картинок (Base64)
+            const mediaFiles = document.getElementById('noteMediaInput')?.files;
+            if (mediaFiles && mediaFiles.length > 0) {
+                newEntry.media = await convertFilesToBase64(mediaFiles);
+            } else {
+                newEntry.media = [];
+            }
+        } else {
+            newEntry.folder = document.getElementById('taskTargetFolder').value;
+            newEntry.deadline = document.getElementById('taskDeadlineInput').value;
+            
+            const todoInputs = document.querySelectorAll('.todo-item-input');
+            const todos = [];
+            todoInputs.forEach(input => {
+                if (input.value.trim()) {
+                    todos.push({ text: input.value.trim(), done: false });
+                }
+            });
+
+            newEntry.todos = todos;
+            newEntry.completed = false;
+            newEntry.strikes = 0;
+            newEntry.media = [];
+        }
+
+        AppState.addNote(newEntry);
+        refreshCallback();
+
+        // Сохраняем в облако
+        await CloudStorage.saveNote(newEntry);
+
+        // Очистка и закрытие
+        resetForm();
+        noteModal.classList.remove('active');
+    });
+
+    // Навигация по меню (табы)
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tab = e.target.dataset.tab;
+            if (tab === 'dump') {
+                dumpModal?.classList.add('active');
+                return;
+            }
+            if (tab === 'settings') {
+                settingsModal?.classList.add('active');
+                return;
+            }
+
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            AppState.currentTab = tab;
+            refreshCallback();
+        });
+    });
+
+    document.getElementById('closeDumpBtn')?.addEventListener('click', () => dumpModal.classList.remove('active'));
+    document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
+}
+
+// Вспомогательная конвертация файлов в Base64
+async function convertFilesToBase64(fileList) {
+    const promises = Array.from(fileList).map(file => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    });
+    return await Promise.all(promises);
+}
+
+function resetForm() {
+    document.getElementById('noteTitleInput').value = '';
+    document.getElementById('noteTextInput').value = '';
+    document.getElementById('noteHashtagInput').value = '';
+    document.getElementById('todoItemsContainer').innerHTML = '';
+    document.getElementById('noteMediaInput').value = '';
+}
+
+// Логика Лайтбокса для картинок
+function initLightbox() {
+    const lightbox = document.getElementById('lightboxModal');
+    const img = document.getElementById('lightboxImg');
+    const closeBtn = document.getElementById('lightboxCloseBtn');
+
+    window.openLightbox = (url) => {
+        if (lightbox && img) {
+            img.src = url;
+            lightbox.style.display = 'flex';
+        }
+    };
+
+    closeBtn?.addEventListener('click', () => {
+        if (lightbox) lightbox.style.display = 'none';
+    });
+
+    lightbox?.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            lightbox.style.display = 'none';
+        }
+    });
+}
