@@ -15,17 +15,37 @@ export const CloudStorage = {
             console.error('Ошибка загрузки из облака:', error);
             return null;
         }
-        return data ? data.map(row => row.payload || row) : [];
+        
+        // Преобразуем полученные из базы строки обратно в удобный формат приложения
+        return data ? data.map(row => ({
+            id: row.id,
+            type: row.type || 'feed',
+            title: row.title || '',
+            text: row.text || '',
+            hashtag: row.hashtag || '',
+            media: row.media || [],
+            todos: row.todos || [],
+            completed: row.completed || false,
+            createdAt: row.created_at || row.createdAt || ''
+        })) : [];
     },
 
     async saveNote(note) {
-        // Сохраняем строго id и json-объект в payload, избегая ошибок NOT NULL в других колонках
+        // Отправляем данные в виде плоского объекта, соответствующего колонкам таблицы
+        const dbRecord = {
+            id: String(note.id),
+            type: note.type || 'feed',
+            title: note.title || '',
+            text: note.text || '',
+            hashtag: note.hashtag || '',
+            media: note.media || [],
+            todos: note.todos || [],
+            completed: note.completed || false
+        };
+
         const { error } = await supabase
             .from('notes')
-            .upsert({ 
-                id: String(note.id),
-                payload: note 
-            }, { onConflict: 'id' });
+            .upsert(dbRecord, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
