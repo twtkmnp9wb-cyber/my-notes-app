@@ -140,6 +140,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyBackground(currentBg, currentScale);
 
+    // --- КЛИК ПО БЫСТРЫМ ТЕГАМ В МОДАЛКЕ ---
+    document.querySelectorAll('.tag-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const input = document.getElementById('noteHashtagInput');
+            if (input) {
+                input.value = chip.textContent.trim();
+            }
+        });
+    });
+
     // --- 2. МЕНЮ, ПАПКИ И ЗАМЕТКИ ---
     const menuButtons = document.querySelectorAll('.menu-btn');
     const searchBtn = document.getElementById('searchBtn');

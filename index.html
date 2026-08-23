@@ -12,7 +12,7 @@
     <title>Заметки</title>
 </head>
 <body>
-    <!-- Слой обоев вынесен в самый корень для абсолютной видимости -->
+    <!-- Слой обоев -->
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
@@ -75,8 +75,16 @@
             <input type="text" id="noteTitleInput" class="modal-input" placeholder="Заголовок..." />
             <textarea id="noteTextInput" class="modal-textarea" placeholder="Текст заметки..."></textarea>
             
+            <!-- Поле ввода с частыми тегами -->
             <div class="hashtag-field-wrapper">
-                <input type="text" id="noteHashtagInput" class="modal-input" placeholder="#Хэштег" />
+                <input type="text" id="noteHashtagInput" class="modal-input" placeholder="#Хэштег (напр. #вайб, #учеба)" />
+                <div class="quick-tags-container" style="display: flex; gap: 6px; margin-top: 6px; overflow-x: auto; padding-bottom: 4px;">
+                    <span class="tag-chip" style="font-size: 11px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 6px; cursor: pointer; color: #a0a0a0;">#вайб</span>
+                    <span class="tag-chip" style="font-size: 11px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 6px; cursor: pointer; color: #a0a0a0;">#мысли</span>
+                    <span class="tag-chip" style="font-size: 11px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 6px; cursor: pointer; color: #a0a0a0;">#учеба</span>
+                    <span class="tag-chip" style="font-size: 11px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 6px; cursor: pointer; color: #a0a0a0;">#тренировка</span>
+                    <span class="tag-chip" style="font-size: 11px; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 6px; cursor: pointer; color: #a0a0a0;">#книги</span>
+                </div>
             </div>
             
             <div class="media-upload-section" style="margin-bottom: 15px;">
