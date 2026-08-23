@@ -71,7 +71,7 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Плашка поиска — строго под меню, ниже него, без наложений */
+/* Плашка поиска — строго под меню */
 .search-dropdown-bar {
     position: fixed;
     top: 72px; 
@@ -130,7 +130,7 @@ body {
     font-size: 12px;
 }
 
-/* Область скролла ленты с безопасными отступами */
+/* Область скролла ленты */
 .scroll-viewport {
     flex: 1;
     overflow-y: auto;
@@ -217,9 +217,9 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Модальные окна */
+/* ГЛАВНОЕ: Модальные окна по умолчанию СКРЫТЫ (`display: none`), а появляются только с классом .active */
 .modal {
-    display: none;
+    display: none; 
     position: fixed;
     top: 0;
     left: 0;
@@ -234,7 +234,7 @@ body {
 }
 
 .modal.active {
-    display: flex;
+    display: flex !important;
 }
 
 .modal-content {
