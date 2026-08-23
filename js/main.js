@@ -4,6 +4,8 @@ import { UIRenderer } from './ui.js';
 import { CloudStorage } from './supabase.js';
 import { WallpaperService } from './wallpaper.js';
 
+let currentEditingId = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Инициализация обоев
     WallpaperService.init();
@@ -45,9 +47,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (entry && entry.media && entry.media[imgIdx]) {
                     window.openLightbox(entry.media[imgIdx]);
                 }
+            },
+            onEditNote: (note) => {
+                openEditModal(note);
             }
         });
     };
+
+    // Делаем функцию refresh доступной для модалки редактирования
+    window.renderCurrentTab = refresh;
 
     // Первичный рендер из локальной памяти
     refresh();
@@ -67,7 +75,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Настройка модалок и сохранения новой записи
     initModalsAndCreation(refresh);
     initLightbox();
+    initEditModalLogic(refresh);
 });
+
+// Функция открытия модалки редактирования
+function openEditModal(note) {
+    currentEditingId = note.id;
+    const titleInput = document.getElementById('editModalTitle');
+    const textInput = document.getElementById('editModalText');
+    const modal = document.getElementById('editModal');
+
+    if (titleInput) titleInput.value = note.title || '';
+    if (textInput) textInput.value = note.text || '';
+    if (modal) modal.style.display = 'flex';
+}
+
+// Логика модального окна редактирования
+function initEditModalLogic(refreshCallback) {
+    const modal = document.getElementById('editModal');
+    const cancelBtn = document.getElementById('editModalCancel');
+    const saveBtn = document.getElementById('editModalSave');
+
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (modal) modal.style.display = 'none';
+            currentEditingId = null;
+        };
+    }
+
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            if (!currentEditingId) return;
+
+            const note = AppState.notes.find(n => n.id === currentEditingId);
+            if (note) {
+                const titleInput = document.getElementById('editModalTitle');
+                const textInput = document.getElementById('editModalText');
+
+                if (titleInput) note.title = titleInput.value;
+                if (textInput) note.text = textInput.value;
+
+                // Обновляем в стейте и сохраняем в Supabase
+                if (typeof AppState.updateNote === 'function') {
+                    await AppState.updateNote(note);
+                } else {
+                    await CloudStorage.saveNote(note);
+                }
+                
+                refreshCallback();
+            }
+
+            if (modal) modal.style.display = 'none';
+            currentEditingId = null;
+        };
+    }
+}
 
 // Логика создания записи (с картинками, тегами и задачами)
 function initModalsAndCreation(refreshCallback) {
@@ -202,15 +264,12 @@ function initModalsAndCreation(refreshCallback) {
             newEntry.media = [];
         }
 
-        // 1. Сразу пушим в стейт и рендерим
         AppState.addNote(newEntry);
         refreshCallback();
 
-        // 2. Сразу закрываем модалку и чистим форму
         resetForm();
         noteModal.classList.remove('active');
 
-        // 3. Отправляем в Supabase в фоне
         try {
             await CloudStorage.saveNote(newEntry);
         } catch (err) {
@@ -287,66 +346,3 @@ function initLightbox() {
         }
     });
 }
-import { UIRenderer } from './ui.js';
-
-let currentEditingId = null;
-
-// Функция открытия модалки редактирования
-function openEditModal(note) {
-    currentEditingId = note.id;
-    const titleInput = document.getElementById('editModalTitle');
-    const textInput = document.getElementById('editModalText');
-    const modal = document.getElementById('editModal');
-
-    if (titleInput) titleInput.value = note.title || '';
-    if (textInput) textInput.value = note.text || '';
-    if (modal) modal.style.display = 'flex';
-}
-
-// Настройка обработчиков модального окна после загрузки страницы
-document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('editModal');
-    const cancelBtn = document.getElementById('editModalCancel');
-    const saveBtn = document.getElementById('editModalSave');
-
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            if (modal) modal.style.display = 'none';
-            currentEditingId = null;
-        };
-    }
-
-    if (saveBtn) {
-        saveBtn.onclick = async () => {
-            if (!currentEditingId) return;
-
-            const note = AppState.notes.find(n => n.id === currentEditingId);
-            if (note) {
-                const titleInput = document.getElementById('editModalTitle');
-                const textInput = document.getElementById('editModalText');
-
-                if (titleInput) note.title = titleInput.value;
-                if (textInput) note.text = textInput.value;
-
-                // Обновляем в стейте и сохраняем в Supabase
-                await AppState.updateNote(note);
-                
-                // Перерисовываем текущую вкладку
-                if (typeof renderCurrentTab === 'function') {
-                    renderCurrentTab();
-                }
-            }
-
-            if (modal) modal.style.display = 'none';
-            currentEditingId = null;
-        };
-    }
-});
-
-// И при вызове рендеринга списка передаем обработчик редактирования:
-// UIRenderer.renderList(container, notes, {
-//     onDelete: (id) => { ... },
-//     onToggleTodo: (noteId, todoIdx) => { ... },
-//     onOpenLightbox: (id, imgIdx) => { ... },
-//     onEditNote: (note) => openEditModal(note)  <-- вот сюда цепляем
-// });
