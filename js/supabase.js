@@ -16,16 +16,18 @@ export const CloudStorage = {
             console.error('Ошибка загрузки из облака:', error);
             return null;
         }
-        return data ? data.map(row => row.payload || row) : [];
+        return data || [];
     },
 
-    // Сохранение / обновление записей в облаке
+    // Сохранение / обновление записей в облаке напрямую в колонки
     async saveNote(note) {
         const { error } = await supabase
             .from('notes')
             .upsert({ 
-                id: String(note.id), 
-                payload: note 
+                id: String(note.id),
+                type: note.type || 'feed',
+                folder: note.folder || 'general',
+                title: note.title || '',
             });
 
         if (error) console.error('Ошибка сохранения в облако:', error);
