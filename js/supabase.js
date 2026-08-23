@@ -16,20 +16,18 @@ export const CloudStorage = {
             return null;
         }
 
-        // Если данные хранятся через поле payload или развернуты напрямую
+        // Поддерживаем оба варианта: если данные в payload или если таблица плоская
         return data ? data.map(row => row.payload ? row.payload : row) : [];
     },
 
     async saveNote(note) {
-        // Сохраняем всю структуру целиком в колонку payload, оставляя id отдельно
-        const record = {
-            id: String(note.id),
-            payload: note
-        };
-
+        // Пробуем сохранить в виде одной JSON-колонки payload + id
         const { error } = await supabase
             .from('notes')
-            .upsert(record, { onConflict: 'id' });
+            .upsert({
+                id: String(note.id),
+                payload: note
+            }, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
