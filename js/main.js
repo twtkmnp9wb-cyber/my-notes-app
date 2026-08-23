@@ -287,3 +287,67 @@ function initLightbox() {
         }
     });
 }
+import { AppState } from './state.js';
+import { UIRenderer } from './ui.js';
+
+let currentEditingId = null;
+
+// Функция открытия модалки редактирования
+function openEditModal(note) {
+    currentEditingId = note.id;
+    const titleInput = document.getElementById('editModalTitle');
+    const textInput = document.getElementById('editModalText');
+    const modal = document.getElementById('editModal');
+
+    if (titleInput) titleInput.value = note.title || '';
+    if (textInput) textInput.value = note.text || '';
+    if (modal) modal.style.display = 'flex';
+}
+
+// Настройка обработчиков модального окна после загрузки страницы
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('editModal');
+    const cancelBtn = document.getElementById('editModalCancel');
+    const saveBtn = document.getElementById('editModalSave');
+
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (modal) modal.style.display = 'none';
+            currentEditingId = null;
+        };
+    }
+
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            if (!currentEditingId) return;
+
+            const note = AppState.notes.find(n => n.id === currentEditingId);
+            if (note) {
+                const titleInput = document.getElementById('editModalTitle');
+                const textInput = document.getElementById('editModalText');
+
+                if (titleInput) note.title = titleInput.value;
+                if (textInput) note.text = textInput.value;
+
+                // Обновляем в стейте и сохраняем в Supabase
+                await AppState.updateNote(note);
+                
+                // Перерисовываем текущую вкладку
+                if (typeof renderCurrentTab === 'function') {
+                    renderCurrentTab();
+                }
+            }
+
+            if (modal) modal.style.display = 'none';
+            currentEditingId = null;
+        };
+    }
+});
+
+// И при вызове рендеринга списка передаем обработчик редактирования:
+// UIRenderer.renderList(container, notes, {
+//     onDelete: (id) => { ... },
+//     onToggleTodo: (noteId, todoIdx) => { ... },
+//     onOpenLightbox: (id, imgIdx) => { ... },
+//     onEditNote: (note) => openEditModal(note)  <-- вот сюда цепляем
+// });
