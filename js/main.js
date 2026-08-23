@@ -118,6 +118,7 @@ function initEditModalLogic(refreshCallback) {
 function initModalsAndCreation(refreshCallback) {
     const noteModal = document.getElementById('noteModal');
     const dumpModal = document.getElementById('dumpModal');
+    const roadmapModal = document.getElementById('roadmapModal');
     const settingsModal = document.getElementById('settingsModal');
 
     document.getElementById('addNoteBtn')?.addEventListener('click', () => noteModal.classList.add('active'));
@@ -251,6 +252,10 @@ function initModalsAndCreation(refreshCallback) {
                 dumpModal?.classList.add('active');
                 return;
             }
+            if (tab === 'roadmap') {
+                roadmapModal?.classList.add('active');
+                return;
+            }
             if (tab === 'settings') {
                 settingsModal?.classList.add('active');
                 return;
@@ -264,6 +269,7 @@ function initModalsAndCreation(refreshCallback) {
     });
 
     document.getElementById('closeDumpBtn')?.addEventListener('click', () => dumpModal.classList.remove('active'));
+    document.getElementById('closeRoadmapBtn')?.addEventListener('click', () => roadmapModal.classList.remove('active'));
     document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
 }
 

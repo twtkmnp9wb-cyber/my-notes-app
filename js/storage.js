@@ -19,7 +19,7 @@ export const StorageService = {
             const updated = notes.filter(item => {
                 if (item.type !== 'task' || item.completed) return true;
                 item.strikes = (item.strikes || 0) + 1;
-                return item.strikes < 3; // Правило 3 вылетов
+                return item.strikes < 3;
             });
             localStorage.setItem(RESET_DATE_KEY, today);
             this.save(updated);
