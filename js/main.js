@@ -287,7 +287,6 @@ function initLightbox() {
         }
     });
 }
-import { AppState } from './state.js';
 import { UIRenderer } from './ui.js';
 
 let currentEditingId = null;

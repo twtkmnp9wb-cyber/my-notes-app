@@ -15,7 +15,7 @@ export const CloudStorage = {
             console.error('Ошибка загрузки из облака:', error);
             return null;
         }
-        return data || [];
+        return data ? data.map(row => row.payload || row) : [];
     },
 
     async saveNote(note) {
@@ -23,10 +23,7 @@ export const CloudStorage = {
             .from('notes')
             .upsert({ 
                 id: String(note.id),
-                user_id: 'default_user',
-                type: note.type || 'feed',
-                folder: note.folder || 'general',
-                title: note.title || ''
+                payload: note 
             });
 
         if (error) console.error('Ошибка сохранения в облако:', error);
