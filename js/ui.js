@@ -42,7 +42,6 @@ export const UIRenderer = {
         `;
         searchInput.oninput = (e) => {
             AppState.searchQuery = e.target.value;
-            // Перерисовываем список с учетом поиска
             UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
         };
         toolbar.appendChild(searchInput);
@@ -92,9 +91,9 @@ export const UIRenderer = {
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'cursor: pointer; transition: transform 0.1s ease;';
+            card.style.cssText = 'cursor: pointer; transition: transform 0.1s ease; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 14px; margin-bottom: 12px;';
 
-            // Клик по карточке для редактирования (если не кликнули на интерактивные элементы)
+            // Клик по карточке для редактирования
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
                 if (handlers.onEditNote) handlers.onEditNote(note);

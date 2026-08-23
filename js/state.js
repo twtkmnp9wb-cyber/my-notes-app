@@ -19,6 +19,8 @@ export const AppState = {
             id: Date.now(),
             createdAt: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
             folder: noteData.folder || 'general',
+            type: noteData.type || 'feed',
+            todos: noteData.todos || [],
             ...noteData
         };
         this.notes.unshift(newNote);
@@ -36,6 +38,14 @@ export const AppState = {
     async deleteNote(id) {
         this.notes = this.notes.filter(n => n.id !== id);
         await CloudStorage.deleteNote(id);
+    },
+
+    async toggleTodo(noteId, todoIdx) {
+        const note = this.notes.find(n => n.id === noteId);
+        if (note && note.todos && note.todos[todoIdx]) {
+            note.todos[todoIdx].done = !note.todos[todoIdx].done;
+            await this.updateNote(note);
+        }
     },
 
     // Универсальная фильтрация с учетом вкладки, чипсов, папок и поиска
