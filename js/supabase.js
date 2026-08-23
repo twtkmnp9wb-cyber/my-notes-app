@@ -1,8 +1,8 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Твои ключи из панели Supabase
-const SUPABASE_URL = 'https://efbgtwfbonvkpgsfnodp.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_wKN1cbveZiaJd_uyCWizkQ_1M_Z2g20'
+const SUPABASE_URL = 'https://efbgtwfbonvkpgsfnodp.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_wKN1cbveZiaJd_uyCWizkQ_1M_Z2g20';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
