@@ -16,7 +16,7 @@
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ЕДИНЫЙ ФИКСИРОВАННЫЙ БЛОК СВЕРХУ (Меню) -->
+        <!-- ФИКСИРОВАННЫЙ БЛОК СВЕРХУ -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -32,24 +32,22 @@
             </aside>
         </header>
 
-        <!-- ВЫНЕСЕННЫЙ ФИКСИРОВАННЫЙ ПОИСК (появляется при клике на лупу) -->
+        <!-- ПОИСК (встраивается сюда же в поток под меню, не накладывается) -->
         <div id="telegramSearchBarContainer"></div>
 
-        <!-- РОДИТЕЛЬ-МАСКА + ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
+        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
         <div class="scroll-viewport">
-            <div class="scrollable-content">
-                <div class="content-wrapper">
-                    <!-- Оригинальная надпись Born to win -->
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h2 style="font-family: 'Caveat', cursive; font-size: 2.2rem; color: rgba(255,255,255,0.85); font-weight: 400; letter-spacing: 1px; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">Born to win.</h2>
-                    </div>
-
-                    <main class="notes-area">
-                        <div class="main-container">
-                            <!-- Заметки добавляются сюда -->
-                        </div>
-                    </main>
+            <div class="content-wrapper">
+                <!-- Надпись Born to win возвращена на свое место в поток -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="font-family: 'Caveat', cursive; font-size: 2.2rem; color: rgba(255,255,255,0.85); font-weight: 400; letter-spacing: 1px; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">Born to win.</h2>
                 </div>
+
+                <main class="notes-area">
+                    <div class="main-container">
+                        <!-- Заметки добавляются сюда -->
+                    </div>
+                </main>
             </div>
         </div>
 
@@ -70,58 +68,52 @@
                 <button type="button" class="close-btn" id="closeModalBtn">×</button>
             </div>
 
-            <!-- Переключатель типа -->
-            <div class="type-selector">
-                <button type="button" class="type-btn active" id="typeFeedBtn" data-type="feed">📝 Media Library</button>
-                <button type="button" class="type-btn" id="typeTaskBtn" data-type="task">⚡ Задача (Sprint / Backlog)</button>
+            <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
+                <button type="button" class="menu-btn active" id="typeFeedBtn" data-type="feed" style="flex:1; background:rgba(255,255,255,0.15);">📝 Media Library</button>
+                <button type="button" class="menu-btn" id="typeTaskBtn" data-type="task" style="flex:1;">⚡ Задача</button>
             </div>
 
             <div class="modal-body">
                 <input type="text" id="noteTitleInput" placeholder="Заголовок..." class="modal-input">
                 <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
 
-                <!-- Блок только для ЛЕНТЫ -->
                 <div id="feedFieldsBlock">
-                    <div class="hashtag-field-wrapper">
-                        <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
-                        <div class="quick-tags">
-                            <span class="tag-chip">#учеба</span>
-                            <span class="tag-chip">#проект</span>
-                            <span class="tag-chip">#мысли</span>
-                            <span class="tag-chip">#спорт</span>
-                        </div>
+                    <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
+                    <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#учеба</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#проект</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#мысли</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#спорт</span>
                     </div>
 
-                    <div class="media-upload-wrapper" style="margin-top: 15px;">
-                        <label for="noteMediaInput" class="upload-btn">📷 Прикрепить фото</label>
+                    <div class="media-upload-wrapper">
+                        <label for="noteMediaInput" class="menu-btn" style="display:inline-block; background:rgba(255,255,255,0.1); text-align:center; cursor:pointer;">📷 Прикрепить фото</label>
                         <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
-                        <div id="mediaPreviewContainer" class="media-preview-container"></div>
+                        <div id="mediaPreviewContainer" class="media-preview-container" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;"></div>
                     </div>
                 </div>
 
-                <!-- Блок только для ЗАДАЧ -->
-                <div id="taskFieldsBlock" style="display: none; margin-top: 15px;">
+                <div id="taskFieldsBlock" style="display: none; margin-top: 10px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
-                            <option value="sprint">🚀 В Sprint (Сегодня)</option>
-                            <option value="backlog">📦 В Backlog (На потом)</option>
+                            <option value="sprint">🚀 В Sprint</option>
+                            <option value="backlog">📦 В Backlog</option>
                         </select>
                         <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
                     </div>
-
-                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист (подзадачи):</label>
+                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист:</label>
                     <div id="todoItemsContainer"></div>
-                    <button type="button" id="addTodoItemBtn" class="secondary-btn" style="width: 100%; margin-top: 6px;">+ Добавить пункт</button>
+                    <button type="button" id="addTodoItemBtn" class="menu-btn" style="width: 100%; margin-top: 6px; background:rgba(255,255,255,0.1);">+ Добавить пункт</button>
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="accent-btn" id="saveNoteBtn">Сохранить</button>
+            <div class="modal-footer" style="margin-top: 16px;">
+                <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: #4caf50; font-weight: bold;">Сохранить</button>
             </div>
         </div>
     </div>
 
-    <!-- МОДАЛКА CORE DUMP -->
+    <!-- Модалка Core Dump -->
     <div class="modal" id="dumpModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -134,7 +126,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА ROADMAP -->
+    <!-- Модалка Roadmap -->
     <div class="modal" id="roadmapModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -147,58 +139,31 @@
         </div>
     </div>
 
-    <!-- Окно выбора обоев -->
-    <div class="modal-overlay" id="settingsModal">
+    <!-- Окно настроек -->
+    <div class="modal" id="settingsModal">
         <div class="modal-content">
-            <h2 class="modal-title">Темы и обои</h2>
+            <h2 class="modal-header" style="margin-bottom:12px;"><span style="font-size:18px;">Темы и обои</span></h2>
+            <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Выберите обои:</p>
+            <div class="bg-gallery" id="bgGallery" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
             
-            <p class="modal-subtitle">Выберите обои:</p>
-            <div class="bg-gallery" id="bgGallery"></div>
-
-            <div class="scale-group" style="margin-top: 16px;">
+            <div style="margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <p class="modal-subtitle" style="margin: 0;">Масштаб (зум):</p>
+                    <span style="font-size: 13px; color: rgba(255,255,255,0.6);">Масштаб (зум):</span>
                     <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
                 </div>
-                <input type="range" id="bgScaleRange" min="100" max="220" value="100" class="modal-range" />
+                <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%;" />
             </div>
 
-            <p class="modal-subtitle" style="margin-top: 16px;">Загрузить файл с ПК:</p>
-            <div class="custom-bg-input-group">
-                <input type="text" id="customBgTitleInput" class="modal-input" placeholder="Название обоев..." />
-                <label class="file-upload-btn">
-                    📁 Выбрать файл
-                    <input type="file" id="bgFileInput" accept="image/*" hidden />
-                </label>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button type="button" id="closeSettingsBtn" class="modal-btn cancel-btn">Закрыть</button>
+            <div style="display:flex; gap:10px;">
+                <button type="button" id="closeSettingsBtn" class="menu-btn active" style="width:100%; background:rgba(255,255,255,0.2);">Закрыть</button>
             </div>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
-    <div id="lightboxModal">
-        <button type="button" id="lightboxCloseBtn" class="lightbox-close">&times;</button>
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 500px; height: 70vh; padding: 0 50px; box-sizing: border-box;">
-            <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
-                <img id="lightboxImg" src="" alt="Zoomed media" style="max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain;" />
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно редактирования -->
-    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: #1e1e1e; border: 1px solid rgba(255,255,255,0.15); padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <h3 style="margin: 0; color: #fff; font-size: 18px;">Редактировать запись</h3>
-            <input type="text" id="editModalTitle" placeholder="Заголовок..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none;">
-            <textarea id="editModalText" placeholder="Текст заметки..." style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); padding: 10px 14px; border-radius: 10px; color: white; font-size: 14px; outline: none; height: 100px; resize: none;"></textarea>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;">
-                <button id="editModalCancel" style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Отмена</button>
-                <button id="editModalSave" style="background: #4caf50; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold;">Сохранить</button>
-            </div>
-        </div>
+    <!-- Лайтбокс для картинок -->
+    <div id="lightboxModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+        <button type="button" id="lightboxCloseBtn" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
+        <img id="lightboxImg" src="" alt="Zoomed" style="max-width:90%; max-height:90%; border-radius:12px; object-fit:contain;" />
     </div>
 
     <script type="module" src="js/main.js"></script>
