@@ -21,11 +21,11 @@
             <aside class="main-menu">
                 <nav class="main-menu-nav">
                     <ul class="menu-list">
-                        <li><button class="menu-btn active">Media Library</button></li>
-                        <li><button class="menu-btn">Roadmap</button></li>
-                        <li><button class="menu-btn">Backlog</button></li>
-                        <li><button class="menu-btn">Sprint</button></li>
-                        <li><button class="menu-btn">Settings</button></li>
+                        <li><button class="menu-btn active" data-tab="feed">Лента</button></li>
+                        <li><button class="menu-btn" data-tab="sprint">Спринт</button></li>
+                        <li><button class="menu-btn" data-tab="backlog">Бэклог</button></li>
+                        <li><button class="menu-btn" data-tab="dump">Live Dump</button></li>
+                        <li><button class="menu-btn" data-tab="settings">⚙️</button></li>
                     </ul>
                 </nav>
             </aside>
@@ -68,64 +68,76 @@
     </div>
 
     <!-- МОДАЛКА СОЗДАНИЯ (Заметка / Задача) -->
-<div class="modal" id="noteModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Создать запись</h3>
-            <button type="button" class="close-btn" id="closeModalBtn">×</button>
-        </div>
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Создать запись</h3>
+                <button type="button" class="close-btn" id="closeModalBtn">×</button>
+            </div>
 
-        <!-- Переключатель типа -->
-        <div class="type-selector">
-            <button type="button" class="type-btn active" id="typeFeedBtn" data-type="feed">📝 Лента</button>
-            <button type="button" class="type-btn" id="typeTaskBtn" data-type="task">⚡ Задача (Спринт / Бэклог)</button>
-        </div>
+            <!-- Переключатель типа -->
+            <div class="type-selector">
+                <button type="button" class="type-btn active" id="typeFeedBtn" data-type="feed">📝 Лента</button>
+                <button type="button" class="type-btn" id="typeTaskBtn" data-type="task">⚡ Задача (Спринт / Бэклог)</button>
+            </div>
 
-        <div class="modal-body">
-            <input type="text" id="noteTitleInput" placeholder="Заголовок..." class="modal-input">
-            <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
+            <div class="modal-body">
+                <input type="text" id="noteTitleInput" placeholder="Заголовок..." class="modal-input">
+                <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
 
-            <!-- Блок только для ЛЕНТЫ -->
-            <div id="feedFieldsBlock">
-                <div class="hashtag-field-wrapper">
-                    <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
-                    <div class="quick-tags">
-                        <span class="tag-chip">#учеба</span>
-                        <span class="tag-chip">#проект</span>
-                        <span class="tag-chip">#мысли</span>
-                        <span class="tag-chip">#спорт</span>
+                <!-- Блок только для ЛЕНТЫ -->
+                <div id="feedFieldsBlock">
+                    <div class="hashtag-field-wrapper">
+                        <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
+                        <div class="quick-tags">
+                            <span class="tag-chip">#учеба</span>
+                            <span class="tag-chip">#проект</span>
+                            <span class="tag-chip">#мысли</span>
+                            <span class="tag-chip">#спорт</span>
+                        </div>
+                    </div>
+
+                    <div class="media-upload-wrapper" style="margin-top: 15px;">
+                        <label for="noteMediaInput" class="upload-btn">📷 Прикрепить фото</label>
+                        <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
+                        <div id="mediaPreviewContainer" class="media-preview-container"></div>
                     </div>
                 </div>
 
-                <div class="media-upload-wrapper" style="margin-top: 15px;">
-                    <label for="noteMediaInput" class="upload-btn">📷 Прикрепить фото</label>
-                    <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
-                    <div id="mediaPreviewContainer" class="media-preview-container"></div>
+                <!-- Блок только для ЗАДАЧ -->
+                <div id="taskFieldsBlock" style="display: none; margin-top: 15px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
+                            <option value="sprint">🚀 В Спринт (Сегодня)</option>
+                            <option value="backlog">📦 В Бэклог (На потом)</option>
+                        </select>
+                        <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
+                    </div>
+
+                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист (подзадачи):</label>
+                    <div id="todoItemsContainer"></div>
+                    <button type="button" id="addTodoItemBtn" class="secondary-btn" style="width: 100%; margin-top: 6px;">+ Добавить пункт</button>
                 </div>
             </div>
 
-            <!-- Блок только для ЗАДАЧ -->
-            <div id="taskFieldsBlock" style="display: none; margin-top: 15px;">
-                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
-                        <option value="sprint">🚀 В Спринт (Сегодня)</option>
-                        <option value="backlog">📦 В Бэклог (На потом)</option>
-                    </select>
-                    <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
-                </div>
-
-                <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист (подзадачи):</label>
-                <div id="todoItemsContainer"></div>
-                <button type="button" id="addTodoItemBtn" class="secondary-btn" style="width: 100%; margin-top: 6px;">+ Добавить пункт</button>
+            <div class="modal-footer">
+                <button type="button" class="accent-btn" id="saveNoteBtn">Сохранить</button>
             </div>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="accent-btn" id="saveNoteBtn">Сохранить</button>
         </div>
     </div>
-</div>
 
+    <!-- МОДАЛКА LIVE DUMP -->
+    <div class="modal" id="dumpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌙 Сброс тревоги (Live Dump)</h3>
+                <button type="button" class="close-btn" id="closeDumpBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="liveDumpArea" placeholder="Выгрузи из головы всё перед сном..." class="modal-textarea" style="height: 180px;"></textarea>
+            </div>
+        </div>
+    </div>
 
     <!-- Окно выбора обоев -->
     <div class="modal-overlay" id="settingsModal">
@@ -158,8 +170,6 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
-
     <!-- МОДАЛЬНОЕ ОКНО ЛАЙТБОКСА -->
     <div id="lightboxModal">
         <button type="button" id="lightboxCloseBtn" class="lightbox-close">&times;</button>
@@ -174,5 +184,7 @@
             <button type="button" id="lightboxNextBtn" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 40;">›</button>
         </div>
     </div>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
