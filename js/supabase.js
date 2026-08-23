@@ -16,23 +16,28 @@ export const CloudStorage = {
             return null;
         }
 
-        // Поддерживаем как формат с колонкой payload, так и плоскую структуру
+        // Возвращаем данные как есть или разворачиваем из payload, если он используется
         return data ? data.map(row => row.payload || row) : [];
     },
 
     async saveNote(note) {
-        // Пробуем отправить универсальный объект, включая поле payload, 
-        // а также дублируем базовые поля на случай строгой схемы таблицы
-        const record = {
+        // Формируем чистый объект, где гарантированно нет undefined или null для ключевых полей
+        const cleanRecord = {
             id: String(note.id),
             title: note.title || '',
             text: note.text || '',
-            payload: note
+            type: note.type || 'feed',
+            folder: note.folder || 'general',
+            hashtag: note.hashtag || '',
+            deadline: note.deadline || null,
+            todos: note.todos || [],
+            media: note.media || [],
+            createdAt: note.createdAt || ''
         };
 
         const { error } = await supabase
             .from('notes')
-            .upsert(record, { onConflict: 'id' });
+            .upsert(cleanRecord, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
