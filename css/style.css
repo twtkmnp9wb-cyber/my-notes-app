@@ -94,7 +94,7 @@ input:focus,
     pointer-events: auto;
 }
 
-/* Прозрачное, чистое стекло (уменьшенный блюр до 16px) */
+/* Прозрачное, чистое стекло */
 .main-menu, 
 .hashtag-filter-bar {
     width: 100%;
@@ -384,7 +384,7 @@ input:focus,
     display: flex !important;
 }
 
-/* Модальные окна с прозрачным стеклом */
+/* Модальные окна */
 .modal-content {
     width: 90% !important;
     max-width: 450px !important;
@@ -484,7 +484,7 @@ input:focus,
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     max-height: 240px;
-    padding: 12px 6px; 
+    padding: 12px 10px; 
     overflow-y: auto;
     overflow-x: visible;
 }
@@ -517,10 +517,10 @@ input:focus,
     transform: scale(1.02);
 }
 
-/* Компактное и мягкое свечение, которое идеально держится в границах */
+/* Идеальное компактное свечение без обрезания по краям */
 .wallpaper-card.active {
-    border-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2), inset 0 0 3px rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.25), inset 0 0 3px rgba(255, 255, 255, 0.2);
     z-index: 2;
 }
 
