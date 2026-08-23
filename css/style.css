@@ -903,3 +903,25 @@ input:focus-visible,
     font-size: 32px;
     cursor: pointer;
 }
+/* Контейнер для картинок в карточке */
+.note-media-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Сама миниатюра картинки */
+.note-media-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.note-media-img:hover {
+    transform: scale(1.03);
+}

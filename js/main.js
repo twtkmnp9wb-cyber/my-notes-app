@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLightbox();
 });
 
-// Логика создания записи (с картинками и задачами)
+// Логика создания записи (с картинками, тегами и задачами)
 function initModalsAndCreation(refreshCallback) {
     const noteModal = document.getElementById('noteModal');
     const dumpModal = document.getElementById('dumpModal');
@@ -94,6 +94,41 @@ function initModalsAndCreation(refreshCallback) {
         document.getElementById('typeFeedBtn').classList.remove('active');
         document.getElementById('feedFieldsBlock').style.display = 'none';
         document.getElementById('taskFieldsBlock').style.display = 'block';
+    });
+
+    // Клик по быстрым тегам в модалке (автоподстановка в инпут)
+    document.querySelectorAll('.tag-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const hashtagInput = document.getElementById('noteHashtagInput');
+            if (hashtagInput) {
+                hashtagInput.value = chip.textContent;
+            }
+        });
+    });
+
+    // Предпросмотр выбранных фото перед сохранением
+    document.getElementById('noteMediaInput')?.addEventListener('change', (e) => {
+        const previewContainer = document.getElementById('mediaPreviewContainer');
+        if (!previewContainer) return;
+        previewContainer.innerHTML = '';
+        
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.style.width = '50px';
+                    img.style.height = '50px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '6px';
+                    img.style.marginRight = '5px';
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
     });
 
     // Кнопка сохранения записи
@@ -197,6 +232,8 @@ function resetForm() {
     document.getElementById('noteHashtagInput').value = '';
     document.getElementById('todoItemsContainer').innerHTML = '';
     document.getElementById('noteMediaInput').value = '';
+    const previewContainer = document.getElementById('mediaPreviewContainer');
+    if (previewContainer) previewContainer.innerHTML = '';
 }
 
 // Лайтбокс для картинок
