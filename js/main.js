@@ -21,7 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             onDelete: async (id) => {
                 AppState.deleteNote(id);
                 refresh();
-                await CloudStorage.deleteNote(id);
+                try {
+                    await CloudStorage.deleteNote(id);
+                } catch (e) {
+                    console.log('Удалено локально, облако недоступно');
+                }
             },
             onToggleTodo: async (id, idx) => {
                 const entry = AppState.notes.find(n => n.id === id);
@@ -29,7 +33,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     entry.todos[idx].done = !entry.todos[idx].done;
                     entry.completed = entry.todos.every(t => t.done);
                     refresh();
-                    await CloudStorage.saveNote(entry);
+                    try {
+                        await CloudStorage.saveNote(entry);
+                    } catch (e) {
+                        console.log('Изменения сохранены локально, облако недоступно');
+                    }
+                }
+            },
+            onOpenLightbox: (id, imgIdx) => {
+                const entry = AppState.notes.find(n => n.id === id);
+                if (entry && entry.media && entry.media[imgIdx]) {
+                    window.openLightbox(entry.media[imgIdx]);
                 }
             }
         });
@@ -101,7 +115,6 @@ function initModalsAndCreation(refreshCallback) {
             const tag = document.getElementById('noteHashtagInput').value.trim();
             newEntry.hashtag = tag ? (tag.startsWith('#') ? tag : `#${tag}`) : '';
             
-            // Обработка картинок (Base64)
             const mediaFiles = document.getElementById('noteMediaInput')?.files;
             if (mediaFiles && mediaFiles.length > 0) {
                 newEntry.media = await convertFilesToBase64(mediaFiles);
@@ -126,15 +139,20 @@ function initModalsAndCreation(refreshCallback) {
             newEntry.media = [];
         }
 
+        // 1. Сразу пушим в стейт и рендерим
         AppState.addNote(newEntry);
         refreshCallback();
 
-        // Сохраняем в облако
-        await CloudStorage.saveNote(newEntry);
-
-        // Очистка и закрытие
+        // 2. Сразу закрываем модалку и чистим форму, не дожидаясь сети
         resetForm();
         noteModal.classList.remove('active');
+
+        // 3. Отправляем в Supabase в фоне
+        try {
+            await CloudStorage.saveNote(newEntry);
+        } catch (err) {
+            console.log('Запись сохранена локально, облако не ответило');
+        }
     });
 
     // Навигация по меню (табы)
@@ -161,7 +179,7 @@ function initModalsAndCreation(refreshCallback) {
     document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
 }
 
-// Вспомогательная конвертация файлов в Base64
+// Конвертация файлов в Base64
 async function convertFilesToBase64(fileList) {
     const promises = Array.from(fileList).map(file => {
         return new Promise((resolve) => {
@@ -181,7 +199,7 @@ function resetForm() {
     document.getElementById('noteMediaInput').value = '';
 }
 
-// Логика Лайтбокса для картинок
+// Лайтбокс для картинок
 function initLightbox() {
     const lightbox = document.getElementById('lightboxModal');
     const img = document.getElementById('lightboxImg');
