@@ -16,28 +16,18 @@ export const CloudStorage = {
             return null;
         }
 
-        return data ? data.map(row => row.payload || row) : [];
+        // Достаем объект заметки из колонки payload
+        return data ? data.map(row => row.payload).filter(Boolean) : [];
     },
 
     async saveNote(note) {
-        // Заполняем абсолютно все поля дефолтными значениями, чтобы база не ругалась на null
-        const record = {
-            id: String(note.id || Date.now()),
-            title: note.title || '',
-            text: note.text || '',
-            type: note.type || 'feed',
-            folder: note.folder || 'general',
-            hashtag: note.hashtag || '',
-            deadline: note.deadline || null,
-            todos: note.todos || [],
-            media: note.media || [],
-            createdAt: note.createdAt || '',
-            payload: note
-        };
-
+        // Отправляем строго id и обертку payload, больше никаких лишних колонок!
         const { error } = await supabase
             .from('notes')
-            .upsert(record, { onConflict: 'id' });
+            .upsert({
+                id: String(note.id),
+                payload: note
+            }, { onConflict: 'id' });
 
         if (error) {
             console.error('Ошибка сохранения в облако:', error);
@@ -51,7 +41,7 @@ export const CloudStorage = {
             .eq('id', String(id));
 
         if (error) {
-            console.error('Ошибка удаления из облако:', error);
+            console.error('Ошибка удаления из облака:', error);
         }
     }
 };
