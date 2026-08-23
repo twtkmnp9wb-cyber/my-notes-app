@@ -1,5 +1,23 @@
 import { AppState } from './state.js';
 
+// Вспомогательная функция для проверки дедлайна
+function getDeadlineStatus(deadlineStr) {
+    if (!deadlineStr) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const deadlineDate = new Date(deadlineStr);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    const diffTime = deadlineDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { text: `Просрочено на ${Math.abs(diffDays)} дн.`, color: '#ff5252', urgent: true };
+    if (diffDays === 0) return { text: 'Дедлайн сегодня!', color: '#ff9800', urgent: true };
+    if (diffDays <= 2) return { text: `Осталось дней: ${diffDays}`, color: '#ffb74d', urgent: false };
+    return { text: `Дедлайн: ${deadlineStr}`, color: 'rgba(255,255,255,0.6)', urgent: false };
+}
+
 export const UIRenderer = {
     renderList(container, notes, handlers) {
         container.innerHTML = '';
@@ -30,7 +48,6 @@ export const UIRenderer = {
                 
                 chip.onclick = () => {
                     AppState.currentFilter = cat;
-                    // Перерисовываем список с новым фильтром
                     UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
                 };
                 chipsContainer.appendChild(chip);
@@ -72,7 +89,7 @@ export const UIRenderer = {
                     <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
                 `;
             } else {
-                // Рендеринг задачи (спринт / бэклог)
+                // Рендеринг задачи (спринт / бэклог) с подсветкой дедлайна
                 let todosHtml = '';
                 if (note.todos && note.todos.length > 0) {
                     todosHtml = '<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">';
@@ -87,13 +104,20 @@ export const UIRenderer = {
                     todosHtml += '</div>';
                 }
 
+                let deadlineHtml = '';
+                if (note.deadline) {
+                    const dStatus = getDeadlineStatus(note.deadline);
+                    const borderStyle = dStatus.urgent ? `border-left: 3px solid ${dStatus.color}; padding-left: 8px;` : '';
+                    deadlineHtml = `<div style="font-size: 12px; color: ${dStatus.color}; margin-bottom: 6px; ${borderStyle} font-weight: ${dStatus.urgent ? 'bold' : 'normal'};">⏳ ${dStatus.text}</div>`;
+                }
+
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                         <h3 style="margin: 0; font-size: 16px; color: #fff;">${note.title || 'Задача'}</h3>
                         <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
                     </div>
                     <p style="margin: 0 0 8px 0; color: rgba(255,255,255,0.8); font-size: 14px;">${note.text || ''}</p>
-                    ${note.deadline ? `<div style="font-size: 12px; color: #ffb74d; margin-bottom: 6px;">Дедлайн: ${note.deadline}</div>` : ''}
+                    ${deadlineHtml}
                     ${todosHtml}
                     <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 10px;">${note.createdAt}</div>
                 `;
@@ -102,7 +126,7 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
-        // Навешиваем обработчики кликов на элементы карточек
+        // Обработчики событий
         container.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = () => {
                 const id = Number(btn.dataset.id);
