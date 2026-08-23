@@ -1,4 +1,4 @@
-// Полностью переводим хранилище на локальный localStorage, чтобы забыть про ошибки сервера
+// Локальное хранилище без сетевых запросов и ошибок Supabase
 export const CloudStorage = {
     async fetchNotes() {
         try {
