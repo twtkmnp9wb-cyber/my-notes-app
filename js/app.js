@@ -153,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteHashtagInput = document.getElementById('noteHashtagInput');
     const notesContainer = document.querySelector('.main-container');
 
-    // Новые элементы управления типом (Лента vs Задача)
     const typeFeedBtn = document.getElementById('typeFeedBtn');
     const typeTaskBtn = document.getElementById('typeTaskBtn');
     const feedFieldsBlock = document.getElementById('feedFieldsBlock');
@@ -163,8 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const todoItemsContainer = document.getElementById('todoItemsContainer');
     const addTodoItemBtn = document.getElementById('addTodoItemBtn');
 
-    let currentEntryType = 'feed'; // 'feed' или 'task'
+    let currentEntryType = 'feed';
     let activeTab = localStorage.getItem('app_active_tab') || 'feed';
+    // Защита от старых ключей в локалсторадже
+    if (!['feed', 'sprint', 'backlog', 'dump'].includes(activeTab)) {
+        activeTab = 'feed';
+    }
+
     let notes = JSON.parse(localStorage.getItem('app_notes')) || [];
 
     let searchResults = [];
@@ -222,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cleanTime = formatCleanDate(note.time);
 
-            // Если карточка — Задача с чек-листом (Спринт или Бэклог)
             if (note.type === 'task') {
                 let checklistHtml = '';
                 if (note.todos && note.todos.length > 0) {
@@ -249,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else {
-                // Карточка Ленты
                 const hashtagHtml = (isFeed && note.hashtag) 
                     ? `<span class="note-hashtag">${escapeHtml(note.hashtag)}</span>` 
                     : '<span></span>';
@@ -278,7 +280,6 @@ document.addEventListener('DOMContentLoaded', () => {
             notesContainer.appendChild(card);
         });
 
-        // Слушатели галочек подзадач
         document.querySelectorAll('.todo-checkbox').forEach(chk => {
             chk.addEventListener('change', (e) => {
                 const noteIdx = parseInt(e.target.getAttribute('data-note-idx'));
@@ -289,7 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Удаление
         document.querySelectorAll('.delete-note-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = e.target.getAttribute('data-index');
@@ -320,12 +320,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateTabUI();
 
+        if (activeTab === 'dump') {
+            const dumpModal = document.getElementById('dumpModal');
+            if (dumpModal) dumpModal.classList.add('active');
+            return;
+        }
+
         if (isSearchActive && activeTab !== 'feed') closeSearch();
         else renderNotes();
     }
 
     menuButtons.forEach(btn => {
-        const tab = btn.getAttribute('data-tab') || btn.textContent.trim().toLowerCase();
+        const tab = btn.getAttribute('data-tab');
 
         if (tab === 'settings') {
             btn.addEventListener('click', (e) => {
@@ -347,17 +353,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function setEntryType(type) {
         currentEntryType = type;
         if (type === 'feed') {
-            typeFeedBtn.classList.add('active');
-            typeTaskBtn.classList.remove('active');
-            feedFieldsBlock.style.display = 'block';
-            taskFieldsBlock.style.display = 'none';
+            if (typeFeedBtn) typeFeedBtn.classList.add('active');
+            if (typeTaskBtn) typeTaskBtn.classList.remove('active');
+            if (feedFieldsBlock) feedFieldsBlock.style.display = 'block';
+            if (taskFieldsBlock) taskFieldsBlock.style.display = 'none';
         } else {
-            typeTaskBtn.classList.add('active');
-            typeFeedBtn.classList.remove('active');
-            feedFieldsBlock.style.display = 'none';
-            taskFieldsBlock.style.display = 'block';
+            if (typeTaskBtn) typeTaskBtn.classList.add('active');
+            if (typeFeedBtn) typeFeedBtn.classList.remove('active');
+            if (feedFieldsBlock) feedFieldsBlock.style.display = 'none';
+            if (taskFieldsBlock) taskFieldsBlock.style.display = 'block';
             if (activeTab === 'sprint' || activeTab === 'backlog') {
-                taskTargetFolder.value = activeTab;
+                if (taskTargetFolder) taskTargetFolder.value = activeTab;
             }
         }
     }
@@ -365,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeFeedBtn) typeFeedBtn.addEventListener('click', () => setEntryType('feed'));
     if (typeTaskBtn) typeTaskBtn.addEventListener('click', () => setEntryType('task'));
 
-    // ЧЕК-ЛИСТ ДИНАМИКА
     if (addTodoItemBtn) {
         addTodoItemBtn.addEventListener('click', () => {
             const row = document.createElement('div');
@@ -375,11 +380,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button type="button" class="remove-todo-btn">×</button>
             `;
             row.querySelector('.remove-todo-btn').addEventListener('click', () => row.remove());
-            todoItemsContainer.appendChild(row);
+            if (todoItemsContainer) todoItemsContainer.appendChild(row);
         });
     }
 
-    // МОДАЛКА И СОХРАНЕНИЕ
+    // НАЖАТИЕ НА ПЛЮСИК
     if (addNoteBtn) {
         addNoteBtn.addEventListener('click', () => {
             if (noteTitleInput) noteTitleInput.value = '';
@@ -390,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
             attachedImages = [];
             renderMediaPreviews();
 
-            // Если открыто на вкладке sprint или backlog - ставим тип "Задача" автоматом
             if (activeTab === 'sprint' || activeTab === 'backlog') {
                 setEntryType('task');
             } else {
@@ -407,8 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // LIVE DUMP
-    const liveDumpBtn = document.getElementById('liveDumpBtn');
+    // LIVE DUMP LOGIC
     const dumpModal = document.getElementById('dumpModal');
     const closeDumpBtn = document.getElementById('closeDumpBtn');
     const liveDumpArea = document.getElementById('liveDumpArea');
@@ -417,12 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
         liveDumpArea.value = localStorage.getItem('app_live_dump') || '';
         liveDumpArea.addEventListener('input', (e) => {
             localStorage.setItem('app_live_dump', e.target.value);
-        });
-    }
-
-    if (liveDumpBtn) {
-        liveDumpBtn.addEventListener('click', () => {
-            if (dumpModal) dumpModal.classList.add('active');
         });
     }
 
@@ -509,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     images: [...attachedImages]
                 });
             } else {
-                // Задача
                 if (!title) {
                     alert('Введите название задачи!');
                     return;
@@ -523,12 +519,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 notes.push({
                     type: 'task',
-                    folder: taskTargetFolder.value,
+                    folder: taskTargetFolder ? taskTargetFolder.value : 'sprint',
                     title: title,
                     text: text,
-                    deadline: taskDeadlineInput.value || null,
+                    deadline: taskDeadlineInput ? taskDeadlineInput.value : null,
                     todos: todos,
-                    carryCount: 0, // Счетчик переносов для 3 правил Заповеди
+                    carryCount: 0,
                     time: new Date().toISOString()
                 });
             }
