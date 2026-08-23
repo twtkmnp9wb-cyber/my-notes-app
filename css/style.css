@@ -29,7 +29,6 @@ body::-webkit-scrollbar,
     height: 0 !important;
 }
 
-/* Доступность и фокус */
 button:focus, 
 input:focus, 
 .wallpaper-card:focus {
@@ -66,7 +65,6 @@ input:focus-visible,
     overflow: hidden;
 }
 
-/* Верхний градиент */
 .app-container::before {
     content: '';
     position: fixed;
@@ -283,7 +281,6 @@ input:focus-visible,
     margin: 0 auto;
 }
 
-/* Карточки заметок */
 @keyframes noteAppear {
     from {
         opacity: 0;
@@ -388,7 +385,6 @@ input:focus-visible,
     gap: 12px;
 }
 
-/* Круглые плавающие кнопки */
 .action-btn {
     width: 52px;
     height: 52px;
@@ -418,14 +414,15 @@ input:focus-visible,
     transform: scale(0.92);
 }
 
-/* Анимированные модальные окна */
+/* --- ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ МОДАЛЬНЫХ ОКРИТИЙ --- */
+.modal,
 .modal-overlay {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0, 0, 0, 0.4) !important;
+    background: rgba(0, 0, 0, 0.5) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
     display: flex !important;
@@ -437,9 +434,10 @@ input:focus-visible,
     transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.modal.active,
 .modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 .modal-content {
@@ -449,7 +447,7 @@ input:focus-visible,
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
-    background: rgba(18, 18, 25, 0.5) !important;
+    background: rgba(18, 18, 25, 0.85) !important;
     backdrop-filter: blur(22px) !important;
     -webkit-backdrop-filter: blur(22px) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -460,35 +458,34 @@ input:focus-visible,
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.modal.active .modal-content,
 .modal-overlay.active .modal-content {
     transform: scale(1) translateY(0);
 }
 
-.ios-menu-item {
+.modal-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.close-btn {
     background: transparent;
     border: none;
-    border-radius: 12px;
-    color: #ffffff;
-    font-size: 15px;
-    font-family: inherit;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.5rem;
     cursor: pointer;
-    transition: background-color 0.15s ease, transform 0.1s ease;
+    line-height: 1;
 }
 
-.ios-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-}
-
-.ios-menu-item:active {
-    transform: scale(0.98);
-}
-
-.ios-menu-item.destructive {
-    color: #ff453a; 
+.close-btn:hover {
+    color: #fff;
 }
 
 .modal-title {
@@ -504,6 +501,7 @@ input:focus-visible,
 
 .modal-input, 
 .modal-textarea {
+    width: 100%;
     padding: 10px 14px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -511,6 +509,7 @@ input:focus-visible,
     color: #fff;
     font-family: inherit;
     font-size: 14px;
+    box-sizing: border-box;
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -526,44 +525,50 @@ input:focus-visible,
     min-height: 100px;
 }
 
+.modal-footer,
 .modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 8px;
+    margin-top: 12px;
 }
 
-.modal-btn {
-    padding: 8px 16px;
+.accent-btn,
+.save-btn {
+    background: #ffffff;
+    color: #000000;
+    font-weight: 600;
+    padding: 10px 20px;
     border: none;
     border-radius: 10px;
     font-size: 14px;
     cursor: pointer;
-    transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+    transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
-.modal-btn:active {
+.accent-btn:hover,
+.save-btn:hover {
+    opacity: 0.9;
+}
+
+.accent-btn:active,
+.save-btn:active {
     transform: scale(0.96);
 }
 
 .cancel-btn {
     background: transparent;
     color: #8a8a93;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
 }
 
 .cancel-btn:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.06);
-}
-
-.save-btn {
-    background: #ffffff;
-    color: #000000;
-    font-weight: 600;
-}
-
-.save-btn:hover {
-    opacity: 0.9;
 }
 
 /* Галерея обоев */
@@ -686,7 +691,6 @@ input:focus-visible,
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Ползунок времени/прозрачности */
 .modal-range {
     -webkit-appearance: none;
     appearance: none;
@@ -717,15 +721,6 @@ input:focus-visible,
 }
 
 /* Изображения внутри заметок */
-.note-image-container img {
-    display: block;
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
 .note-images-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -740,93 +735,8 @@ input:focus-visible,
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
-/* ==========================================
-   АРХИТЕКТУРНЫЕ ДОПОЛНЕНИЯ ПО ЗАПОВЕДЯМ
-   ========================================== */
 
-/* 1. Блок «Manifesto» (Маяк Сезона — неинтерактивный вектор) */
-.manifesto-bar {
-    width: 100%;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    background: rgba(255, 255, 255, 0.03) !important;
-    backdrop-filter: blur(10px);
-    border: 1px dashed rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    text-align: center;
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
-    pointer-events: none; /* Неинтерактивно */
-}
-
-/* 2. Иконка таймера/дедлайна (⏳) в Бэклоге и Спринте */
-.note-deadline-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: #ff9f0a; /* Теплый оранжевый акцент iOS */
-    background: rgba(255, 159, 10, 0.1);
-    padding: 2px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 159, 10, 0.2);
-}
-
-/* 3. Статус «Память ⭐» (Когда крупная задача выполнена и привязана к Ленте) */
-.note-card.memory-card {
-    border-color: rgba(255, 215, 0, 0.3) !important;
-    background: rgba(25, 22, 15, 0.45) !important;
-    box-shadow: 0 12px 40px rgba(255, 215, 0, 0.08), inset 0 0 0 1px rgba(255, 215, 0, 0.15) !important;
-}
-
-.memory-badge {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    font-size: 14px;
-    color: #ffd700;
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-}
-
-/* 4. Чек-лист внутри карточки «Цеха» */
-.task-checklist {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 12px 0;
-}
-
-.task-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #e4e4e7;
-}
-
-.task-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #ffffff;
-    cursor: pointer;
-}
-
-/* 5. Live Dump (Сброс тревоги перед сном) */
-.dump-textarea {
-    width: 100%;
-    min-height: 180px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #e4e4e7;
-    font-size: 15px;
-    line-height: 1.6;
-    font-family: inherit;
-    resize: none;
-}
-/* --- СТИЛИ ДЛЯ ТИПОВ ЗАПИСЕЙ И ЧЕК-ЛИСТА --- */
+/* Стили типов записей и чек-листов */
 .type-selector {
     display: flex;
     gap: 8px;
@@ -881,7 +791,6 @@ input:focus-visible,
     color: #ff5555;
 }
 
-/* Оформление карточки задачи в Спринте / Бэклоге */
 .task-checklist {
     margin: 10px 0;
     display: flex;
@@ -932,4 +841,65 @@ input:focus-visible,
 
 .secondary-btn:hover {
     background: rgba(255, 255, 255, 0.15);
+}
+
+.hashtag-field-wrapper {
+    margin-top: 10px;
+}
+
+.quick-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.tag-chip {
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}
+
+.tag-chip:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+}
+
+.upload-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Лайтбокс */
+#lightboxModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(15px);
+    z-index: 200000;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 32px;
+    cursor: pointer;
 }
