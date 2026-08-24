@@ -2,10 +2,9 @@ import { AppState } from './state.js';
 
 let isSearchOpen = false;
 let backlogFilterVal = 'All';
-let dumpSubTab = 'evening'; // 'evening' или 'uncompleted'
-let activeDumpDay = 'day1'; // 'day1', 'day2', 'day3'
+let dumpSubTab = 'evening'; 
+let activeDumpDay = 'day1'; 
 
-// Локальные данные для Roadmap и Core Dump
 const localAppData = {
     roadmap: [
         { id: 1, text: 'Закрыть семестр без хвостов', done: false },
@@ -36,7 +35,7 @@ function updateTelegramSearchBar(handlers) {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'telegram-search-input';
-        searchInput.placeholder = 'Поиск по хэштегу или заметкам...';
+        searchInput.placeholder = 'Поиск по заметкам...';
         searchInput.value = AppState.searchQuery || '';
         
         searchInput.oninput = (e) => {
@@ -71,32 +70,71 @@ function updateTelegramSearchBar(handlers) {
     }
 }
 
+function updateFooterButtonsVisibility() {
+    const searchBtn = document.getElementById('searchToggleBtn');
+    const addBtn = document.getElementById('addNoteBtn');
+    
+    if (!searchBtn || !addBtn) return;
+
+    // Лупа только на Ленте
+    if (AppState.currentTab === 'feed') {
+        searchBtn.style.display = 'flex';
+    } else {
+        searchBtn.style.display = 'none';
+        isSearchOpen = false;
+        const searchBarContainer = document.getElementById('telegramSearchBarContainer');
+        if (searchBarContainer) searchBarContainer.innerHTML = '';
+    }
+
+    // Плюс убираем на Roadmap и Dump
+    if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
+        addBtn.style.display = 'none';
+    } else {
+        addBtn.style.display = 'flex';
+    }
+}
+
 export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
         updateTelegramSearchBar(handlers);
+        updateFooterButtonsVisibility();
 
-        // 1. ВКЛАДКА: BACKLOG (Сетка плиток с прогрессом и чипсы)
+        // Показ/скрытие Манифеста и заголовка Born to win (только для Ленты)
+        const manifestEl = document.getElementById('manifestSection');
+        const bornToWinEl = document.getElementById('bornToWinTitle');
+        if (manifestEl && bornToWinEl) {
+            if (AppState.currentTab === 'feed') {
+                manifestEl.style.display = 'block';
+                bornToWinEl.style.display = 'block';
+            } else {
+                manifestEl.style.display = 'none';
+                bornToWinEl.style.display = 'none';
+            }
+        }
+
+        // 1. БЭКЛОГ (Чипсы на всю ширину + сетка плиток)
         if (AppState.currentTab === 'backlog') {
             const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;';
+            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%;';
             
             categories.forEach(cat => {
                 const chip = document.createElement('button');
                 const isActive = backlogFilterVal === cat;
                 chip.textContent = cat;
                 chip.style.cssText = `
+                    flex: 1;
                     background: ${isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)'};
                     color: ${isActive ? '#0a0a0a' : '#fff'};
                     border: 1px solid rgba(255, 255, 255, 0.15);
-                    padding: 6px 14px;
+                    padding: 6px 0;
                     border-radius: 9999px;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 500;
-                    white-space: nowrap;
+                    text-align: center;
                     transition: all 0.2s;
                 `;
                 chip.onclick = () => {
@@ -107,57 +145,56 @@ export const UIRenderer = {
             });
             container.appendChild(chipsContainer);
 
-            const backlogItems = notes.filter(n => n.type === 'task' && n.folder === 'backlog');
+            const backlogItems = [
+                { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
+                { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
+                { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false },
+                { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false }
+            ];
             const filteredBacklog = backlogFilterVal === 'All' ? backlogItems : backlogItems.filter(i => i.category === backlogFilterVal);
 
             const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;';
 
-            if (filteredBacklog.length === 0) {
-                grid.innerHTML = `<div style="grid-column: span 2; text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; padding: 30px;">Пусто в бэклоге</div>`;
-            } else {
-                filteredBacklog.forEach(item => {
-                    const card = document.createElement('div');
-                    card.style.cssText = `
-                        background: rgba(255, 255, 255, 0.08);
-                        border: 1px solid rgba(255, 255, 255, 0.15);
-                        border-radius: 20px;
-                        padding: 14px;
-                        backdrop-filter: blur(16px);
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                        height: 130px;
-                        cursor: pointer;
-                    `;
-                    card.onclick = () => { if (handlers.onEditNote) handlers.onEditNote(item); };
-
-                    card.innerHTML = `
-                        <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category || 'Study'}</span>
-                                <span style="font-size: 9px; color: #ffb74d;">${item.deadline || '3 days left'}</span>
-                            </div>
-                            <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title || 'Задача'}</h4>
+            filteredBacklog.forEach(item => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 20px;
+                    padding: 14px;
+                    backdrop-filter: blur(16px);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    height: 130px;
+                    cursor: pointer;
+                `;
+                card.innerHTML = `
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
+                            <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
-                                <div style="background: rgba(255,255,255,0.7); height: 100%; width: 50%;"></div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
-                                <span>50%</span>
-                                <span style="color: #6ee7b7; font-weight: 500;">В Спринт ↗</span>
-                            </div>
+                        <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
+                            <div style="background: rgba(255,255,255,0.7); height: 100%; width: ${item.progress}%;"></div>
                         </div>
-                    `;
-                    grid.appendChild(card);
-                });
-            }
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
+                            <span>${item.progress}%</span>
+                            <span style="color: #6ee7b7; font-weight: 500;">В Спринт ↗</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
             container.appendChild(grid);
             return;
         }
 
-        // 2. ВКЛАДКА: ROADMAP
+        // 2. ROADMAP
         if (AppState.currentTab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);';
@@ -165,7 +202,10 @@ export const UIRenderer = {
             let goalsHtml = localAppData.roadmap.map(g => `
                 <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
                     <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
-                    <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="window.editGoal(${g.id})" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
+                        <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
+                    </div>
                 </div>
             `).join('');
 
@@ -173,7 +213,7 @@ export const UIRenderer = {
                 <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
                 <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
                 <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-                    <input type="text" id="roadmapInputText" placeholder="Новая цель..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                    <input type="text" id="roadmapInputText" placeholder="Новая цель на сезон..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
                     <button id="roadmapAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">${goalsHtml}</div>
@@ -195,10 +235,21 @@ export const UIRenderer = {
                 if (goal) goal.done = !goal.done;
                 UIRenderer.renderList(container, notes, handlers);
             };
+
+            window.editGoal = (id) => {
+                const goal = localAppData.roadmap.find(g => g.id === id);
+                if (goal) {
+                    const newText = prompt('Редактировать цель:', goal.text);
+                    if (newText !== null && newText.trim()) {
+                        goal.text = newText.trim();
+                        UIRenderer.renderList(container, notes, handlers);
+                    }
+                }
+            };
             return;
         }
 
-        // 3. ВКЛАДКА: DUMP (Core Dump по дням + Невыполненное)
+        // 3. DUMP
         if (AppState.currentTab === 'dump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
@@ -266,7 +317,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. ОСТАЛЬНЫЕ ВКЛАДКИ (Лента и Спринт)
+        // 4. ЛЕНТА И СПРИНТ
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
