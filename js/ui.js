@@ -85,6 +85,7 @@ function updateFooterButtonsVisibility() {
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
 
+    // Плюс видит на Ленте, Спринте и Бэклоге
     if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
         addBtn.style.display = 'none';
     } else {
@@ -152,6 +153,7 @@ export const UIRenderer = {
             }
         }
 
+        // 1. БЭКЛОГ
         if (AppState.currentTab === 'backlog') {
             const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
@@ -231,9 +233,10 @@ export const UIRenderer = {
             return;
         }
 
+        // 2. ROADMAP
         if (AppState.currentTab === 'roadmap') {
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);';
+            wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
             
             let goalsHtml = localAppData.roadmap.map(g => `
                 <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
@@ -271,9 +274,10 @@ export const UIRenderer = {
             return;
         }
 
+        // 3. DUMP
         if (AppState.currentTab === 'dump') {
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
+            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
             let daysButtonsHtml = Object.keys(localAppData.dumpDays).map(dKey => `
                 <button onclick="window.switchDumpDay('${dKey}')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(255,255,255,0.15); background: ${activeDumpDay === dKey ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">${localAppData.dumpDays[dKey].title}</button>
@@ -332,9 +336,10 @@ export const UIRenderer = {
             return;
         }
 
+        // 4. ЛЕНТА И СПРИНТ
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
-            emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
+            emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
             emptyEl.textContent = 'Ничего не найдено';
             container.appendChild(emptyEl);
             return;
@@ -343,7 +348,7 @@ export const UIRenderer = {
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'cursor: pointer;';
+            card.style.cssText = 'cursor: pointer; width: 100%;';
 
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
