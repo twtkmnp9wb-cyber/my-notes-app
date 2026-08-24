@@ -2,6 +2,11 @@
     box-sizing: border-box;
 }
 
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -217,7 +222,7 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* ГЛАВНОЕ: Модальные окна по умолчанию СКРЫТЫ (`display: none`), а появляются только с классом .active */
+/* Модальные окна скрыты по умолчанию */
 .modal {
     display: none; 
     position: fixed;
