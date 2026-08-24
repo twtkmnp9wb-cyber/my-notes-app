@@ -6,13 +6,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="css/style-v2.css">
-    
-    <!-- Предзагрузка шрифта, чтобы убрать мигание при обновлении -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <title>Заметки</title>
 </head>
 <body>
@@ -48,9 +44,9 @@
         <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
         <div class="scroll-viewport">
             <div class="content-wrapper">
-                <!-- Надпись Born to win. -->
-                <div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
-                    <h2 class="brand-title" style="margin: 0;">Born to win.</h2>
+                <!-- Картинка с фиксированной высотой и мин-высотой во избежание скачков/мигания -->
+                <div style="text-align: center; margin-top: 15px; margin-bottom: 15px; min-height: 55px;">
+                    <img src="born-to-win.png" alt="Born to win." style="height: 55px; width: auto; object-fit: contain;">
                 </div>
 
                 <main class="notes-area">
