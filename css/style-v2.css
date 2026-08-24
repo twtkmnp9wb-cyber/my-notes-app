@@ -36,6 +36,7 @@ body {
     letter-spacing: 1px !important;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6) !important;
     -webkit-font-smoothing: antialiased !important;
+    font-display: swap;
 }
 
 /* Верхнее меню — фиксировано сверху и центрировано */
