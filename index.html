@@ -9,23 +9,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <title>Заметки</title>
+    <title>Монитор Души</title>
 </head>
-<body>
-    <!-- Слой обоев -->
+<body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
+    <!-- Слой обоев с поддержкой зума -->
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (МЕНЮ) СВЕРХУ -->
+        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
                     <ul class="menu-list">
-                        <li><button class="menu-btn active" data-tab="feed">Media Library</button></li>
+                        <li><button class="menu-btn active" data-tab="feed">Лента</button></li>
+                        <li><button class="menu-btn" data-tab="roadmap">Roadmap</button></li>
                         <li><button class="menu-btn" data-tab="sprint">Sprint</button></li>
                         <li><button class="menu-btn" data-tab="backlog">Backlog</button></li>
-                        <li><button class="menu-btn" data-tab="dump">Core Dump</button></li>
-                        <li><button class="menu-btn" data-tab="roadmap">Roadmap</button></li>
+                        <li><button class="menu-btn" data-tab="dump">Dump</button></li>
                         <li><button class="menu-btn" data-tab="settings">⚙️</button></li>
                     </ul>
                 </nav>
@@ -33,31 +33,25 @@
         </header>
 
         <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
-        <div id="searchDropdownBar" class="search-dropdown-bar">
-            <input type="text" id="feedSearchInput" class="search-dropdown-input" placeholder="Поиск по хэштегу (#tag)...">
-            <span id="searchCounter" class="search-counter">0 из 0</span>
-            <button type="button" class="search-nav-btn" id="searchUpBtn">▲</button>
-            <button type="button" class="search-nav-btn" id="searchDownBtn">▼</button>
-            <button type="button" class="search-close-btn" id="searchCloseBtn">×</button>
-        </div>
+        <div id="telegramSearchBarContainer"></div>
 
-        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
+        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ -->
         <div class="scroll-viewport">
             <div class="content-wrapper">
-                <!-- Твоя картинка без лесенок и нужного размера -->
-                <div style="text-align: center; margin: 12px 0;">
-                    <img src="born-to-win.png" alt="Born to win." style="height: 38px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
+                <!-- Атмосферный заголовок -->
+                <div style="text-align: center; margin: 16px 0 8px 0;">
+                    <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.5rem; font-style: italic;">Born to win.</h2>
                 </div>
 
                 <main class="notes-area">
                     <div class="main-container">
-                        <!-- Заметки добавляются сюда -->
+                        <!-- Контент динамически рендерится из UI.js -->
                     </div>
                 </main>
             </div>
         </div>
 
-        <!-- Футер с кнопками -->
+        <!-- Футер с плавающими кнопками управления -->
         <footer class="app-footer">
             <div class="footer-container">
                 <button type="button" class="action-btn" id="searchToggleBtn">🔍</button>
@@ -66,7 +60,7 @@
         </footer>
     </div>
 
-    <!-- МОДАЛКА СОЗДАНИЯ (Заметка / Задача) -->
+    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -75,8 +69,8 @@
             </div>
 
             <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
-                <button type="button" class="menu-btn active" id="typeFeedBtn" data-type="feed" style="flex:1; background:rgba(255,255,255,0.15);">📝 Media Library</button>
-                <button type="button" class="menu-btn" id="typeTaskBtn" data-type="task" style="flex:1;">⚡ Задача</button>
+                <button type="button" class="menu-btn active" id="typeFeedBtn" style="flex:1;">📝 Лента</button>
+                <button type="button" class="menu-btn" id="typeTaskBtn" style="flex:1;">⚡ Задача</button>
             </div>
 
             <div class="modal-body">
@@ -86,14 +80,14 @@
                 <div id="feedFieldsBlock">
                     <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
                     <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#учеба</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#проект</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#мысли</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#спорт</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#осанка</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#речь</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
                     </div>
 
                     <div class="media-upload-wrapper">
-                        <label for="noteMediaInput" class="menu-btn" style="display:inline-block; background:rgba(255,255,255,0.1); text-align:center; cursor:pointer;">📷 Прикрепить фото</label>
+                        <label for="noteMediaInput" class="menu-btn" style="display:inline-block; background:rgba(255,255,255,0.1); text-align:center; cursor:pointer; width:100%;">📷 Прикрепить медиафайл</label>
                         <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
                         <div id="mediaPreviewContainer" class="media-preview-container" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;"></div>
                     </div>
@@ -114,7 +108,7 @@
             </div>
 
             <div class="modal-footer" style="margin-top: 16px;">
-                <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: #4caf50; font-weight: bold;">Сохранить</button>
+                <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
             </div>
         </div>
     </div>
@@ -123,11 +117,11 @@
     <div class="modal" id="dumpModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🌙 Core Dump</h3>
+                <h3>🌙 Core Dump (Сброс мыслей)</h3>
                 <button type="button" class="close-btn" id="closeDumpBtn">×</button>
             </div>
             <div class="modal-body">
-                <textarea id="liveDumpArea" placeholder="Выгрузи из головы всё..." class="modal-textarea" style="height: 180px;"></textarea>
+                <textarea id="liveDumpArea" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 180px;"></textarea>
             </div>
         </div>
     </div>
@@ -136,36 +130,55 @@
     <div class="modal" id="roadmapModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🗺 Roadmap</h3>
+                <h3>🗺 Roadmap (Цели на сезон)</h3>
                 <button type="button" class="close-btn" id="closeRoadmapBtn">×</button>
             </div>
             <div class="modal-body">
-                <p style="color: rgba(255,255,255,0.7); font-size: 14px;">Здесь будет план развития проекта.</p>
+                <div style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">Вектор поведения и фокус внимания на текущий период.</div>
+                <div id="roadmapGoalsContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Окно настроек -->
+    <!-- Модалка Редактирования -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Редактировать запись</h3>
+                <button type="button" class="close-btn" id="editModalCancel">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editModalTitle" placeholder="Заголовок..." class="modal-input">
+                <textarea id="editModalText" placeholder="Текст..." class="modal-textarea"></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top: 16px; display:flex; gap:8px;">
+                <button type="button" class="menu-btn" id="editModalCancel" style="flex:1;">Отмена</button>
+                <button type="button" class="menu-btn active" id="editModalSave" style="flex:1; background:rgba(255,255,255,0.25);">Обновить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно настроек обоев -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Темы и обои</h3>
                 <button type="button" class="close-btn" id="closeSettingsBtn">×</button>
             </div>
-            <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Выберите обои:</p>
-            <div class="bg-gallery" id="bgGallery" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;"></div>
+            <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
+            <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
             
             <div style="margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <span style="font-size: 13px; color: rgba(255,255,255,0.6);">Масштаб (зум):</span>
                     <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
                 </div>
-                <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%;" />
+                <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%; accent-color: #fff;" />
             </div>
         </div>
     </div>
 
-    <!-- Лайтбокс для картинок -->
+    <!-- Лайтбокс -->
     <div id="lightboxModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
         <button type="button" id="lightboxCloseBtn" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
         <img id="lightboxImg" src="" alt="Zoomed" style="max-width:90%; max-height:90%; border-radius:12px; object-fit:contain;" />
