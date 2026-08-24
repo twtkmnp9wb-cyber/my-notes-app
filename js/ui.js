@@ -76,7 +76,6 @@ function updateFooterButtonsVisibility() {
     
     if (!searchBtn || !addBtn) return;
 
-    // Лупа только на Ленте
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -85,14 +84,55 @@ function updateFooterButtonsVisibility() {
         const searchBarContainer = document.getElementById('telegramSearchBarContainer');
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
-
-    // Плюс убираем на Roadmap и Dump
+    
     if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
         addBtn.style.display = 'none';
     } else {
         addBtn.style.display = 'flex';
     }
 }
+
+// Глобальные методы для безопасного доступа из DOM
+window.toggleGoal = function(id) {
+    const goal = localAppData.roadmap.find(g => g.id === id);
+    if (goal) {
+        goal.done = !goal.done;
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+window.editGoal = function(id) {
+    const goal = localAppData.roadmap.find(g => g.id === id);
+    if (goal) {
+        const newText = prompt('Редактировать цель:', goal.text);
+        if (newText !== null && newText.trim()) {
+            goal.text = newText.trim();
+            const container = document.querySelector('.main-container');
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        }
+    }
+};
+
+window.switchDumpSub = function(sub) {
+    dumpSubTab = sub;
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.switchDumpDay = function(day) {
+    activeDumpDay = day;
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.rescueDumpNote = async function(day, idx) {
+    const text = localAppData.dumpDays[day].notes[idx];
+    await AppState.addNote({ type: 'feed', title: 'Спасено из Dump', text: text });
+    localAppData.dumpDays[day].notes.splice(idx, 1);
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
 
 export const UIRenderer = {
     renderList(container, notes, handlers) {
@@ -101,7 +141,6 @@ export const UIRenderer = {
         updateTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
 
-        // Показ/скрытие Манифеста и заголовка Born to win (только для Ленты)
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
@@ -114,7 +153,7 @@ export const UIRenderer = {
             }
         }
 
-        // 1. БЭКЛОГ (Чипсы на всю ширину + сетка плиток)
+        // БЭКЛОГ
         if (AppState.currentTab === 'backlog') {
             const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
@@ -194,7 +233,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP
+        // ROADMAP
         if (AppState.currentTab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);';
@@ -221,35 +260,21 @@ export const UIRenderer = {
             container.appendChild(wrap);
 
             setTimeout(() => {
-                document.getElementById('roadmapAddBtn')?.onclick = () => {
-                    const inp = document.getElementById('roadmapInputText');
-                    if (inp && inp.value.trim()) {
-                        localAppData.roadmap.push({ id: Date.now(), text: inp.value.trim(), done: false });
-                        UIRenderer.renderList(container, notes, handlers);
-                    }
-                };
-            }, 50);
-
-            window.toggleGoal = (id) => {
-                const goal = localAppData.roadmap.find(g => g.id === id);
-                if (goal) goal.done = !goal.done;
-                UIRenderer.renderList(container, notes, handlers);
-            };
-
-            window.editGoal = (id) => {
-                const goal = localAppData.roadmap.find(g => g.id === id);
-                if (goal) {
-                    const newText = prompt('Редактировать цель:', goal.text);
-                    if (newText !== null && newText.trim()) {
-                        goal.text = newText.trim();
-                        UIRenderer.renderList(container, notes, handlers);
-                    }
+                const addBtn = document.getElementById('roadmapAddBtn');
+                if (addBtn) {
+                    addBtn.onclick = () => {
+                        const inp = document.getElementById('roadmapInputText');
+                        if (inp && inp.value.trim()) {
+                            localAppData.roadmap.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                            UIRenderer.renderList(container, notes, handlers);
+                        }
+                    };
                 }
-            };
+            }, 50);
             return;
         }
 
-        // 3. DUMP
+        // DUMP
         if (AppState.currentTab === 'dump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
@@ -296,28 +321,22 @@ export const UIRenderer = {
             `;
             container.appendChild(wrap);
 
-            window.switchDumpSub = (sub) => { dumpSubTab = sub; UIRenderer.renderList(container, notes, handlers); };
-            window.switchDumpDay = (day) => { activeDumpDay = day; UIRenderer.renderList(container, notes, handlers); };
-            window.rescueDumpNote = async (day, idx) => {
-                const text = localAppData.dumpDays[day].notes[idx];
-                await AppState.addNote({ type: 'feed', title: 'Спасено из Dump', text: text });
-                localAppData.dumpDays[day].notes.splice(idx, 1);
-                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            };
-
             setTimeout(() => {
-                document.getElementById('dumpAddBtn')?.onclick = () => {
-                    const inp = document.getElementById('dumpNoteInput');
-                    if (inp && inp.value.trim()) {
-                        localAppData.dumpDays[activeDumpDay].notes.push(inp.value.trim());
-                        UIRenderer.renderList(container, notes, handlers);
-                    }
-                };
+                const dumpAddBtn = document.getElementById('dumpAddBtn');
+                if (dumpAddBtn) {
+                    dumpAddBtn.onclick = () => {
+                        const inp = document.getElementById('dumpNoteInput');
+                        if (inp && inp.value.trim()) {
+                            localAppData.dumpDays[activeDumpDay].notes.push(inp.value.trim());
+                            UIRenderer.renderList(container, notes, handlers);
+                        }
+                    };
+                }
             }, 50);
             return;
         }
 
-        // 4. ЛЕНТА И СПРИНТ
+        // ЛЕНТА И СПРИНТ
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
