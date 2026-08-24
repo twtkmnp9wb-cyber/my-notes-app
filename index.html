@@ -37,7 +37,7 @@
         <div class="scroll-viewport">
             <div class="content-wrapper">
                 
-                <!-- МАНИФЕСТ СЕЗОНА — СТАВИМ ПОД МЕНЮ (Только для Ленты или общей шапки) -->
+                <!-- МАНИФЕСТ СЕЗОНА (Под меню, только на Ленте) -->
                 <div id="manifestSection" style="margin-top: 12px; margin-bottom: 8px;">
                     <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 12px; backdrop-filter: blur(16px); text-align: center;">
                         <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
@@ -50,23 +50,23 @@
                     </div>
                 </div>
 
-                <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА (Появляется ниже манифеста на Ленте) -->
+                <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
                 <div id="telegramSearchBarContainer"></div>
 
-                <!-- ЗАГОЛОВОК BORN TO WIN — СТАВИМ НИЖЕ ПЛАШЕК (Только на Ленте) -->
+                <!-- ЗАГОЛОВОК BORN TO WIN (Ниже плашек, только на Ленте) -->
                 <div id="bornToWinTitle" style="text-align: center; margin: 14px 0 10px 0;">
                     <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.4rem; font-style: italic;">Born to win.</h2>
                 </div>
 
                 <main class="notes-area">
                     <div class="main-container">
-                        <!-- Контент динамически рендерится из UI.js -->
+                        <!-- Контент вкладок динамически рендерится из UI.js -->
                     </div>
                 </main>
             </div>
         </div>
 
-        <!-- Футер с плавающими кнопками управления (Плюс строго идентичен лупе) -->
+        <!-- Футер с плавающими кнопками управления -->
         <footer class="app-footer">
             <div class="footer-container">
                 <button type="button" class="action-btn" id="searchToggleBtn" title="Поиск">🔍</button>
@@ -75,7 +75,7 @@
         </footer>
     </div>
 
-    <!-- ВСЕ МОДАЛКИ (Без изменений) -->
+    <!-- МОДАЛКИ ДЛЯ СОЗДАНИЯ И НАСТРОЕК -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -97,11 +97,6 @@
                         <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
                         <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
                     </div>
-                    <div class="media-upload-wrapper">
-                        <label for="noteMediaInput" class="menu-btn" style="display:inline-block; background:rgba(255,255,255,0.1); text-align:center; cursor:pointer; width:100%;">📷 Прикрепить медиафайл</label>
-                        <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
-                        <div id="mediaPreviewContainer" class="media-preview-container" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;"></div>
-                    </div>
                 </div>
                 <div id="taskFieldsBlock" style="display: none; margin-top: 10px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
@@ -111,9 +106,6 @@
                         </select>
                         <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
                     </div>
-                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист:</label>
-                    <div id="todoItemsContainer"></div>
-                    <button type="button" id="addTodoItemBtn" class="menu-btn" style="width: 100%; margin-top: 6px; background:rgba(255,255,255,0.1);">+ Добавить пункт</button>
                 </div>
             </div>
             <div class="modal-footer" style="margin-top: 16px;">
@@ -122,48 +114,7 @@
         </div>
     </div>
 
-    <div class="modal" id="dumpModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🌙 Core Dump</h3>
-                <button type="button" class="close-btn" id="closeDumpBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <textarea id="liveDumpArea" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 180px;"></textarea>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="roadmapModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🗺 Roadmap</h3>
-                <button type="button" class="close-btn" id="closeRoadmapBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">Вектор поведения и фокус внимания на текущий период.</div>
-                <div id="roadmapGoalsContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Редактировать запись</h3>
-                <button type="button" class="close-btn" id="editModalCancel">×</button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="editModalTitle" placeholder="Заголовок..." class="modal-input">
-                <textarea id="editModalText" placeholder="Текст..." class="modal-textarea"></textarea>
-            </div>
-            <div class="modal-footer" style="margin-top: 16px; display:flex; gap:8px;">
-                <button type="button" class="menu-btn" id="editModalCancel" style="flex:1;">Отмена</button>
-                <button type="button" class="menu-btn active" id="editModalSave" style="flex:1; background:rgba(255,255,255,0.25);">Обновить</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Модалка настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -180,11 +131,6 @@
                 <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%; accent-color: #fff;" />
             </div>
         </div>
-    </div>
-
-    <div id="lightboxModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
-        <button type="button" id="lightboxCloseBtn" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
-        <img id="lightboxImg" src="" alt="Zoomed" style="max-width:90%; max-height:90%; border-radius:12px; object-fit:contain;" />
     </div>
 
     <script type="module" src="js/main.js"></script>
