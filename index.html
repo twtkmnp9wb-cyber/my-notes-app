@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- Изменили имя файла стилей, чтобы обойти кэш Safari -->
     <link rel="stylesheet" href="css/style-v2.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,11 +12,9 @@
     <title>Заметки</title>
 </head>
 <body>
-    <!-- Слой обоев -->
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (МЕНЮ) СВЕРХУ -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -33,7 +30,6 @@
             </aside>
         </header>
 
-        <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
         <div id="searchDropdownBar" class="search-dropdown-bar">
             <input type="text" id="feedSearchInput" class="search-dropdown-input" placeholder="Поиск по хэштегу (#tag)...">
             <span id="searchCounter" class="search-counter">0 из 0</span>
@@ -42,23 +38,19 @@
             <button type="button" class="search-close-btn" id="searchCloseBtn">×</button>
         </div>
 
-        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ ЛЕНТЫ -->
         <div class="scroll-viewport">
             <div class="content-wrapper">
-                <!-- Оригинальная надпись Born to win. -->
                 <div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
-                    <h2 style="font-family: 'Caveat', cursive; font-size: 2.3rem; color: rgba(255,255,255,0.9); font-weight: 400; letter-spacing: 1px; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.4);">Born to win.</h2>
+                    <h2 style="font-family: 'Caveat', cursive; font-size: 2.5rem; color: rgba(255,255,255,0.85); font-weight: 400; font-style: italic; letter-spacing: 1.5px; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,0.5);">Born to win.</h2>
                 </div>
 
                 <main class="notes-area">
                     <div class="main-container">
-                        <!-- Заметки добавляются сюда -->
-                    </div>
+                        </div>
                 </main>
             </div>
         </div>
 
-        <!-- Футер с кнопками -->
         <footer class="app-footer">
             <div class="footer-container">
                 <button type="button" class="action-btn" id="searchToggleBtn">🔍</button>
@@ -67,7 +59,6 @@
         </footer>
     </div>
 
-    <!-- МОДАЛКА СОЗДАНИЯ (Заметка / Задача) -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -120,7 +111,6 @@
         </div>
     </div>
 
-    <!-- Остальные модалки -->
     <div class="modal" id="dumpModal">
         <div class="modal-content">
             <div class="modal-header">
