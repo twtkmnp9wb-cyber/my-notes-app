@@ -11,6 +11,12 @@ const localAppData = {
         { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
         { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
     ],
+    sprint: [
+        { id: 101, title: 'Изучить главу 7', done: false },
+        { id: 102, title: 'Собрать референсы', done: false },
+        { id: 103, title: 'Запустить тест', done: false },
+        { id: 104, title: 'Провести встречу', done: false }
+    ],
     dumpDays: {
         day1: { title: 'День 1', notes: ['Идея для нового трека', 'Проблема с рендерингом', 'Позвонить маме'] },
         day2: { title: 'День 2', notes: ['Идея проекта фильм', 'Позвонить маме', 'Купить подарок'] },
@@ -76,6 +82,7 @@ function updateFooterButtonsVisibility() {
     
     if (!searchBtn || !addBtn) return;
 
+    // Лупа только на Ленте
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -85,7 +92,7 @@ function updateFooterButtonsVisibility() {
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
 
-    // Плюс видит на Ленте, Спринте и Бэклоге
+    // Плюс убираем только на Roadmap и Dump
     if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
         addBtn.style.display = 'none';
     } else {
@@ -93,6 +100,7 @@ function updateFooterButtonsVisibility() {
     }
 }
 
+// Глобальные методы взаимодействия
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -111,6 +119,15 @@ window.editGoal = function(id) {
             const container = document.querySelector('.main-container');
             if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
         }
+    }
+};
+
+window.toggleSprintTask = function(id) {
+    const task = localAppData.sprint.find(t => t.id === id);
+    if (task) {
+        task.done = !task.done;
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     }
 };
 
@@ -233,7 +250,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP
+        // 2. ROADMAP (Прямо на экране)
         if (AppState.currentTab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
@@ -274,7 +291,38 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. DUMP
+        // 3. СПРИНТ (Прямо на экране)
+        if (AppState.currentTab === 'sprint') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
+
+            const headerCard = document.createElement('div');
+            headerCard.style.cssText = 'background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 24px; padding: 16px; text-align: center;';
+            headerCard.innerHTML = `
+                <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #fda4af; display: block; margin-bottom: 2px;">Зона экстрима на сегодня</span>
+                <h3 style="margin: 0; font-size: 14px; color: #fff; font-weight: 600;">Спринт</h3>
+            `;
+            wrap.appendChild(headerCard);
+
+            const tasksContainer = document.createElement('div');
+            tasksContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+
+            localAppData.sprint.forEach(task => {
+                const tEl = document.createElement('div');
+                tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;';
+                tEl.innerHTML = `
+                    <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
+                    <button onclick="window.toggleSprintTask(${task.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${task.done ? '#f43f5e' : 'transparent'}; cursor:pointer;"></button>
+                `;
+                tasksContainer.appendChild(tEl);
+            });
+
+            wrap.appendChild(tasksContainer);
+            container.appendChild(wrap);
+            return;
+        }
+
+        // 4. DUMP (Прямо на экране)
         if (AppState.currentTab === 'dump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -336,7 +384,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. ЛЕНТА И СПРИНТ
+        // 5. ЛЕНТА
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -355,52 +403,25 @@ export const UIRenderer = {
                 if (handlers.onEditNote) handlers.onEditNote(note);
             };
 
-            if (note.type === 'feed') {
-                let mediaHtml = '';
-                if (note.media && note.media.length > 0) {
-                    mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
-                    note.media.forEach((url, imgIdx) => {
-                        mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15);">`;
-                    });
-                    mediaHtml += '</div>';
-                }
-
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                        <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
-                        <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
-                    </div>
-                    <p>${note.text || ''}</p>
-                    ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; font-size: 11px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
-                    ${mediaHtml}
-                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
-                `;
-            } else {
-                let todosHtml = '';
-                if (note.todos && note.todos.length > 0) {
-                    todosHtml = '<div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">';
-                    note.todos.forEach((todo, tIdx) => {
-                        todosHtml += `
-                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.9); cursor: pointer;">
-                                <input type="checkbox" class="todo-checkbox" data-noteid="${note.id}" data-todoidx="${tIdx}" ${todo.done ? 'checked' : ''} style="cursor: pointer; accent-color: #f43f5e;">
-                                <span style="${todo.done ? 'text-decoration: line-through; opacity: 0.4;' : ''}">${todo.text}</span>
-                            </label>
-                        `;
-                    });
-                    todosHtml += '</div>';
-                }
-
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                        <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Задача'}</h3>
-                        <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
-                    </div>
-                    <p>${note.text || ''}</p>
-                    ${todosHtml}
-                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 10px;">${note.createdAt}</div>
-                `;
+            let mediaHtml = '';
+            if (note.media && note.media.length > 0) {
+                mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
+                note.media.forEach((url, imgIdx) => {
+                    mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15);">`;
+                });
+                mediaHtml += '</div>';
             }
 
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                    <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
+                    <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
+                </div>
+                <p>${note.text || ''}</p>
+                ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; font-size: 11px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
+                ${mediaHtml}
+                <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
+            `;
             container.appendChild(card);
         });
 
@@ -409,14 +430,6 @@ export const UIRenderer = {
                 e.stopPropagation();
                 const id = Number(btn.dataset.id);
                 if (handlers.onDelete) handlers.onDelete(id);
-            };
-        });
-
-        container.querySelectorAll('.todo-checkbox').forEach(chk => {
-            chk.onchange = () => {
-                const noteId = Number(chk.dataset.noteid);
-                const todoIdx = Number(chk.dataset.todoidx);
-                if (handlers.onToggleTodo) handlers.onToggleTodo(noteId, todoIdx);
             };
         });
     }
