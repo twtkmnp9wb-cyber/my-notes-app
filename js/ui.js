@@ -82,7 +82,6 @@ function updateFooterButtonsVisibility() {
     
     if (!searchBtn || !addBtn) return;
 
-    // Лупа только на Ленте
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -92,15 +91,15 @@ function updateFooterButtonsVisibility() {
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
 
-    // Плюс убираем только на Roadmap и Dump
-    if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
+    const currentTab = AppState.currentTab;
+    if (currentTab === 'roadmap' || currentTab === 'dump' || currentTab === 'livedump') {
         addBtn.style.display = 'none';
     } else {
         addBtn.style.display = 'flex';
     }
 }
 
-// Глобальные методы взаимодействия
+// Глобальные методы управления
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -170,8 +169,10 @@ export const UIRenderer = {
             }
         }
 
+        const tab = AppState.currentTab;
+
         // 1. БЭКЛОГ
-        if (AppState.currentTab === 'backlog') {
+        if (tab === 'backlog') {
             const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%;';
@@ -250,8 +251,8 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP (Прямо на экране)
-        if (AppState.currentTab === 'roadmap') {
+        // 2. ROADMAP
+        if (tab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
             
@@ -291,8 +292,8 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ (Прямо на экране)
-        if (AppState.currentTab === 'sprint') {
+        // 3. СПРИНТ
+        if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
@@ -322,8 +323,8 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. DUMP (Прямо на экране)
-        if (AppState.currentTab === 'dump') {
+        // 4. DUMP (поддерживает оба имени: 'dump' и 'livedump')
+        if (tab === 'dump' || tab === 'livedump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
