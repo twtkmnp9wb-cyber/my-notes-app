@@ -303,3 +303,14 @@ body {
     background-size: cover;
     background-position: center;
 }
+/* Фирменный заголовок с защитой от сброса */
+.brand-title {
+    font-family: 'Caveat', cursive !important;
+    font-size: 2.5rem !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 400 !important;
+    font-style: italic !important;
+    letter-spacing: 1.5px !important;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+    -webkit-font-smoothing: antialiased !important;
+}
