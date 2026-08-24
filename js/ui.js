@@ -78,12 +78,12 @@ export const UIRenderer = {
 
         updateTelegramSearchBar(handlers);
 
-        // Чипсы фильтрации для Sprint и Backlog
-        if (AppState.currentTab === 'sprint' || AppState.currentTab === 'backlog') {
+        // Чипсы фильтрации для Backlog
+        if (AppState.currentTab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%;';
+            chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%; scrollbar-width: none;';
             
-            const categories = ['Все', 'Учеба', 'Проект', 'Личное'];
+            const categories = ['Все', 'Study', 'Project', 'Life'];
             categories.forEach(cat => {
                 const chip = document.createElement('button');
                 const isActive = AppState.currentFilter === cat;
@@ -95,8 +95,9 @@ export const UIRenderer = {
                     padding: 6px 14px;
                     border-radius: 20px;
                     cursor: pointer;
-                    font-size: 13px;
+                    font-size: 12px;
                     white-space: nowrap;
+                    backdrop-filter: blur(10px);
                 `;
                 chip.onclick = () => {
                     AppState.currentFilter = cat;
@@ -107,14 +108,93 @@ export const UIRenderer = {
             container.appendChild(chipsContainer);
         }
 
+        // Если открыт Roadmap
+        if (AppState.currentTab === 'roadmap') {
+            container.innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);">
+                    <h3 style="margin: 0 0 12px 0; font-size: 15px; text-align: center;">Цели на сезон (Roadmap)</h3>
+                    <p style="font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 16px;">Вектор поведения и фокус внимания на текущий период.</p>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">🎯 Закрыть семестр без хвостов</div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">🎯 Прокачать осанку и турник</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Если открыт Core Dump
+        if (AppState.currentTab === 'dump') {
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="menu-btn active" style="flex:1; text-align:center;">Сброс (Dump)</button>
+                        <button class="menu-btn" style="flex:1; text-align:center; opacity:0.6;">Невыполненное</button>
+                    </div>
+                    <textarea id="liveDumpAreaMain" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 220px; width:100%;">${localStorage.getItem('app_live_dump_content') || ''}</textarea>
+                </div>
+            `;
+            const area = document.getElementById('liveDumpAreaMain');
+            area?.addEventListener('input', (e) => {
+                localStorage.setItem('app_live_dump_content', e.target.value);
+            });
+            return;
+        }
+
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
-            emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.5); margin-top: 40px; font-size: 14px;';
+            emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
             emptyEl.textContent = 'Ничего не найдено';
             container.appendChild(emptyEl);
             return;
         }
 
+        // Если это Бэклог — делаем красивую сетку плиток 2 колонки
+        if (AppState.currentTab === 'backlog') {
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
+
+            notes.forEach(note => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 20px;
+                    padding: 14px;
+                    backdrop-filter: blur(16px);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    height: 140px;
+                    cursor: pointer;
+                `;
+                card.onclick = () => { if (handlers.onEditNote) handlers.onEditNote(note); };
+
+                card.innerHTML = `
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${note.category || 'Study'}</span>
+                            <span style="font-size: 9px; color: #ffb74d;">${note.deadline || '3 days left'}</span>
+                        </div>
+                        <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${note.title || 'Задача'}</h4>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
+                            <div style="background: rgba(255,255,255,0.7); height: 100%; width: 45%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
+                            <span>45%</span>
+                            <span style="color: #6ee7b7; font-weight: 500;" onclick="event.stopPropagation();">В Спринт ↗</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            container.appendChild(grid);
+            return;
+        }
+
+        // Обычный рендер для Ленты и Спринта
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
@@ -130,20 +210,20 @@ export const UIRenderer = {
                 if (note.media && note.media.length > 0) {
                     mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
                     note.media.forEach((url, imgIdx) => {
-                        mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);">`;
+                        mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15);">`;
                     });
                     mediaHtml += '</div>';
                 }
 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                        <h3 style="margin: 0; font-size: 16px; color: #fff;">${note.title || ''}</h3>
+                        <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
                         <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
                     </div>
                     <p>${note.text || ''}</p>
-                    ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 6px; font-size: 12px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
+                    ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; font-size: 11px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
                     ${mediaHtml}
-                    <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
                 `;
             } else {
                 let todosHtml = '';
@@ -152,30 +232,22 @@ export const UIRenderer = {
                     note.todos.forEach((todo, tIdx) => {
                         todosHtml += `
                             <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.9); cursor: pointer;">
-                                <input type="checkbox" class="todo-checkbox" data-noteid="${note.id}" data-todoidx="${tIdx}" ${todo.done ? 'checked' : ''} style="cursor: pointer;">
-                                <span style="${todo.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${todo.text}</span>
+                                <input type="checkbox" class="todo-checkbox" data-noteid="${note.id}" data-todoidx="${tIdx}" ${todo.done ? 'checked' : ''} style="cursor: pointer; accent-color: #f43f5e;">
+                                <span style="${todo.done ? 'text-decoration: line-through; opacity: 0.4;' : ''}">${todo.text}</span>
                             </label>
                         `;
                     });
                     todosHtml += '</div>';
                 }
 
-                let deadlineHtml = '';
-                if (note.deadline) {
-                    const dStatus = getDeadlineStatus(note.deadline);
-                    const borderStyle = dStatus.urgent ? `border-left: 3px solid ${dStatus.color}; padding-left: 8px;` : '';
-                    deadlineHtml = `<div style="font-size: 12px; color: ${dStatus.color}; margin-bottom: 6px; ${borderStyle} font-weight: ${dStatus.urgent ? 'bold' : 'normal'};">⏳ ${dStatus.text}</div>`;
-                }
-
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                        <h3 style="margin: 0; font-size: 16px; color: #fff;">${note.title || 'Задача'}</h3>
+                        <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Задача'}</h3>
                         <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
                     </div>
                     <p>${note.text || ''}</p>
-                    ${deadlineHtml}
                     ${todosHtml}
-                    <div style="font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 10px;">${note.createdAt}</div>
+                    <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 10px;">${note.createdAt}</div>
                 `;
             }
 
@@ -197,29 +269,18 @@ export const UIRenderer = {
                 if (handlers.onToggleTodo) handlers.onToggleTodo(noteId, todoIdx);
             };
         });
-
-        container.querySelectorAll('.note-media-img').forEach(img => {
-            img.onclick = (e) => {
-                e.stopPropagation();
-                const id = Number(img.dataset.id);
-                const imgIdx = Number(img.dataset.imgidx);
-                if (handlers.onOpenLightbox) handlers.onOpenLightbox(id, imgIdx);
-            };
-        });
     }
 };
 
-// Привязка клика по кнопке лупы в футере
 document.addEventListener('DOMContentLoaded', () => {
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
         updateTelegramSearchBar(window.currentHandlers);
         
-        // Корректируем отступ ленты сверху в зависимости от того, открыт поиск или нет
         const viewport = document.querySelector('.scroll-viewport');
         if (viewport) {
-            viewport.style.paddingTop = isSearchOpen ? '125px' : '75px';
+            viewport.style.paddingTop = isSearchOpen ? '120px' : '75px';
         }
     });
 });
