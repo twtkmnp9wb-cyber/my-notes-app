@@ -2,23 +2,6 @@ import { AppState } from './state.js';
 
 let isSearchOpen = false;
 
-function getDeadlineStatus(deadlineStr) {
-    if (!deadlineStr) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const deadlineDate = new Date(deadlineStr);
-    deadlineDate.setHours(0, 0, 0, 0);
-
-    const diffTime = deadlineDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return { text: `Просрочено на ${Math.abs(diffDays)} дн.`, color: '#ff5252', urgent: true };
-    if (diffDays === 0) return { text: 'Дедлайн сегодня!', color: '#ff9800', urgent: true };
-    if (diffDays <= 2) return { text: `Осталось дней: ${diffDays}`, color: '#ffb74d', urgent: false };
-    return { text: `Дедлайн: ${deadlineStr}`, color: 'rgba(255,255,255,0.6)', urgent: false };
-}
-
 function updateTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
@@ -32,7 +15,7 @@ function updateTelegramSearchBar(handlers) {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'telegram-search-input';
-        searchInput.placeholder = 'Поиск по хэштегу (#tag)...';
+        searchInput.placeholder = 'Поиск по хэштегу или заметкам...';
         searchInput.value = AppState.searchQuery || '';
         
         searchInput.oninput = (e) => {
@@ -49,7 +32,7 @@ function updateTelegramSearchBar(handlers) {
 
         const countSpan = document.createElement('span');
         countSpan.textContent = `${notesCount} из ${totalFeedCount}`;
-        countSpan.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap;';
+        countSpan.style.cssText = 'font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap;';
 
         const closeSearchBtn = document.createElement('button');
         closeSearchBtn.textContent = '✕';
@@ -78,26 +61,28 @@ export const UIRenderer = {
 
         updateTelegramSearchBar(handlers);
 
-        // Чипсы фильтрации для Backlog
+        // 1. РЕНДЕР ВКЛАДКИ: BACKLOG (Чипсы + Сетка плиток 2 колонки)
         if (AppState.currentTab === 'backlog') {
-            const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; width: 100%; scrollbar-width: none;';
-            
             const categories = ['Все', 'Study', 'Project', 'Life'];
+            const chipsContainer = document.createElement('div');
+            chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;';
+            
             categories.forEach(cat => {
                 const chip = document.createElement('button');
-                const isActive = AppState.currentFilter === cat;
+                const isActive = (AppState.currentFilter === cat || (cat === 'Все' && AppState.currentFilter === 'Все'));
                 chip.textContent = cat;
                 chip.style.cssText = `
-                    background: ${isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)'};
+                    background: ${isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)'};
+                    color: ${isActive ? '#0a0a0a' : '#fff'};
                     border: 1px solid rgba(255, 255, 255, 0.15);
-                    color: white;
                     padding: 6px 14px;
-                    border-radius: 20px;
+                    border-radius: 9999px;
                     cursor: pointer;
                     font-size: 12px;
+                    font-weight: 500;
                     white-space: nowrap;
                     backdrop-filter: blur(10px);
+                    transition: all 0.2s;
                 `;
                 chip.onclick = () => {
                     AppState.currentFilter = cat;
@@ -106,30 +91,88 @@ export const UIRenderer = {
                 chipsContainer.appendChild(chip);
             });
             container.appendChild(chipsContainer);
+
+            // Фильтрация плиток бэклога
+            const backlogItems = notes.filter(n => n.type === 'task' && n.folder === 'backlog');
+            const filteredBacklog = AppState.currentFilter === 'Все' 
+                ? backlogItems 
+                : backlogItems.filter(i => i.category === AppState.currentFilter);
+
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
+
+            if (filteredBacklog.length === 0) {
+                grid.innerHTML = `<div style="grid-column: span 2; text-align: center; color: rgba(255,255,255,0.4); font-size: 12px; padding: 30px;">Пусто в бэклоге</div>`;
+            } else {
+                filteredBacklog.forEach(item => {
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        background: rgba(255, 255, 255, 0.08);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 20px;
+                        padding: 14px;
+                        backdrop-filter: blur(16px);
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        height: 130px;
+                        cursor: pointer;
+                    `;
+                    card.onclick = () => { if (handlers.onEditNote) handlers.onEditNote(item); };
+
+                    card.innerHTML = `
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category || 'Study'}</span>
+                                <span style="font-size: 9px; color: #ffb74d;">${item.deadline || '3 days left'}</span>
+                            </div>
+                            <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title || 'Задача'}</h4>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
+                                <div style="background: rgba(255,255,255,0.7); height: 100%; width: 50%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
+                                <span>50%</span>
+                                <span style="color: #6ee7b7; font-weight: 500;">В Спринт ↗</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+            container.appendChild(grid);
+            return;
         }
 
-        // Если открыт Roadmap
+        // 2. РЕНДЕР ВКЛАДКИ: ROADMAP
         if (AppState.currentTab === 'roadmap') {
             container.innerHTML = `
                 <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);">
-                    <h3 style="margin: 0 0 12px 0; font-size: 15px; text-align: center;">Цели на сезон (Roadmap)</h3>
-                    <p style="font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 16px;">Вектор поведения и фокус внимания на текущий период.</p>
+                    <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
+                    <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">🎯 Закрыть семестр без хвостов</div>
-                        <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1);">🎯 Прокачать осанку и турник</div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎯 Закрыть семестр без хвостов</span>
+                            <div style="width: 16px; height: 16px; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%;"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎯 Прокачать осанку и турник</span>
+                            <div style="width: 16px; height: 16px; background: #10b981; border-radius: 50%;"></div>
+                        </div>
                     </div>
                 </div>
             `;
             return;
         }
 
-        // Если открыт Core Dump
+        // 3. РЕНДЕР ВКЛАДКИ: DUMP (Core Dump)
         if (AppState.currentTab === 'dump') {
             container.innerHTML = `
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 8px;">
-                        <button class="menu-btn active" style="flex:1; text-align:center;">Сброс (Dump)</button>
-                        <button class="menu-btn" style="flex:1; text-align:center; opacity:0.6;">Невыполненное</button>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="menu-btn active" style="flex:1; text-align:center; padding: 8px;">Сброс (Dump)</button>
+                        <button class="menu-btn" style="flex:1; text-align:center; opacity:0.6; padding: 8px;">Невыполненное</button>
                     </div>
                     <textarea id="liveDumpAreaMain" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 220px; width:100%;">${localStorage.getItem('app_live_dump_content') || ''}</textarea>
                 </div>
@@ -141,6 +184,7 @@ export const UIRenderer = {
             return;
         }
 
+        // 4. ОСТАЛЬНЫЕ ВКЛАДКИ (Лента и Спринт)
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
@@ -149,52 +193,6 @@ export const UIRenderer = {
             return;
         }
 
-        // Если это Бэклог — делаем красивую сетку плиток 2 колонки
-        if (AppState.currentTab === 'backlog') {
-            const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
-
-            notes.forEach(note => {
-                const card = document.createElement('div');
-                card.style.cssText = `
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    border-radius: 20px;
-                    padding: 14px;
-                    backdrop-filter: blur(16px);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    height: 140px;
-                    cursor: pointer;
-                `;
-                card.onclick = () => { if (handlers.onEditNote) handlers.onEditNote(note); };
-
-                card.innerHTML = `
-                    <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${note.category || 'Study'}</span>
-                            <span style="font-size: 9px; color: #ffb74d;">${note.deadline || '3 days left'}</span>
-                        </div>
-                        <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${note.title || 'Задача'}</h4>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
-                            <div style="background: rgba(255,255,255,0.7); height: 100%; width: 45%;"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
-                            <span>45%</span>
-                            <span style="color: #6ee7b7; font-weight: 500;" onclick="event.stopPropagation();">В Спринт ↗</span>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-            container.appendChild(grid);
-            return;
-        }
-
-        // Обычный рендер для Ленты и Спринта
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
