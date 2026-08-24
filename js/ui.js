@@ -84,7 +84,7 @@ function updateFooterButtonsVisibility() {
         const searchBarContainer = document.getElementById('telegramSearchBarContainer');
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
-    
+
     if (AppState.currentTab === 'roadmap' || AppState.currentTab === 'dump') {
         addBtn.style.display = 'none';
     } else {
@@ -92,7 +92,6 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Глобальные методы для безопасного доступа из DOM
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -153,7 +152,6 @@ export const UIRenderer = {
             }
         }
 
-        // БЭКЛОГ
         if (AppState.currentTab === 'backlog') {
             const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
@@ -233,7 +231,6 @@ export const UIRenderer = {
             return;
         }
 
-        // ROADMAP
         if (AppState.currentTab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);';
@@ -274,7 +271,6 @@ export const UIRenderer = {
             return;
         }
 
-        // DUMP
         if (AppState.currentTab === 'dump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
@@ -336,7 +332,6 @@ export const UIRenderer = {
             return;
         }
 
-        // ЛЕНТА И СПРИНТ
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px;';
