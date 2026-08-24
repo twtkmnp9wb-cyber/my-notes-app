@@ -3,354 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Монитор Души</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Подключаем Tailwind для красивых утилит -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style-v2.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .scrollbar-none::-webkit-scrollbar { display: none; }
-        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn { animation: fadeIn 0.25s ease-out forwards; }
-    </style>
+    <title>Монитор Души</title>
 </head>
-<body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32 selection:bg-neutral-800">
+<body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
+    <!-- Слой обоев с поддержкой зума -->
+    <div id="bgLayer" class="bg-glow"></div>
 
-    <!-- Атмосферный фон Liquid Glass -->
-    <div class="fixed inset-0 z-0 opacity-40 pointer-events-none bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1000&auto=format&fit=crop');"></div>
-    <div class="fixed inset-0 z-0 bg-gradient-to-b from-black/80 via-neutral-950/90 to-neutral-950 pointer-events-none"></div>
+    <div class="app-container">
+        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
+        <header class="fixed-top-bar">
+            <aside class="main-menu">
+                <nav class="main-menu-nav">
+                    <ul class="menu-list">
+                        <li><button class="menu-btn active" data-tab="feed">Лента</button></li>
+                        <li><button class="menu-btn" data-tab="roadmap">Roadmap</button></li>
+                        <li><button class="menu-btn" data-tab="sprint">Sprint</button></li>
+                        <li><button class="menu-btn" data-tab="backlog">Backlog</button></li>
+                        <li><button class="menu-btn" data-tab="dump">Dump</button></li>
+                        <li><button class="menu-btn" data-tab="settings">⚙️</button></li>
+                    </ul>
+                </nav>
+            </aside>
+        </header>
 
-    <!-- Верхняя капсула навигации -->
-    <header class="sticky top-4 z-50 max-w-sm mx-auto px-4">
-        <nav class="backdrop-blur-2xl bg-white/10 border border-white/20 shadow-2xl rounded-full p-1.5 flex justify-between items-center text-xs">
-            <button onclick="switchTab('feed')" id="nav-feed" class="px-3 py-1.5 rounded-full transition-all bg-white/20 text-white font-medium shadow-sm">Лента</button>
-            <button onclick="switchTab('roadmap')" id="nav-roadmap" class="px-3 py-1.5 rounded-full transition-all text-neutral-300">Roadmap</button>
-            <button onclick="switchTab('sprint')" id="nav-sprint" class="px-3 py-1.5 rounded-full transition-all text-neutral-300">Спринт</button>
-            <button onclick="switchTab('backlog')" id="nav-backlog" class="px-3 py-1.5 rounded-full transition-all text-neutral-300">Бэклог</button>
-            <button onclick="switchTab('livedump')" id="nav-livedump" class="px-3 py-1.5 rounded-full transition-all text-neutral-300">Dump</button>
-        </nav>
-    </header>
+        <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
+        <div id="telegramSearchBarContainer"></div>
 
-    <!-- Основной контейнер -->
-    <main class="relative z-10 max-w-sm mx-auto p-4 space-y-4 pt-2">
-
-        <!-- Заголовок -->
-        <div class="text-center py-1">
-            <h2 class="italic text-2xl font-serif tracking-wide text-neutral-200 drop-shadow-md">Born to win.</h2>
-        </div>
-
-        <!-- Поиск -->
-        <div id="searchBar" class="hidden backdrop-blur-2xl bg-neutral-900/90 border border-white/20 rounded-2xl p-2.5 flex items-center gap-2 shadow-2xl animate-fadeIn">
-            <span class="text-neutral-400 pl-2">🔍</span>
-            <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Поиск по заметкам..." class="w-full bg-transparent text-xs focus:outline-none text-white placeholder-neutral-400" />
-            <button onclick="toggleSearch()" class="text-neutral-400 hover:text-white px-2 text-xs">✕</button>
-        </div>
-
-        <!-- ВКЛАДКА: ЛЕНТА -->
-        <div id="tab-feed" class="space-y-4 animate-fadeIn">
-            <div class="backdrop-blur-xl bg-white/5 border border-white/10 p-3.5 rounded-2xl text-center shadow-inner">
-                <span class="text-[9px] uppercase tracking-widest text-neutral-400 block mb-1">Манифест сезона</span>
-                <div class="flex justify-center gap-3 text-xs font-medium text-neutral-200">
-                    <span class="italic text-emerald-300">#осанка</span>
-                    <span class="italic text-emerald-300">#речь</span>
-                    <span class="italic text-emerald-300">#турник</span>
-                    <span class="italic text-emerald-300">#фокус</span>
+        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ -->
+        <div class="scroll-viewport">
+            <div class="content-wrapper">
+                <!-- Атмосферный заголовок -->
+                <div style="text-align: center; margin: 16px 0 8px 0;">
+                    <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.5rem; font-style: italic;">Born to win.</h2>
                 </div>
-            </div>
-            <div id="postsContainer" class="space-y-3"></div>
-        </div>
 
-        <!-- ВКЛАДКА: ROADMAP -->
-        <div id="tab-roadmap" class="hidden space-y-4 animate-fadeIn">
-            <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-4 rounded-3xl shadow-xl">
-                <span class="text-[9px] uppercase tracking-widest text-neutral-400 block mb-1 text-center">Стратегия</span>
-                <h3 class="text-sm font-bold text-center text-white mb-3">Цели на сезон (Roadmap)</h3>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="newGoalInput" placeholder="Новая цель на сезон..." class="w-full backdrop-blur-md bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-400 focus:outline-none" />
-                    <button onclick="addGoal()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-xs font-medium transition">+</button>
-                </div>
-                <div id="roadmapContainer" class="space-y-2"></div>
-            </div>
-        </div>
-
-        <!-- ВКЛАДКА: СПРИНТ -->
-        <div id="tab-sprint" class="hidden space-y-3 animate-fadeIn">
-            <div class="backdrop-blur-2xl bg-rose-950/20 border border-rose-500/30 p-4 rounded-3xl text-center shadow-xl">
-                <span class="text-[9px] uppercase tracking-widest text-rose-300 block mb-1">Зона экстрима на сегодня</span>
-                <h3 class="text-xs font-bold text-white">Спринт</h3>
-            </div>
-            <div id="sprintContainer" class="space-y-2"></div>
-        </div>
-
-        <!-- ВКЛАДКА: БЭКЛОГ -->
-        <div id="tab-backlog" class="hidden space-y-4 animate-fadeIn">
-            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="backlogChips">
-                <button onclick="filterBacklog('All')" class="px-4 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap bg-white text-neutral-950 shadow-md">All</button>
-                <button onclick="filterBacklog('Study')" class="px-4 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap backdrop-blur-md bg-white/10 text-neutral-300 border border-white/10">Study</button>
-                <button onclick="filterBacklog('Project')" class="px-4 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap backdrop-blur-md bg-white/10 text-neutral-300 border border-white/10">Project</button>
-                <button onclick="filterBacklog('Life')" class="px-4 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap backdrop-blur-md bg-white/10 text-neutral-300 border border-white/10">Life</button>
-            </div>
-            <div id="backlogContainer" class="grid grid-cols-2 gap-3"></div>
-        </div>
-
-        <!-- ВКЛАДКА: LIVE DUMP -->
-        <div id="tab-livedump" class="hidden space-y-4 animate-fadeIn">
-            <div class="flex gap-2">
-                <button onclick="switchDumpSub('evening')" id="dumpBtnEvening" class="flex-1 py-2 text-xs rounded-2xl font-medium transition bg-white/25 text-white border border-white/30">Сброс (Dump)</button>
-                <button onclick="switchDumpSub('uncompleted')" id="dumpBtnUncompleted" class="flex-1 py-2 text-xs rounded-2xl font-medium transition backdrop-blur-md bg-white/5 text-neutral-400 border border-white/10">Невыполненное</button>
-            </div>
-
-            <div id="dumpEveningSection" class="space-y-3">
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="switchDumpDay('day1')" id="dayBtn1" class="py-2 px-1 text-[11px] rounded-xl text-center font-medium transition bg-white/20 border border-white/30 text-white">День 1</button>
-                    <button onclick="switchDumpDay('day2')" id="dayBtn2" class="py-2 px-1 text-[11px] rounded-xl text-center font-medium transition bg-white/5 border border-white/10 text-neutral-400">День 2</button>
-                    <button onclick="switchDumpDay('day3')" id="dayBtn3" class="py-2 px-1 text-[11px] rounded-xl text-center font-medium transition bg-white/5 border border-white/10 text-neutral-400">День 3</button>
-                </div>
-                <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-4 rounded-3xl shadow-xl space-y-3">
-                    <div class="flex gap-2">
-                        <input type="text" id="newDumpInput" placeholder="Поток мыслей перед сном..." class="w-full backdrop-blur-md bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-400 focus:outline-none" />
-                        <button onclick="addDumpNote()" class="bg-white/20 px-3 py-2 rounded-xl text-xs text-white">+</button>
+                <main class="notes-area">
+                    <div class="main-container">
+                        <!-- Контент динамически рендерится из UI.js -->
                     </div>
-                    <div id="dumpNotesContainer" class="space-y-2"></div>
-                </div>
-            </div>
-
-            <div id="dumpUncompletedSection" class="hidden space-y-2">
-                <div id="uncompletedContainer" class="space-y-2"></div>
+                </main>
             </div>
         </div>
 
-    </main>
-
-    <!-- Плавающие кнопки управления -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
-        <button onclick="toggleSearch()" class="w-12 h-12 backdrop-blur-2xl bg-white/10 border border-white/20 rounded-full shadow-2xl flex items-center justify-center text-white hover:bg-white/25 transition active:scale-95">🔍</button>
-        <button onclick="handlePlusClick()" class="w-12 h-12 backdrop-blur-2xl bg-white/20 border border-white/30 rounded-full shadow-2xl flex items-center justify-center text-white text-lg hover:bg-white/35 transition active:scale-95">+</button>
+        <!-- Футер с плавающими кнопками управления -->
+        <footer class="app-footer">
+            <div class="footer-container">
+                <button type="button" class="action-btn" id="searchToggleBtn">🔍</button>
+                <button type="button" class="action-btn add-btn" id="addNoteBtn">+</button>
+            </div>
+        </footer>
     </div>
 
-    <!-- JavaScript логика -->
-    <script>
-        let currentTab = 'feed';
-        let backlogFilterVal = 'All';
-        let dumpSub = 'evening';
-        let dumpDay = 'day1';
+    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Создать запись</h3>
+                <button type="button" class="close-btn" id="closeModalBtn">×</button>
+            </div>
 
-        let appData = {
-            posts: [{ id: 1, text: 'Первый честный день разработки системы. Монитор запущен.', date: '23 авг 02:45' }],
-            roadmap: [
-                { id: 1, text: 'Закрыть семестр без хвостов', done: false },
-                { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
-                { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
-            ],
-            sprint: [
-                { id: 101, title: 'Изучить главу 7', done: false },
-                { id: 102, title: 'Собрать референсы', done: false }
-            ],
-            backlog: [
-                { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
-                { id: 2, title: 'Идея для проекта', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
-                { id: 3, title: 'Купить хлеб', category: 'Life', deadline: '3 days left', progress: 50, urgent: false }
-            ],
-            dump: {
-                day1: ['Идея для нового трека', 'Позвонить маме'],
-                day2: ['Идея проекта фильм'],
-                day3: ['Записать музыку']
-            },
-            uncompleted: [
-                { id: 301, title: 'Провести встречу', info: 'Вчера' }
-            ]
-        };
+            <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
+                <button type="button" class="menu-btn active" id="typeFeedBtn" style="flex:1;">📝 Лента</button>
+                <button type="button" class="menu-btn" id="typeTaskBtn" style="flex:1;">⚡ Задача</button>
+            </div>
 
-        function switchTab(tab) {
-            currentTab = tab;
-            ['feed', 'roadmap', 'sprint', 'backlog', 'livedump'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = "px-3 py-1.5 rounded-full transition-all text-neutral-300";
-            });
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).className = "px-3 py-1.5 rounded-full transition-all bg-white/20 text-white font-medium shadow-sm";
-            render();
-        }
+            <div class="modal-body">
+                <input type="text" id="noteTitleInput" placeholder="Заголовок..." class="modal-input">
+                <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
 
-        function toggleSearch() {
-            const bar = document.getElementById('searchBar');
-            bar.classList.toggle('hidden');
-            if (!bar.classList.contains('hidden')) document.getElementById('searchInput').focus();
-        }
-
-        function handleSearch(query) {
-            render(query);
-        }
-
-        function render(searchQuery = '') {
-            // Лента
-            const postsEl = document.getElementById('postsContainer');
-            const filteredPosts = appData.posts.filter(p => p.text.toLowerCase().includes(searchQuery.toLowerCase()));
-            postsEl.innerHTML = filteredPosts.map(p => `
-                <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-4 rounded-3xl shadow-xl">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-medium text-neutral-200">Без названия</span>
-                        <span class="text-[10px] text-neutral-400">${p.date}</span>
+                <div id="feedFieldsBlock">
+                    <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
+                    <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#осанка</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#речь</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
                     </div>
-                    <p class="text-xs text-neutral-300 leading-relaxed">${p.text}</p>
-                </div>
-            `).join('');
 
-            // Roadmap
-            const roadmapEl = document.getElementById('roadmapContainer');
-            roadmapEl.innerHTML = appData.roadmap.map(g => `
-                <div class="backdrop-blur-md bg-white/5 border border-white/10 p-3 rounded-2xl flex items-center justify-between">
-                    <span class="text-xs ${g.done ? 'line-through text-neutral-500' : 'text-neutral-200'}">${g.text}</span>
-                    <button onclick="toggleGoal(${g.id})" class="w-4 h-4 rounded-full border ${g.done ? 'bg-emerald-500 border-emerald-500' : 'border-white/30'}"></button>
-                </div>
-            `).join('');
-
-            // Спринт
-            const sprintEl = document.getElementById('sprintContainer');
-            sprintEl.innerHTML = appData.sprint.map(s => `
-                <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-3.5 rounded-2xl flex items-center justify-between shadow-lg">
-                    <span class="text-xs ${s.done ? 'line-through text-neutral-500' : 'text-neutral-200'}">${s.title}</span>
-                    <button onclick="toggleSprint(${s.id})" class="w-4 h-4 rounded-full border ${s.done ? 'bg-rose-500 border-rose-500' : 'border-white/30'}"></button>
-                </div>
-            `).join('');
-
-            // Бэклог
-            const backlogEl = document.getElementById('backlogContainer');
-            const filteredBacklog = backlogFilterVal === 'All' ? appData.backlog : appData.backlog.filter(i => i.category === backlogFilterVal);
-            backlogEl.innerHTML = filteredBacklog.map(item => `
-                <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-3.5 rounded-3xl shadow-xl flex flex-col justify-between h-36">
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[8px] uppercase px-2 py-0.5 rounded-full bg-white/10 text-neutral-300">${item.category}</span>
-                            <span class="text-[9px] ${item.urgent ? 'text-rose-400 font-bold' : 'text-neutral-400'}">${item.deadline}</span>
-                        </div>
-                        <h4 class="text-xs font-medium text-white line-clamp-2">${item.title}</h4>
-                    </div>
-                    <div class="space-y-1">
-                        <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                            <div class="bg-white/70 h-full rounded-full" style="width: ${item.progress}%"></div>
-                        </div>
-                        <div class="flex justify-between items-center text-[9px] text-neutral-400">
-                            <span>${item.progress}%</span>
-                            <button onclick="moveToSprint(${item.id})" class="hover:text-white font-medium text-emerald-300">В Спринт ↗</button>
-                        </div>
+                    <div class="media-upload-wrapper">
+                        <label for="noteMediaInput" class="menu-btn" style="display:inline-block; background:rgba(255,255,255,0.1); text-align:center; cursor:pointer; width:100%;">📷 Прикрепить медиафайл</label>
+                        <input type="file" id="noteMediaInput" accept="image/*" multiple style="display: none;">
+                        <div id="mediaPreviewContainer" class="media-preview-container" style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;"></div>
                     </div>
                 </div>
-            `).join('');
 
-            // Dump Notes
-            const notesEl = document.getElementById('dumpNotesContainer');
-            notesEl.innerHTML = (appData.dump[dumpDay] || []).map((note, idx) => `
-                <div class="backdrop-blur-md bg-white/5 border border-white/10 p-3 rounded-2xl flex justify-between items-center text-xs">
-                    <span class="text-neutral-200">${note}</span>
-                    <button onclick="rescueNote('${dumpDay}', ${idx})" class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">В Ленту ↗</button>
-                </div>
-            `).join('');
-
-            // Uncompleted
-            const uncomEl = document.getElementById('uncompletedContainer');
-            uncomEl.innerHTML = appData.uncompleted.map(u => `
-                <div class="backdrop-blur-2xl bg-white/10 border border-white/20 p-3.5 rounded-2xl flex items-center justify-between shadow-lg">
-                    <div>
-                        <h4 class="text-xs font-medium text-white">${u.title}</h4>
-                        <span class="text-[10px] text-rose-400">${u.info}</span>
+                <div id="taskFieldsBlock" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
+                            <option value="sprint">🚀 В Sprint</option>
+                            <option value="backlog">📦 В Backlog</option>
+                        </select>
+                        <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
                     </div>
-                    <button onclick="returnToBacklog(${u.id})" class="text-[10px] backdrop-blur-md bg-white/15 border border-white/20 px-3 py-1.5 rounded-xl text-white hover:bg-white/25 transition">В Бэклог</button>
+                    <label style="font-size: 0.85rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 6px;">Чек-лист:</label>
+                    <div id="todoItemsContainer"></div>
+                    <button type="button" id="addTodoItemBtn" class="menu-btn" style="width: 100%; margin-top: 6px; background:rgba(255,255,255,0.1);">+ Добавить пункт</button>
                 </div>
-            `).join('');
-        }
+            </div>
 
-        function toggleGoal(id) {
-            appData.roadmap = appData.roadmap.map(g => g.id === id ? {...g, done: !g.done} : g);
-            render();
-        }
-        function addGoal() {
-            const input = document.getElementById('newGoalInput');
-            if (!input.value.trim()) return;
-            appData.roadmap.push({ id: Date.now(), text: input.value, done: false });
-            input.value = '';
-            render();
-        }
-        function toggleSprint(id) {
-            appData.sprint = appData.sprint.map(s => s.id === id ? {...s, done: !s.done} : s);
-            render();
-        }
-        function filterBacklog(cat) {
-            backlogFilterVal = cat;
-            render();
-        }
-        function moveToSprint(id) {
-            const item = appData.backlog.find(b => b.id === id);
-            if (item) {
-                appData.sprint.push({ id: Date.now(), title: item.title, done: false });
-                appData.backlog = appData.backlog.filter(b => b.id !== id);
-                render();
-            }
-        }
-        function switchDumpSub(sub) {
-            dumpSub = sub;
-            if (sub === 'evening') {
-                document.getElementById('dumpEveningSection').classList.remove('hidden');
-                document.getElementById('dumpUncompletedSection').classList.add('hidden');
-                document.getElementById('dumpBtnEvening').className = "flex-1 py-2 text-xs rounded-2xl font-medium transition bg-white/25 text-white border border-white/30";
-                document.getElementById('dumpBtnUncompleted').className = "flex-1 py-2 text-xs rounded-2xl font-medium transition backdrop-blur-md bg-white/5 text-neutral-400 border border-white/10";
-            } else {
-                document.getElementById('dumpEveningSection').classList.add('hidden');
-                document.getElementById('dumpUncompletedSection').classList.remove('hidden');
-                document.getElementById('dumpBtnUncompleted').className = "flex-1 py-2 text-xs rounded-2xl font-medium transition bg-white/25 text-white border border-white/30";
-                document.getElementById('dumpBtnEvening').className = "flex-1 py-2 text-xs rounded-2xl font-medium transition backdrop-blur-md bg-white/5 text-neutral-400 border border-white/10";
-            }
-        }
-        function switchDumpDay(day) {
-            dumpDay = day;
-            ['day1', 'day2', 'day3'].forEach(d => {
-                document.getElementById(`dayBtn${d.slice(-1)}`).className = d === day ? "py-2 px-1 text-[11px] rounded-xl text-center font-medium transition bg-white/20 border border-white/30 text-white" : "py-2 px-1 text-[11px] rounded-xl text-center font-medium transition bg-white/5 border border-white/10 text-neutral-400";
-            });
-            render();
-        }
-        function addDumpNote() {
-            const input = document.getElementById('newDumpInput');
-            if (!input.value.trim()) return;
-            appData.dump[dumpDay].push(input.value);
-            input.value = '';
-            render();
-        }
-        function rescueNote(day, idx) {
-            const noteText = appData.dump[day][idx];
-            appData.posts.unshift({ id: Date.now(), text: `[Спасено из Dump]: ${noteText}`, date: 'Только что' });
-            appData.dump[day].splice(idx, 1);
-            render();
-        }
-        function returnToBacklog(id) {
-            const item = appData.uncompleted.find(u => u.id === id);
-            if (item) {
-                appData.backlog.push({ id: Date.now(), title: item.title, category: 'Study', deadline: '3 days left', progress: 0, urgent: false });
-                appData.uncompleted = appData.uncompleted.filter(u => u.id !== id);
-                render();
-            }
-        }
-        function handlePlusClick() {
-            if (currentTab === 'feed') {
-                const text = prompt('Текст новой заметки в Ленту:');
-                if (text) { appData.posts.unshift({ id: Date.now(), text, date: 'Только что' }); render(); }
-            } else if (currentTab === 'backlog') {
-                const title = prompt('Название новой плитки в Бэклог:');
-                if (title) { appData.backlog.push({ id: Date.now(), title, category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal, deadline: '3 days left', progress: 0, urgent: false }); render(); }
-            } else if (currentTab === 'sprint') {
-                const title = prompt('Задача на сегодня:');
-                if (title) { appData.sprint.push({ id: Date.now(), title, done: false }); render(); }
-            } else if (currentTab === 'roadmap') {
-                const text = prompt('Новая цель на сезон:');
-                if (text) { appData.roadmap.push({ id: Date.now(), text, done: false }); render(); }
-            } else {
-                alert('Используйте плюс для добавления контента.');
-            }
-        }
+            <div class="modal-footer" style="margin-top: 16px;">
+                <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
+            </div>
+        </div>
+    </div>
 
-        render();
-    </script>
+    <!-- Модалка Core Dump -->
+    <div class="modal" id="dumpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌙 Core Dump (Сброс мыслей)</h3>
+                <button type="button" class="close-btn" id="closeDumpBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="liveDumpArea" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 180px;"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка Roadmap -->
+    <div class="modal" id="roadmapModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗺 Roadmap (Цели на сезон)</h3>
+                <button type="button" class="close-btn" id="closeRoadmapBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px; font-size: 13px; color: rgba(255,255,255,0.7);">Вектор поведения и фокус внимания на текущий период.</div>
+                <div id="roadmapGoalsContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка Редактирования -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Редактировать запись</h3>
+                <button type="button" class="close-btn" id="editModalCancel">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editModalTitle" placeholder="Заголовок..." class="modal-input">
+                <textarea id="editModalText" placeholder="Текст..." class="modal-textarea"></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top: 16px; display:flex; gap:8px;">
+                <button type="button" class="menu-btn" id="editModalCancel" style="flex:1;">Отмена</button>
+                <button type="button" class="menu-btn active" id="editModalSave" style="flex:1; background:rgba(255,255,255,0.25);">Обновить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно настроек обоев -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Темы и обои</h3>
+                <button type="button" class="close-btn" id="settingsCloseBtn">×</button>
+            </div>
+            <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
+            <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
+            
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 13px; color: rgba(255,255,255,0.6);">Масштаб (зум):</span>
+                    <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
+                </div>
+                <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%; accent-color: #fff;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Лайтбокс -->
+    <div id="lightboxModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+        <button type="button" id="lightboxCloseBtn" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:30px; cursor:pointer;">&times;</button>
+        <img id="lightboxImg" src="" alt="Zoomed" style="max-width:90%; max-height:90%; border-radius:12px; object-fit:contain;" />
+    </div>
+
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

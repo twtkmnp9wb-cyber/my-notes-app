@@ -1,11 +1,32 @@
 import { AppState } from './state.js';
 
 let isSearchOpen = false;
+let backlogFilterVal = 'All';
+let dumpSubTab = 'evening'; // 'evening' или 'uncompleted'
+let activeDumpDay = 'day1'; // 'day1', 'day2', 'day3'
+
+// Локальные данные для Roadmap и Core Dump
+const localAppData = {
+    roadmap: [
+        { id: 1, text: 'Закрыть семестр без хвостов', done: false },
+        { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
+        { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
+    ],
+    dumpDays: {
+        day1: { title: 'День 1', notes: ['Идея для нового трека', 'Проблема с рендерингом', 'Позвонить маме'] },
+        day2: { title: 'День 2', notes: ['Идея проекта фильм', 'Позвонить маме', 'Купить подарок'] },
+        day3: { title: 'День 3', notes: ['Записать музыку к видео', 'Идея для стрима', 'Опубликовать в ленту'] }
+    },
+    uncompletedSprint: [
+        { id: 301, title: 'Изучить главу 7', info: 'Просрочено' },
+        { id: 302, title: 'Собрать референсы', info: '3 дня назад' },
+        { id: 303, title: 'Провести встречу', info: 'Вчера' }
+    ]
+};
 
 function updateTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
-
     searchBarContainer.innerHTML = '';
 
     if (AppState.currentTab === 'feed' && isSearchOpen) {
@@ -21,9 +42,7 @@ function updateTelegramSearchBar(handlers) {
         searchInput.oninput = (e) => {
             AppState.searchQuery = e.target.value;
             const container = document.querySelector('.main-container');
-            if (container) {
-                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            }
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
             updateTelegramSearchBar(handlers);
         };
 
@@ -42,9 +61,7 @@ function updateTelegramSearchBar(handlers) {
             AppState.searchQuery = '';
             updateTelegramSearchBar(handlers);
             const container = document.querySelector('.main-container');
-            if (container) {
-                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            }
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
         };
 
         searchBar.appendChild(searchInput);
@@ -58,18 +75,17 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
-
         updateTelegramSearchBar(handlers);
 
-        // 1. РЕНДЕР ВКЛАДКИ: BACKLOG (Чипсы + Сетка плиток 2 колонки)
+        // 1. ВКЛАДКА: BACKLOG (Сетка плиток с прогрессом и чипсы)
         if (AppState.currentTab === 'backlog') {
-            const categories = ['Все', 'Study', 'Project', 'Life'];
+            const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;';
             
             categories.forEach(cat => {
                 const chip = document.createElement('button');
-                const isActive = (AppState.currentFilter === cat || (cat === 'Все' && AppState.currentFilter === 'Все'));
+                const isActive = backlogFilterVal === cat;
                 chip.textContent = cat;
                 chip.style.cssText = `
                     background: ${isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)'};
@@ -81,22 +97,18 @@ export const UIRenderer = {
                     font-size: 12px;
                     font-weight: 500;
                     white-space: nowrap;
-                    backdrop-filter: blur(10px);
                     transition: all 0.2s;
                 `;
                 chip.onclick = () => {
-                    AppState.currentFilter = cat;
-                    UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                    backlogFilterVal = cat;
+                    UIRenderer.renderList(container, notes, handlers);
                 };
                 chipsContainer.appendChild(chip);
             });
             container.appendChild(chipsContainer);
 
-            // Фильтрация плиток бэклога
             const backlogItems = notes.filter(n => n.type === 'task' && n.folder === 'backlog');
-            const filteredBacklog = AppState.currentFilter === 'Все' 
-                ? backlogItems 
-                : backlogItems.filter(i => i.category === AppState.currentFilter);
+            const filteredBacklog = backlogFilterVal === 'All' ? backlogItems : backlogItems.filter(i => i.category === backlogFilterVal);
 
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;';
@@ -145,42 +157,112 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. РЕНДЕР ВКЛАДКИ: ROADMAP
+        // 2. ВКЛАДКА: ROADMAP
         if (AppState.currentTab === 'roadmap') {
-            container.innerHTML = `
-                <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);">
-                    <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
-                    <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                            <span>🎯 Закрыть семестр без хвостов</span>
-                            <div style="width: 16px; height: 16px; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%;"></div>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                            <span>🎯 Прокачать осанку и турник</span>
-                            <div style="width: 16px; height: 16px; background: #10b981; border-radius: 50%;"></div>
-                        </div>
-                    </div>
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px);';
+            
+            let goalsHtml = localAppData.roadmap.map(g => `
+                <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
+                    <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
                 </div>
+            `).join('');
+
+            wrap.innerHTML = `
+                <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
+                <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                    <input type="text" id="roadmapInputText" placeholder="Новая цель..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                    <button id="roadmapAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">${goalsHtml}</div>
             `;
+            container.appendChild(wrap);
+
+            setTimeout(() => {
+                document.getElementById('roadmapAddBtn')?.onclick = () => {
+                    const inp = document.getElementById('roadmapInputText');
+                    if (inp && inp.value.trim()) {
+                        localAppData.roadmap.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                        UIRenderer.renderList(container, notes, handlers);
+                    }
+                };
+            }, 50);
+
+            window.toggleGoal = (id) => {
+                const goal = localAppData.roadmap.find(g => g.id === id);
+                if (goal) goal.done = !goal.done;
+                UIRenderer.renderList(container, notes, handlers);
+            };
             return;
         }
 
-        // 3. РЕНДЕР ВКЛАДКИ: DUMP (Core Dump)
+        // 3. ВКЛАДКА: DUMP (Core Dump по дням + Невыполненное)
         if (AppState.currentTab === 'dump') {
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; gap: 6px;">
-                        <button class="menu-btn active" style="flex:1; text-align:center; padding: 8px;">Сброс (Dump)</button>
-                        <button class="menu-btn" style="flex:1; text-align:center; opacity:0.6; padding: 8px;">Невыполненное</button>
-                    </div>
-                    <textarea id="liveDumpAreaMain" placeholder="Поток мыслей перед сном..." class="modal-textarea" style="height: 220px; width:100%;">${localStorage.getItem('app_live_dump_content') || ''}</textarea>
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
+
+            let daysButtonsHtml = Object.keys(localAppData.dumpDays).map(dKey => `
+                <button onclick="window.switchDumpDay('${dKey}')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(255,255,255,0.15); background: ${activeDumpDay === dKey ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">${localAppData.dumpDays[dKey].title}</button>
+            `).join('');
+
+            let notesHtml = (localAppData.dumpDays[activeDumpDay]?.notes || []).map((note, idx) => `
+                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span>${note}</span>
+                    <button onclick="window.rescueDumpNote('${activeDumpDay}', ${idx})" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Ленту ↗</button>
                 </div>
+            `).join('');
+
+            wrap.innerHTML = `
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="window.switchDumpSub('evening')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'evening' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Сброс (Dump)</button>
+                    <button onclick="window.switchDumpSub('uncompleted')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'uncompleted' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Невыполненное</button>
+                </div>
+
+                ${dumpSubTab === 'evening' ? `
+                    <div style="display: flex; gap: 6px;">${daysButtonsHtml}</div>
+                    <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="dumpNoteInput" placeholder="Поток мыслей перед сном..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                            <button id="dumpAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">${notesHtml}</div>
+                    </div>
+                ` : `
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${localAppData.uncompletedSprint.map(item => `
+                            <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 13px; color: #fff; font-weight: 500;">${item.title}</div>
+                                    <div style="font-size: 10px; color: #f43f5e;">${item.info}</div>
+                                </div>
+                                <button style="font-size: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">В Бэклог</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
             `;
-            const area = document.getElementById('liveDumpAreaMain');
-            area?.addEventListener('input', (e) => {
-                localStorage.setItem('app_live_dump_content', e.target.value);
-            });
+            container.appendChild(wrap);
+
+            window.switchDumpSub = (sub) => { dumpSubTab = sub; UIRenderer.renderList(container, notes, handlers); };
+            window.switchDumpDay = (day) => { activeDumpDay = day; UIRenderer.renderList(container, notes, handlers); };
+            window.rescueDumpNote = async (day, idx) => {
+                const text = localAppData.dumpDays[day].notes[idx];
+                await AppState.addNote({ type: 'feed', title: 'Спасено из Dump', text: text });
+                localAppData.dumpDays[day].notes.splice(idx, 1);
+                UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            };
+
+            setTimeout(() => {
+                document.getElementById('dumpAddBtn')?.onclick = () => {
+                    const inp = document.getElementById('dumpNoteInput');
+                    if (inp && inp.value.trim()) {
+                        localAppData.dumpDays[activeDumpDay].notes.push(inp.value.trim());
+                        UIRenderer.renderList(container, notes, handlers);
+                    }
+                };
+            }, 50);
             return;
         }
 
@@ -275,10 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
         updateTelegramSearchBar(window.currentHandlers);
-        
         const viewport = document.querySelector('.scroll-viewport');
-        if (viewport) {
-            viewport.style.paddingTop = isSearchOpen ? '120px' : '75px';
-        }
+        if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '75px';
     });
 });
