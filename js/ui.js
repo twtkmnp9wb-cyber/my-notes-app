@@ -29,59 +29,61 @@ const localAppData = {
     ]
 };
 
-function updateTelegramSearchBar(handlers) {
+// Инициализация строки поиска без потери фокуса
+function initTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
-    searchBarContainer.innerHTML = '';
 
     if (AppState.currentTab === 'feed' && isSearchOpen) {
-        const searchBar = document.createElement('div');
-        searchBar.className = 'telegram-search-bar';
+        if (!document.getElementById('liveSearchInput')) {
+            searchBarContainer.innerHTML = `
+                <div class="telegram-search-bar">
+                    <span style="color: rgba(255,255,255,0.4); padding-left: 4px;">🔍</span>
+                    <input type="text" id="liveSearchInput" class="telegram-search-input" placeholder="Поиск по заметкам..." value="${AppState.searchQuery || ''}" autofocus />
+                    <span id="searchCounter" style="font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap;"></span>
+                    <button id="closeSearchPanel" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;">✕</button>
+                </div>
+            `;
 
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.className = 'telegram-search-input';
-        searchInput.placeholder = 'Поиск по заметкам...';
-        searchInput.value = AppState.searchQuery || '';
-        
-        searchInput.oninput = (e) => {
-            AppState.searchQuery = e.target.value;
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            updateTelegramSearchBar(handlers);
-        };
+            const input = document.getElementById('liveSearchInput');
+            input.oninput = (e) => {
+                AppState.searchQuery = e.target.value;
+                const container = document.querySelector('.main-container');
+                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                updateSearchCounter();
+            };
 
+            document.getElementById('closeSearchPanel').onclick = () => {
+                isSearchOpen = false;
+                AppState.searchQuery = '';
+                searchBarContainer.innerHTML = '';
+                const container = document.querySelector('.main-container');
+                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                const viewport = document.querySelector('.scroll-viewport');
+                if (viewport) viewport.style.paddingTop = '75px';
+            };
+        }
+        updateSearchCounter();
+    } else {
+        searchBarContainer.innerHTML = '';
+    }
+}
+
+function updateSearchCounter() {
+    const counter = document.getElementById('searchCounter');
+    if (counter) {
         const notesCount = AppState.getFilteredNotes().length;
         const totalFeedCount = AppState.notes.filter(n => n.type === 'feed').length;
-
-        const countSpan = document.createElement('span');
-        countSpan.textContent = `${notesCount} из ${totalFeedCount}`;
-        countSpan.style.cssText = 'font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap;';
-
-        const closeSearchBtn = document.createElement('button');
-        closeSearchBtn.textContent = '✕';
-        closeSearchBtn.style.cssText = 'background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;';
-        closeSearchBtn.onclick = () => {
-            isSearchOpen = false;
-            AppState.searchQuery = '';
-            updateTelegramSearchBar(handlers);
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-        };
-
-        searchBar.appendChild(searchInput);
-        searchBar.appendChild(countSpan);
-        searchBar.appendChild(closeSearchBtn);
-        searchBarContainer.appendChild(searchBar);
+        counter.textContent = `${notesCount} из ${totalFeedCount}`;
     }
 }
 
 function updateFooterButtonsVisibility() {
     const searchBtn = document.getElementById('searchToggleBtn');
     const addBtn = document.getElementById('addNoteBtn');
-    
     if (!searchBtn || !addBtn) return;
 
+    // Лупа только на Ленте
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -91,15 +93,16 @@ function updateFooterButtonsVisibility() {
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
 
-    const currentTab = AppState.currentTab;
-    if (currentTab === 'roadmap' || currentTab === 'dump' || currentTab === 'livedump') {
+    // Плюс убираем на Roadmap и Dump
+    const tab = AppState.currentTab;
+    if (tab === 'roadmap' || tab === 'dump' || tab === 'livedump') {
         addBtn.style.display = 'none';
     } else {
         addBtn.style.display = 'flex';
     }
 }
 
-// Глобальные методы управления
+// Глобальные обработчики
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -154,7 +157,7 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
-        updateTelegramSearchBar(handlers);
+        initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
 
         const manifestEl = document.getElementById('manifestSection');
@@ -323,7 +326,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. DUMP (поддерживает оба имени: 'dump' и 'livedump')
+        // 4. DUMP
         if (tab === 'dump' || tab === 'livedump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -440,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
-        updateTelegramSearchBar(window.currentHandlers);
+        initTelegramSearchBar(window.currentHandlers);
         const viewport = document.querySelector('.scroll-viewport');
         if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '75px';
     });
