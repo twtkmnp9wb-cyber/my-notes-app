@@ -186,7 +186,7 @@ function initModalsAndCreation(refreshCallback) {
         }
     });
 
-    // Обработка верхнего меню (переключение вкладок)
+    // УНИВЕРСАЛЬНОЕ ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (Roadmap, Sprint, Backlog, Dump, Feed работают одинаково)
     document.querySelectorAll('.menu-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tab = e.target.dataset.tab;
@@ -197,7 +197,9 @@ function initModalsAndCreation(refreshCallback) {
 
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
-            AppState.currentTab = tab; // Устанавливаем вкладку ('feed', 'roadmap', 'sprint', 'backlog', 'dump')
+            
+            // Устанавливаем вкладку в AppState, чтобы UIRenderer её отрисовал
+            AppState.currentTab = tab; 
             refreshCallback();
         });
     });
