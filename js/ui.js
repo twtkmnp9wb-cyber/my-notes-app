@@ -29,7 +29,6 @@ const localAppData = {
     ]
 };
 
-// Инициализация строки поиска без потери фокуса
 function initTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
@@ -60,7 +59,7 @@ function initTelegramSearchBar(handlers) {
                 const container = document.querySelector('.main-container');
                 if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
                 const viewport = document.querySelector('.scroll-viewport');
-                if (viewport) viewport.style.paddingTop = '75px';
+                if (viewport) viewport.style.paddingTop = '65px';
             };
         }
         updateSearchCounter();
@@ -83,7 +82,6 @@ function updateFooterButtonsVisibility() {
     const addBtn = document.getElementById('addNoteBtn');
     if (!searchBtn || !addBtn) return;
 
-    // Лупа только на Ленте
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -93,7 +91,6 @@ function updateFooterButtonsVisibility() {
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
 
-    // Плюс убираем на Roadmap и Dump
     const tab = AppState.currentTab;
     if (tab === 'roadmap' || tab === 'dump' || tab === 'livedump') {
         addBtn.style.display = 'none';
@@ -102,7 +99,6 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Глобальные обработчики
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -445,6 +441,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isSearchOpen = !isSearchOpen;
         initTelegramSearchBar(window.currentHandlers);
         const viewport = document.querySelector('.scroll-viewport');
-        if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '75px';
+        if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '65px';
     });
 });

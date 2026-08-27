@@ -37,11 +37,11 @@
         <div class="scroll-viewport">
             <div class="content-wrapper">
                 
-                <!-- МАНИФЕСТ СЕЗОНА (Под меню, только на Ленте) -->
-                <div id="manifestSection" style="margin-top: 12px; margin-bottom: 8px;">
-                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 12px; backdrop-filter: blur(16px); text-align: center;">
+                <!-- МАНИФЕСТ СЕЗОНА (Сразу под меню, только для Ленты) -->
+                <div id="manifestSection" style="margin-top: 10px; margin-bottom: 6px;">
+                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
                         <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
-                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 12px; font-weight: 500;">
+                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
                             <span style="font-style: italic; color: #34d399;">#осанка</span>
                             <span style="font-style: italic; color: #34d399;">#речь</span>
                             <span style="font-style: italic; color: #34d399;">#турник</span>
@@ -54,13 +54,13 @@
                 <div id="telegramSearchBarContainer"></div>
 
                 <!-- ЗАГОЛОВОК BORN TO WIN (Ниже плашек, только на Ленте) -->
-                <div id="bornToWinTitle" style="text-align: center; margin: 14px 0 10px 0;">
-                    <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.4rem; font-style: italic;">Born to win.</h2>
+                <div id="bornToWinTitle" style="text-align: center; margin: 10px 0 8px 0;">
+                    <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
                 </div>
 
                 <main class="notes-area">
                     <div class="main-container">
-                        <!-- Контент вкладок динамически рендерится из UI.js -->
+                        <!-- Контент динамически рендерится из UI.js -->
                     </div>
                 </main>
             </div>
@@ -75,7 +75,7 @@
         </footer>
     </div>
 
-    <!-- МОДАЛКИ ДЛЯ СОЗДАНИЯ И НАСТРОЕК -->
+    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -98,15 +98,6 @@
                         <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
                     </div>
                 </div>
-                <div id="taskFieldsBlock" style="display: none; margin-top: 10px;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                        <select id="taskTargetFolder" class="modal-input" style="flex: 1; cursor: pointer;">
-                            <option value="sprint">🚀 В Sprint</option>
-                            <option value="backlog">📦 В Backlog</option>
-                        </select>
-                        <input type="date" id="taskDeadlineInput" class="modal-input" style="flex: 1;">
-                    </div>
-                </div>
             </div>
             <div class="modal-footer" style="margin-top: 16px;">
                 <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
@@ -123,13 +114,6 @@
             </div>
             <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
             <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 13px; color: rgba(255,255,255,0.6);">Масштаб (зум):</span>
-                    <span id="scaleValueText" style="color: #fff; font-size: 12px; font-weight: 600;">100%</span>
-                </div>
-                <input type="range" id="bgScaleRange" min="100" max="220" value="100" style="width:100%; accent-color: #fff;" />
-            </div>
         </div>
     </div>
 
