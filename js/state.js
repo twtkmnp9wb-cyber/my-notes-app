@@ -2,7 +2,7 @@ import { CloudStorage } from './supabase.js';
 
 export const AppState = {
     notes: [],
-    currentTab: 'feed', // 'feed', 'sprint', 'backlog', 'dump'
+    currentTab: 'feed', // 'feed', 'roadmap', 'sprint', 'backlog', 'dump'
     currentFilter: 'Все', 
     currentFolder: 'all',
     searchQuery: '',
@@ -48,10 +48,6 @@ export const AppState = {
             result = result.filter(n => n.type === 'task' && n.folder === 'sprint');
         } else if (this.currentTab === 'backlog') {
             result = result.filter(n => n.type === 'task' && n.folder === 'backlog');
-        }
-
-        if (this.currentFilter && this.currentFilter !== 'Все') {
-            result = result.filter(n => n.hashtag === this.currentFilter || n.category === this.currentFilter);
         }
 
         if (this.searchQuery && this.searchQuery.trim() !== '') {

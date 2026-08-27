@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLightbox();
     initEditModalLogic(refresh);
     initLiveDumpLogic();
-    initSearchLogic(refresh); // <--- Инициализация поиска
 });
 
 function openEditModal(note) {
@@ -118,8 +117,6 @@ function initEditModalLogic(refreshCallback) {
 
 function initModalsAndCreation(refreshCallback) {
     const noteModal = document.getElementById('noteModal');
-    const dumpModal = document.getElementById('dumpModal');
-    const roadmapModal = document.getElementById('roadmapModal');
     const settingsModal = document.getElementById('settingsModal');
 
     document.getElementById('addNoteBtn')?.addEventListener('click', () => noteModal.classList.add('active'));
@@ -151,51 +148,6 @@ function initModalsAndCreation(refreshCallback) {
         });
     });
 
-    document.getElementById('addTodoItemBtn')?.addEventListener('click', () => {
-        const container = document.getElementById('todoItemsContainer');
-        if (!container) return;
-        
-        const div = document.createElement('div');
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 6px;';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Текст подзадачи...';
-        input.className = 'modal-input todo-item-input';
-        input.style.flex = '1';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.textContent = '✕';
-        removeBtn.className = 'secondary-btn';
-        removeBtn.style.padding = '0 10px';
-        removeBtn.onclick = () => div.remove();
-
-        div.appendChild(input);
-        div.appendChild(removeBtn);
-        container.appendChild(div);
-    });
-
-    document.getElementById('noteMediaInput')?.addEventListener('change', (e) => {
-        const previewContainer = document.getElementById('mediaPreviewContainer');
-        if (!previewContainer) return;
-        previewContainer.innerHTML = '';
-        
-        const files = e.target.files;
-        if (files && files.length > 0) {
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = document.createElement('img');
-                    img.src = event.target.result;
-                    img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 5px;';
-                    previewContainer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-    });
-
     document.getElementById('saveNoteBtn')?.addEventListener('click', async () => {
         const title = document.getElementById('noteTitleInput').value.trim();
         const text = document.getElementById('noteTextInput').value.trim();
@@ -213,24 +165,12 @@ function initModalsAndCreation(refreshCallback) {
         if (currentType === 'feed') {
             const tag = document.getElementById('noteHashtagInput').value.trim();
             newEntry.hashtag = tag ? (tag.startsWith('#') ? tag : `#${tag}`) : '';
-            
-            const mediaFiles = document.getElementById('noteMediaInput')?.files;
-            newEntry.media = (mediaFiles && mediaFiles.length > 0) ? await convertFilesToBase64(mediaFiles) : [];
+            newEntry.media = [];
         } else {
             newEntry.folder = document.getElementById('taskTargetFolder').value;
-            newEntry.deadline = document.getElementById('taskDeadlineInput').value;
-            
-            const todoInputs = document.querySelectorAll('.todo-item-input');
-            const todos = [];
-            todoInputs.forEach(input => {
-                if (input.value.trim()) {
-                    todos.push({ text: input.value.trim(), done: false });
-                }
-            });
-
-            newEntry.todos = todos;
+            newEntry.deadline = document.getElementById('taskDeadlineInput')?.value || '';
+            newEntry.todos = [];
             newEntry.completed = false;
-            newEntry.strikes = 0;
             newEntry.media = [];
         }
 
@@ -246,17 +186,10 @@ function initModalsAndCreation(refreshCallback) {
         }
     });
 
+    // Обработка верхнего меню (переключение вкладок)
     document.querySelectorAll('.menu-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tab = e.target.dataset.tab;
-            if (tab === 'dump') {
-                dumpModal?.classList.add('active');
-                return;
-            }
-            if (tab === 'roadmap') {
-                roadmapModal?.classList.add('active');
-                return;
-            }
             if (tab === 'settings') {
                 settingsModal?.classList.add('active');
                 return;
@@ -264,122 +197,12 @@ function initModalsAndCreation(refreshCallback) {
 
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
-            AppState.currentTab = tab;
+            AppState.currentTab = tab; // Устанавливаем вкладку ('feed', 'roadmap', 'sprint', 'backlog', 'dump')
             refreshCallback();
         });
     });
 
-    document.getElementById('closeDumpBtn')?.addEventListener('click', () => dumpModal.classList.remove('active'));
-    document.getElementById('closeRoadmapBtn')?.addEventListener('click', () => roadmapModal.classList.remove('active'));
     document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
-}
-
-/* --- Логика выдвижного поиска (как на скриншоте 14) --- */
-function initSearchLogic(refreshCallback) {
-    const searchToggleBtn = document.getElementById('searchToggleBtn');
-    const searchDropdownBar = document.getElementById('searchDropdownBar');
-    const searchCloseBtn = document.getElementById('searchCloseBtn');
-    const feedSearchInput = document.getElementById('feedSearchInput');
-    const searchCounter = document.getElementById('searchCounter');
-    const searchUpBtn = document.getElementById('searchUpBtn');
-    const searchDownBtn = document.getElementById('searchDownBtn');
-
-    if (!searchToggleBtn || !searchDropdownBar) return;
-
-    let currentIndex = 0;
-    let matchedElements = [];
-
-    // Открытие/закрытие по клику на лупу
-    searchToggleBtn.addEventListener('click', () => {
-        searchDropdownBar.classList.toggle('active');
-        if (searchDropdownBar.classList.contains('active')) {
-            feedSearchInput.focus();
-        } else {
-            closeSearch();
-        }
-    });
-
-    // Кнопка закрытия (крестик)
-    searchCloseBtn?.addEventListener('click', () => {
-        closeSearch();
-    });
-
-    function closeSearch() {
-        searchDropdownBar.classList.remove('active');
-        feedSearchInput.value = '';
-        if (searchCounter) searchCounter.textContent = '0 из 0';
-        clearHighlights();
-        refreshCallback();
-    }
-
-    // Обработка ввода в строку поиска
-    feedSearchInput?.addEventListener('input', (e) => {
-        const query = e.target.value.trim().toLowerCase();
-        clearHighlights();
-
-        if (!query) {
-            searchCounter.textContent = '0 из 0';
-            refreshCallback();
-            return;
-        }
-
-        // Если в AppState есть метод поиска, либо фильтруем карточки на странице
-        const cards = document.querySelectorAll('.note-card');
-        matchedElements = [];
-
-        cards.forEach(card => {
-            const text = card.textContent.toLowerCase();
-            if (text.includes(query)) {
-                matchedElements.push(card);
-            }
-        });
-
-        if (matchedElements.length > 0) {
-            currentIndex = 0;
-            updateCounter();
-            scrollToMatch(currentIndex);
-        } else {
-            searchCounter.textContent = '0 из 0';
-        }
-    });
-
-    // Навигация стрелочками Вверх/Вниз
-    searchDownBtn?.addEventListener('click', () => {
-        if (matchedElements.length === 0) return;
-        currentIndex = (currentIndex + 1) % matchedElements.length;
-        updateCounter();
-        scrollToMatch(currentIndex);
-    });
-
-    searchUpBtn?.addEventListener('click', () => {
-        if (matchedElements.length === 0) return;
-        currentIndex = (currentIndex - 1 + matchedElements.length) % matchedElements.length;
-        updateCounter();
-        scrollToMatch(currentIndex);
-    });
-
-    function updateCounter() {
-        if (searchCounter) {
-            searchCounter.textContent = `${currentIndex + 1} из ${matchedElements.length}`;
-        }
-    }
-
-    function scrollToMatch(index) {
-        matchedElements.forEach(el => el.style.border = '1px solid rgba(255, 255, 255, 0.1)');
-        const target = matchedElements[index];
-        if (target) {
-            target.style.border = '1px solid #4caf50'; // Подсветка текущего результата
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
-
-    function clearHighlights() {
-        document.querySelectorAll('.note-card').forEach(card => {
-            card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
-        });
-        matchedElements = [];
-        currentIndex = 0;
-    }
 }
 
 function initLiveDumpLogic() {
@@ -392,25 +215,11 @@ function initLiveDumpLogic() {
     });
 }
 
-async function convertFilesToBase64(fileList) {
-    const promises = Array.from(fileList).map(file => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
-    });
-    return await Promise.all(promises);
-}
-
 function resetForm() {
     document.getElementById('noteTitleInput').value = '';
     document.getElementById('noteTextInput').value = '';
     document.getElementById('noteHashtagInput').value = '';
-    document.getElementById('todoItemsContainer').innerHTML = '';
     document.getElementById('noteMediaInput').value = '';
-    const previewContainer = document.getElementById('mediaPreviewContainer');
-    if (previewContainer) previewContainer.innerHTML = '';
 }
 
 function initLightbox() {
@@ -427,11 +236,5 @@ function initLightbox() {
 
     closeBtn?.addEventListener('click', () => {
         if (lightbox) lightbox.style.display = 'none';
-    });
-
-    lightbox?.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            lightbox.style.display = 'none';
-        }
     });
 }
