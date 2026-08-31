@@ -29,6 +29,50 @@ const localAppData = {
     ]
 };
 
+// Функция красивого всплывающего уведомления (тост)
+function showToast(message) {
+    let existingToast = document.getElementById('appToastNotification');
+    if (existingToast) existingToast.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'appToastNotification';
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 90px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(16, 185, 129, 0.9);
+        backdrop-filter: blur(12px);
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 500;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        z-index: 9999;
+        animation: fadeInOut 2s ease forwards;
+    `;
+
+    // Добавляем CSS анимацию, если её нет
+    if (!document.getElementById('toastKeyframes')) {
+        const style = document.createElement('style');
+        style.id = 'toastKeyframes';
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translate(-50%, 10px); }
+                15% { opacity: 1; transform: translate(-50%, 0); }
+                85% { opacity: 1; transform: translate(-50%, 0); }
+                100% { opacity: 0; transform: translate(-50%, -10px); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+
 function initTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
@@ -58,8 +102,6 @@ function initTelegramSearchBar(handlers) {
                 searchBarContainer.innerHTML = '';
                 const container = document.querySelector('.main-container');
                 if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-                const viewport = document.querySelector('.scroll-viewport');
-                if (viewport) viewport.style.paddingTop = '65px';
             };
         }
         updateSearchCounter();
@@ -99,6 +141,7 @@ function updateFooterButtonsVisibility() {
     }
 }
 
+// Глобальные методы управления
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -120,6 +163,13 @@ window.editGoal = function(id) {
     }
 };
 
+window.deleteGoal = function(id) {
+    localAppData.roadmap = localAppData.roadmap.filter(g => g.id !== id);
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    showToast('Цель удалена');
+};
+
 window.toggleSprintTask = function(id) {
     const task = localAppData.sprint.find(t => t.id === id);
     if (task) {
@@ -127,6 +177,32 @@ window.toggleSprintTask = function(id) {
         const container = document.querySelector('.main-container');
         if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     }
+};
+
+window.deleteSprintTask = function(id) {
+    localAppData.sprint = localAppData.sprint.filter(t => t.id !== id);
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    showToast('Задача удалена из Спринта');
+};
+
+window.moveToSprint = async function(title) {
+    // Добавляем в локальный спринт для отображения
+    localAppData.sprint.push({ id: Date.now(), title: title, done: false });
+    
+    // Также добавляем задачу в общие notes приложения, чтобы она летела в Supabase и появилась в Спринте
+    await AppState.addNote({
+        type: 'task',
+        folder: 'sprint',
+        title: title,
+        text: '',
+        todos: [],
+        completed: false
+    });
+
+    showToast('🚀 Добавлено в Спринт!');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
 window.switchDumpSub = function(sub) {
@@ -145,6 +221,7 @@ window.rescueDumpNote = async function(day, idx) {
     const text = localAppData.dumpDays[day].notes[idx];
     await AppState.addNote({ type: 'feed', title: 'Спасено из Dump', text: text });
     localAppData.dumpDays[day].notes.splice(idx, 1);
+    showToast('✨ Спасено в Ленту!');
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
@@ -224,7 +301,6 @@ export const UIRenderer = {
                     flex-direction: column;
                     justify-content: space-between;
                     height: 130px;
-                    cursor: pointer;
                 `;
                 card.innerHTML = `
                     <div>
@@ -240,7 +316,7 @@ export const UIRenderer = {
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
                             <span>${item.progress}%</span>
-                            <span style="color: #6ee7b7; font-weight: 500;">В Спринт ↗</span>
+                            <span onclick="window.moveToSprint('${item.title}')" style="color: #6ee7b7; font-weight: 500; cursor: pointer; padding: 2px 4px;">В Спринт ↗</span>
                         </div>
                     </div>
                 `;
@@ -250,7 +326,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP
+        // 2. ROADMAP (С кнопкой удаления ✕)
         if (tab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
@@ -258,8 +334,9 @@ export const UIRenderer = {
             let goalsHtml = localAppData.roadmap.map(g => `
                 <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
                     <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button onclick="window.editGoal(${g.id})" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="window.editGoal(${g.id})" title="Редактировать" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
+                        <button onclick="window.deleteGoal(${g.id})" title="Удалить цель" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
                         <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
                     </div>
                 </div>
@@ -283,6 +360,7 @@ export const UIRenderer = {
                         const inp = document.getElementById('roadmapInputText');
                         if (inp && inp.value.trim()) {
                             localAppData.roadmap.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                            showToast('Цель добавлена в Roadmap');
                             UIRenderer.renderList(container, notes, handlers);
                         }
                     };
@@ -291,7 +369,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ
+        // 3. СПРИНТ (С кнопкой удаления ✕)
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -312,7 +390,10 @@ export const UIRenderer = {
                 tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;';
                 tEl.innerHTML = `
                     <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
-                    <button onclick="window.toggleSprintTask(${task.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${task.done ? '#f43f5e' : 'transparent'}; cursor:pointer;"></button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="window.deleteSprintTask(${task.id})" title="Удалить задачу" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
+                        <button onclick="window.toggleSprintTask(${task.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${task.done ? '#f43f5e' : 'transparent'}; cursor:pointer;"></button>
+                    </div>
                 `;
                 tasksContainer.appendChild(tEl);
             });
@@ -376,6 +457,7 @@ export const UIRenderer = {
                         const inp = document.getElementById('dumpNoteInput');
                         if (inp && inp.value.trim()) {
                             localAppData.dumpDays[activeDumpDay].notes.push(inp.value.trim());
+                            showToast('Заметка добавлена в Dump');
                             UIRenderer.renderList(container, notes, handlers);
                         }
                     };
@@ -443,4 +525,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewport = document.querySelector('.scroll-viewport');
         if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '65px';
     });
+
+    setTimeout(() => {
+        document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
+            const originalClick = btn.onclick;
+            btn.onclick = (e) => {
+                const tabName = btn.getAttribute('data-tab');
+                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabName === 'backlog' || tabName === 'feed') {
+                    e.stopImmediatePropagation();
+                    AppState.currentTab = tabName;
+                    
+                    document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const container = document.querySelector('.main-container');
+                    if (container && window.currentHandlers) {
+                        UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+                    }
+                } else if (originalClick) {
+                    originalClick(e);
+                }
+            };
+        });
+    }, 300);
 });

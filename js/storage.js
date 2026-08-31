@@ -25,6 +25,6 @@ export const StorageService = {
             this.save(updated);
             return updated;
         }
-        return notes;
+        return notes; 
     }
 };
