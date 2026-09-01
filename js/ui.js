@@ -20,17 +20,17 @@ let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
-// Храним дедлайны в формате даты 'YYYY-MM-DD' для точного расчета
+// Возвращаем оригинальные текстовые дедлайны на английском
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
-    { id: 1, title: 'Подготовка к зиме', category: 'Study', dueDate: '2026-09-01', progress: 66, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
-    { id: 2, title: 'Идея для проекта - 2', category: 'Project', dueDate: '2026-09-04', progress: 20, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
-    { id: 3, title: 'Идея для проекта', category: 'Project', dueDate: '2026-09-08', progress: 95, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
-    { id: 4, title: 'Сделать ремонт', category: 'Life', dueDate: '2026-09-10', progress: 10, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
+    { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
+    { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
+    { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
+    { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
 ];
 
 let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
-    { id: 201, title: 'Купить батарейки', category: 'Life', dueDate: '2026-09-01', done: false },
-    { id: 202, title: 'Послушать новый альбом', category: 'Music', dueDate: '2026-09-05', done: false }
+    { id: 201, title: 'Купить батарейки', category: 'Life', deadline: 'Due today', urgent: true, done: false },
+    { id: 202, title: 'Послушать новый альбом', category: 'Music', deadline: 'Tomorrow', urgent: false, done: false }
 ];
 
 let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
@@ -49,28 +49,6 @@ function getInitialDumpDay() {
 
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
-
-// Функция расчета статуса дедлайна по дате
-function calculateDeadlineInfo(dateStr) {
-    if (!dateStr) return { text: 'Без срока', color: '#fff', urgent: false };
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(dateStr);
-    target.setHours(0, 0, 0, 0);
-
-    const diffTime = target - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-        return { text: 'Просрочено', color: '#f43f5e', urgent: true };
-    } else if (diffDays === 0) {
-        return { text: 'Сегодня', color: '#f43f5e', urgent: true };
-    } else if (diffDays <= 3) {
-        return { text: `${diffDays} дн. лефт`, color: '#fbbf24', urgent: false };
-    } else {
-        return { text: `${diffDays} дн. до конца`, color: '#ffffff', urgent: false };
-    }
-}
 
 function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
 function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
@@ -260,13 +238,13 @@ window.deleteSubtask = function(cardId, subId) {
     }
 };
 
-// Редактирование дедлайна плитки через выбор даты
 window.editBacklogDeadline = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
-    const newDate = prompt('Введите дедлайн в формате ГГГГ-ММ-ДД (например, 2026-09-05):', item.dueDate || '');
-    if (newDate !== null && newDate.trim()) {
-        item.dueDate = newDate.trim();
+    const newDl = prompt('Введите дедлайн (например, "Due today", "2 days left"):', item.deadline);
+    if (newDl !== null && newDl.trim()) {
+        item.deadline = newDl.trim();
+        item.urgent = item.deadline.toLowerCase().includes('today');
         saveBacklogItems();
         showToast('Дедлайн обновлен');
         const container = document.querySelector('.main-container');
@@ -274,13 +252,13 @@ window.editBacklogDeadline = function(id) {
     }
 };
 
-// Редактирование дедлайна строчки через дату
 window.editBacklogRowDeadline = function(id) {
     const row = backlogRows.find(r => r.id === id);
     if (!row) return;
-    const newDate = prompt('Введите дедлайн в формате ГГГГ-ММ-ДД (например, 2026-09-05):', row.dueDate || '');
-    if (newDate !== null && newDate.trim()) {
-        row.dueDate = newDate.trim();
+    const newDl = prompt('Введите дедлайн (например, "Due today", "Tomorrow"):', row.deadline);
+    if (newDl !== null && newDl.trim()) {
+        row.deadline = newDl.trim();
+        row.urgent = row.deadline.toLowerCase().includes('today');
         saveBacklogRows();
         showToast('Дедлайн обновлен');
         const container = document.querySelector('.main-container');
@@ -355,12 +333,14 @@ window.deleteBacklogRow = function(id) {
 window.addNewBacklogRow = function() {
     const title = prompt('Название простой задачи:');
     if (title && title.trim()) {
-        const dateInput = prompt('Дедлайн в формате ГГГГ-ММ-ДД (например, 2026-09-05):', '2026-09-05');
+        const dlInput = prompt('Дедлайн (например, "Due today", "3 days left"):', '3 days left');
+        const isUrgent = confirm('Задача срочная? (ОК — да, Отмена — нет)');
         backlogRows.push({
             id: Date.now(),
             title: title.trim(),
             category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
-            dueDate: dateInput ? dateInput.trim() : '2026-09-05',
+            deadline: dlInput ? dlInput.trim() : '3 days left',
+            urgent: isUrgent,
             done: false
         });
         saveBacklogRows();
@@ -389,8 +369,9 @@ window.addNewBacklogItemModal = function() {
             id: Date.now(),
             title: title.trim(),
             category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
-            dueDate: '2026-09-05',
+            deadline: '3 days left',
             progress: 0,
+            urgent: false,
             flipped: false,
             subtasks: [{ id: Date.now() + 1, text: 'Первый подпункт', done: false }]
         });
@@ -578,7 +559,7 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Широкие карточки на всю ширину в 1 колонку, независимые скроллы для карточек и строчек)
+        // 1. БЭКЛОГ (Чипсы с цифрами, сетка карточек в 2 колонки, аккуратные строчки снизу)
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -596,9 +577,9 @@ export const UIRenderer = {
                 
                 let urgentCount = 0;
                 if (cat === 'All') {
-                    urgentCount = backlogCustomItems.filter(i => calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => calculateDeadlineInfo(r.dueDate).urgent).length;
+                    urgentCount = backlogCustomItems.filter(i => i.urgent).length + backlogRows.filter(r => r.urgent).length;
                 } else {
-                    urgentCount = backlogCustomItems.filter(i => i.category === cat && calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => r.category === cat && calculateDeadlineInfo(r.dueDate).urgent).length;
+                    urgentCount = backlogCustomItems.filter(i => i.category === cat && i.urgent).length + backlogRows.filter(r => r.category === cat && r.urgent).length;
                 }
 
                 chipWrap.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
@@ -634,17 +615,16 @@ export const UIRenderer = {
             const filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             const filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
-            // Карточки во всю ширину экрана (1 колонка) с независимым скроллом, если их много
-            const cardsWrapper = document.createElement('div');
-            cardsWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 10px; width: 100%; max-height: 280px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px;';
+            // Сетка карточек в 2 колонки с внутренним скроллом
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 250px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px;';
 
             filteredBacklog.forEach(item => {
-                const dl = calculateDeadlineInfo(item.dueDate);
                 const card = document.createElement('div');
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
-                    display: flex; flex-direction: column; justify-content: space-between; min-height: 120px; position: relative; cursor: pointer;
+                    display: flex; flex-direction: column; justify-content: space-between; height: 130px; position: relative; cursor: pointer; overflow: hidden;
                 `;
                 
                 card.onclick = (e) => {
@@ -655,66 +635,66 @@ export const UIRenderer = {
                 if (!item.flipped) {
                     card.innerHTML = `
                         <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <span style="font-size: 9px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 99px; color: #ccc;">${item.category}</span>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <span ${isEditMode ? `onclick="event.stopPropagation(); window.editBacklogDeadline(${item.id})"` : ''} style="font-size: 10px; color: ${dl.color}; font-weight: 600; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${dl.text}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <span ${isEditMode ? `onclick="event.stopPropagation(); window.editBacklogDeadline(${item.id})"` : ''} style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${item.deadline}</span>
                                     ${isEditMode ? `
-                                        <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 10px; cursor: pointer;">✏️</span>
-                                        <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 12px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
+                                        <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
+                                        <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
                                     ` : ''}
                                 </div>
                             </div>
-                            <h4 style="margin: 0; font-size: 14px; color: #fff; font-weight: 500;">${item.title}</h4>
+                            <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
                             <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
                                 <div style="background: rgba(255,255,255,0.7); height: 100%; width: ${item.progress}%;"></div>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: rgba(255,255,255,0.5);">
-                                <span>Прогресс: ${item.progress}%</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
+                                <span>${item.progress}%</span>
                                 <span style="color: #34d399; font-weight: 500;">Подпункты ↗</span>
                             </div>
                         </div>
                     `;
                 } else {
                     let subtasksHtml = (item.subtasks || []).map(sub => `
-                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 8px;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
-                                <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="window.toggleSubtask(${item.id}, ${sub.id})" style="accent-color: #10b981; width: 14px; height: 14px;" />
-                                <span style="${sub.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${sub.text}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; background: rgba(0,0,0,0.25); padding: 3px 6px; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; flex: 1; overflow: hidden;">
+                                <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="window.toggleSubtask(${item.id}, ${sub.id})" style="accent-color: #10b981;" />
+                                <span style="${sub.done ? 'text-decoration: line-through; opacity: 0.5;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sub.text}</span>
                             </label>
-                            <div style="display: flex; gap: 6px; align-items: center;">
+                            <div style="display: flex; gap: 4px; align-items: center;">
                                 ${isEditMode ? `
-                                    <span onclick="window.editSubtask(${item.id}, ${sub.id})" title="Изменить" style="font-size: 10px; cursor: pointer;">✏️</span>
-                                    <span onclick="window.deleteSubtask(${item.id}, ${sub.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; font-weight: bold; cursor: pointer;">✕</span>
+                                    <span onclick="window.editSubtask(${item.id}, ${sub.id})" title="Изменить" style="font-size: 9px; cursor: pointer;">✏️</span>
+                                    <span onclick="window.deleteSubtask(${item.id}, ${sub.id})" title="Удалить" style="font-size: 10px; color: #f43f5e; font-weight: bold; cursor: pointer;">✕</span>
                                 ` : ''}
-                                <button onclick="window.addSubtaskToSprint('${sub.text}')" title="В Спринт" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">В Спринт ↗</button>
+                                <button onclick="window.addSubtaskToSprint('${sub.text}')" title="В Спринт" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; font-size: 8px; padding: 2px 4px; border-radius: 4px; cursor: pointer; white-space: nowrap;">↗</button>
                             </div>
                         </div>
                     `).join('');
 
                     card.innerHTML = `
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 10px; color: #34d399; font-weight: 600; text-transform: uppercase;">Подпункты задачи</span>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    ${isEditMode ? `<button onclick="window.addSubtaskToCard(${item.id})" style="background:none; border:none; color:#34d399; font-size:11px; cursor:pointer; font-weight:bold;" title="Добавить подпункт">+ Добавить пп</button>` : ''}
-                                    <span onclick="window.flipBacklogCard(${item.id})" style="font-size: 14px; color: #f43f5e; cursor: pointer; font-weight: bold;" title="Закрыть">✕</span>
+                                <span style="font-size: 9px; color: #34d399; font-weight: 600;">Подпункты</span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    ${isEditMode ? `<button onclick="window.addSubtaskToCard(${item.id})" style="background:none; border:none; color:#34d399; font-size:10px; cursor:pointer;" title="Добавить">+ пп</button>` : ''}
+                                    <span onclick="window.flipBacklogCard(${item.id})" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;" title="Закрыть">✕</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 6px; max-height: 120px; overflow-y: auto;">
-                                ${subtasksHtml || '<span style="font-size:11px; color:rgba(255,255,255,0.4);">Нет подпунктов</span>'}
+                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 64px; padding-right: 2px;">
+                                ${subtasksHtml || '<span style="font-size:10px; color:rgba(255,255,255,0.4);">Нет подпунктов</span>'}
                             </div>
                         </div>
                     `;
                 }
 
-                cardsWrapper.appendChild(card);
+                grid.appendChild(card);
             });
-            container.appendChild(cardsWrapper);
+            container.appendChild(grid);
 
-            // Секция простых задач (строчки) со своим независимым скроллом
+            // Строчки с фиксированным аккуратным скроллом снизу
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px;';
             rowsHeader.innerHTML = `
@@ -724,16 +704,15 @@ export const UIRenderer = {
             container.appendChild(rowsHeader);
 
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 180px; overflow-y: auto; padding-right: 2px;';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 140px; overflow-y: auto; padding-right: 2px;';
 
             filteredRows.forEach(row => {
-                const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
                 rEl.style.cssText = 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;';
                 rEl.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                         <span style="font-size: 12px; color: #fff; font-weight: 500;">${row.title}</span>
-                        <span ${isEditMode ? `onclick="window.editBacklogRowDeadline(${row.id})"` : ''} style="font-size: 10px; color: ${dl.color}; font-weight: 600; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${dl.text}</span>
+                        <span ${isEditMode ? `onclick="window.editBacklogRowDeadline(${row.id})"` : ''} style="font-size: 9px; color: ${row.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${row.deadline}</span>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button onclick="window.rowToSprint('${row.title}')" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Спринт ↗</button>
