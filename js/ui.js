@@ -183,11 +183,57 @@ window.toggleSubtask = function(cardId, subId) {
         if (sub) {
             sub.done = !sub.done;
             const completedCount = card.subtasks.filter(s => s.done).length;
-            card.progress = Math.round((completedCount / card.subtasks.length) * 100);
+            card.progress = card.subtasks.length > 0 ? Math.round((completedCount / card.subtasks.length) * 100) : 0;
             saveBacklogItems();
             const container = document.querySelector('.main-container');
             if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
         }
+    }
+};
+
+window.addSubtaskToCard = function(cardId) {
+    const card = backlogCustomItems.find(c => c.id === cardId);
+    if (card) {
+        const text = prompt('Текст нового подпункта:');
+        if (text && text.trim()) {
+            card.subtasks.push({ id: Date.now(), text: text.trim(), done: false });
+            const completedCount = card.subtasks.filter(s => s.done).length;
+            card.progress = Math.round((completedCount / card.subtasks.length) * 100);
+            saveBacklogItems();
+            showToast('Подпункт добавлен');
+            const container = document.querySelector('.main-container');
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        }
+    }
+};
+
+window.editSubtask = function(cardId, subId) {
+    const card = backlogCustomItems.find(c => c.id === cardId);
+    if (card) {
+        const sub = card.subtasks.find(s => s.id === subId);
+        if (sub) {
+            const newText = prompt('Редактировать подпункт:', sub.text);
+            if (newText !== null && newText.trim()) {
+                sub.text = newText.trim();
+                saveBacklogItems();
+                showToast('Подпункт обновлен');
+                const container = document.querySelector('.main-container');
+                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+            }
+        }
+    }
+};
+
+window.deleteSubtask = function(cardId, subId) {
+    const card = backlogCustomItems.find(c => c.id === cardId);
+    if (card) {
+        card.subtasks = card.subtasks.filter(s => s.id !== subId);
+        const completedCount = card.subtasks.filter(s => s.done).length;
+        card.progress = card.subtasks.length > 0 ? Math.round((completedCount / card.subtasks.length) * 100) : 0;
+        saveBacklogItems();
+        showToast('Подпункт удален');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     }
 };
 
@@ -484,7 +530,7 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Чипсы растянуты во всю ширину контейнера, карточки и строчки прокручиваются внутри себя)
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -507,7 +553,6 @@ export const UIRenderer = {
                     urgentCount = backlogCustomItems.filter(i => i.category === cat && i.urgent).length + backlogRows.filter(r => r.category === cat && r.urgent).length;
                 }
 
-                // Чипсы растягиваются гармонично по ширине верхнего бара
                 chipWrap.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
                 
                 chipWrap.innerHTML = `
@@ -541,7 +586,6 @@ export const UIRenderer = {
             const filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             const filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
-            // Сетка карточек бэклога с внутренним скроллом для обратной стороны
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 14px;';
 
@@ -579,7 +623,7 @@ export const UIRenderer = {
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
                                 <span>${item.progress}%</span>
-                                <span style="color: rgba(255,255,255,0.3); font-size: 8px;">↺ клик</span>
+                                <span style="color: rgba(255,255,255,0.3); font-size: 8px;">↺ перевернуть</span>
                             </div>
                         </div>
                     `;
@@ -590,7 +634,13 @@ export const UIRenderer = {
                                 <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="window.toggleSubtask(${item.id}, ${sub.id})" style="accent-color: #10b981;" />
                                 <span style="${sub.done ? 'text-decoration: line-through; opacity: 0.5;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sub.text}</span>
                             </label>
-                            <button onclick="window.addSubtaskToSprint('${sub.text}')" title="В Спринт" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; font-size: 8px; padding: 2px 4px; border-radius: 4px; cursor: pointer; white-space: nowrap;">↗</button>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                ${isEditMode ? `
+                                    <span onclick="window.editSubtask(${item.id}, ${sub.id})" title="Изменить" style="font-size: 9px; cursor: pointer;">✏️</span>
+                                    <span onclick="window.deleteSubtask(${item.id}, ${sub.id})" title="Удалить" style="font-size: 10px; color: #f43f5e; font-weight: bold; cursor: pointer;">✕</span>
+                                ` : ''}
+                                <button onclick="window.addSubtaskToSprint('${sub.text}')" title="В Спринт" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; font-size: 8px; padding: 2px 4px; border-radius: 4px; cursor: pointer; white-space: nowrap;">↗</button>
+                            </div>
                         </div>
                     `).join('');
 
@@ -598,9 +648,12 @@ export const UIRenderer = {
                         <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 9px; color: #34d399; font-weight: 600;">Подпункты</span>
-                                <span style="font-size: 10px; color: rgba(255,255,255,0.5); cursor: pointer;" title="Назад">✕</span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    ${isEditMode ? `<button onclick="window.addSubtaskToCard(${item.id})" style="background:none; border:none; color:#34d399; font-size:10px; cursor:pointer;" title="Добавить подпункт">+ пп</button>` : ''}
+                                    <span onclick="window.flipBacklogCard(${item.id})" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;" title="Закрыть">✕</span>
+                                </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 70px; padding-right: 2px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 64px; padding-right: 2px;">
                                 ${subtasksHtml || '<span style="font-size:10px; color:rgba(255,255,255,0.4);">Нет подпунктов</span>'}
                             </div>
                             <div style="font-size: 8px; text-align: right; color: rgba(255,255,255,0.3);">↺ лицей</div>
@@ -612,7 +665,6 @@ export const UIRenderer = {
             });
             container.appendChild(grid);
 
-            // Секция простых задач со строчками и внутренним скроллом
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px;';
             rowsHeader.innerHTML = `
