@@ -288,8 +288,9 @@ window.editBacklogRowDeadline = function(id) {
 };
 
 window.addSubtaskToSprint = async function(subtext) {
+    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
-    saveSprintData();
+    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: subtext, text: '', todos: [], completed: false
     });
@@ -298,8 +299,9 @@ window.addSubtaskToSprint = async function(subtext) {
 };
 
 window.rowToSprint = async function(title) {
+    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: title, done: false });
-    saveSprintData();
+    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: title, text: '', todos: [], completed: false
     });
@@ -512,7 +514,6 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // Манифест и Born to Win строго для вкладки Library (feed)
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
@@ -587,8 +588,9 @@ export const UIRenderer = {
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
 
+            // Скрываем скроллбар в сетке карточек
             const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box;';
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
             grid.onscroll = handleScrollFade;
 
             filteredBacklog.forEach(item => {
@@ -647,8 +649,9 @@ export const UIRenderer = {
                         </div>
                     `).join('');
 
+                    // Исправление: выравнивание подпунктов с самого верха через justify-content: flex-start
                     card.innerHTML = `
-                        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; height: 100%; justify-content: flex-start; gap: 6px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 9px; color: #34d399; font-weight: 600;">Подпункты</span>
                                 <div style="display: flex; gap: 6px; align-items: center;">
@@ -656,7 +659,7 @@ export const UIRenderer = {
                                     <span onclick="window.flipBacklogCard(${item.id})" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;" title="Закрыть">✕</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 64px; padding-right: 2px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 80px; padding-right: 2px; scrollbar-width: none;">
                                 ${subtasksHtml || '<span style="font-size:10px; color:rgba(255,255,255,0.4);">Нет подпунктов</span>'}
                             </div>
                         </div>
@@ -676,8 +679,9 @@ export const UIRenderer = {
             `;
             container.appendChild(rowsHeader);
 
+            // Скрываем скроллбар в строчках
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box;';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
             rowsContainer.onscroll = handleScrollFade;
 
             filteredRows.forEach(row => {
@@ -751,7 +755,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. SPRINT (Приведен к единому матовому стилю карточек)
+        // 3. SPRINT
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -769,7 +773,6 @@ export const UIRenderer = {
 
             localSprintTasks.forEach(task => {
                 const tEl = document.createElement('div');
-                // Единый плотный матовый стиль карточек во вкладке Sprint
                 tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px 18px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
                 tEl.innerHTML = `
                     <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
@@ -881,7 +884,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. LIBRARY (Лента)
+        // 5. LIBRARY
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -929,7 +932,7 @@ export const UIRenderer = {
 
         setTimeout(() => {
             const viewport = document.querySelector('.scroll-viewport');
-            if (viewport) {
+            if, (viewport) {
                 viewport.scrollTop = viewport.scrollHeight;
             }
         }, 50);
@@ -981,6 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     AppState.currentTab = tabName;
                     
                     document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('user-tab');
                     btn.classList.add('active');
 
                     const container = document.querySelector('.main-container');
