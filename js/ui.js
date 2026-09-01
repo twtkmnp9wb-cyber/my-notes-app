@@ -20,11 +20,18 @@ let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
+// Расширенные карточки бэклога с подпунктами (subtasks) для обратной стороны
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
-    { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
-    { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
-    { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false },
-    { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false }
+    { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
+    { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
+    { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
+    { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
+];
+
+// Простые строчки в Бэклоге для быстрых задач
+let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
+    { id: 201, title: 'Купить батарейки', category: 'Life', deadline: 'Due today', urgent: true, done: false },
+    { id: 202, title: 'Послушать новый альбом', category: 'Music', deadline: 'Tomorrow', urgent: false, done: false }
 ];
 
 let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
@@ -49,6 +56,7 @@ function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.string
 function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
 function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
 function saveBacklogItems() { localStorage.setItem('app_backlog_custom_items', JSON.stringify(backlogCustomItems)); }
+function saveBacklogRows() { localStorage.setItem('app_backlog_rows', JSON.stringify(backlogRows)); }
 function saveManifestData() { localStorage.setItem('app_manifest_words', JSON.stringify(manifestWords)); }
 
 function showToast(message) {
@@ -160,6 +168,58 @@ window.toggleEditMode = function() {
     }
 };
 
+// Переворот карточки бэклога
+window.flipBacklogCard = function(id) {
+    const item = backlogCustomItems.find(i => i.id === id);
+    if (item) {
+        item.flipped = !item.flipped;
+        saveBacklogItems();
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+// Переключение подпункта на обратной стороне карточки бэклога
+window.toggleSubtask = function(cardId, subId) {
+    const card = backlogCustomItems.find(c => c.id === cardId);
+    if (card) {
+        const sub = card.subtasks.find(s => s.id === subId);
+        if (sub) {
+            sub.done = !sub.done;
+            // Пересчитываем прогресс
+            const completedCount = card.subtasks.filter(s => s.done).length;
+            card.progress = Math.round((completedCount / card.subtasks.length) * 100);
+            saveBacklogItems();
+            const container = document.querySelector('.main-container');
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        }
+    }
+};
+
+// Добавление подпункта в спринт с обратной стороны карточки
+window.addSubtaskToSprint = async function(subtext) {
+    localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
+    saveSprintData();
+    await AppState.addNote({
+        type: 'task', folder: 'sprint', title: subtext, text: '', todos: [], completed: false
+    });
+    showToast('🚀 Подпункт добавлен в Спринт!');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+// Добавление простой строчки в спринт
+window.rowToSprint = async function(title) {
+    localSprintTasks.push({ id: Date.now(), title: title, done: false });
+    saveSprintData();
+    await AppState.addNote({
+        type: 'task', folder: 'sprint', title: title, text: '', todos: [], completed: false
+    });
+    showToast('🚀 Задача добавлена в Спринт!');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
 window.editBacklogItem = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
@@ -179,6 +239,45 @@ window.deleteBacklogItem = function(id) {
     showToast('Плитка удалена');
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.editBacklogRow = function(id) {
+    const row = backlogRows.find(r => r.id === id);
+    if (!row) return;
+    const newTitle = prompt('Редактировать задачу:', row.title);
+    if (newTitle !== null && newTitle.trim()) {
+        row.title = newTitle.trim();
+        saveBacklogRows();
+        showToast('Задача обновлена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+window.deleteBacklogRow = function(id) {
+    backlogRows = backlogRows.filter(r => r.id !== id);
+    saveBacklogRows();
+    showToast('Задача удалена');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.addNewBacklogRow = function() {
+    const title = prompt('Название простой задачи:');
+    if (title && title.trim()) {
+        backlogRows.push({
+            id: Date.now(),
+            title: title.trim(),
+            category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
+            deadline: '3 days left',
+            urgent: false,
+            done: false
+        });
+        saveBacklogRows();
+        showToast('Задача добавлена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
 };
 
 window.editManifest = function(index) {
@@ -202,7 +301,9 @@ window.addNewBacklogItemModal = function() {
             category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
             deadline: '3 days left',
             progress: 0,
-            urgent: false
+            urgent: false,
+            flipped: false,
+            subtasks: [{ id: Date.now() + 1, text: 'Первый подпункт', done: false }]
         });
         saveBacklogItems();
         showToast('Плитка добавлена');
@@ -258,23 +359,6 @@ window.deleteSprintTask = function(id) {
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     showToast('Задача удалена из Спринта');
-};
-
-window.moveToSprint = async function(title) {
-    localSprintTasks.push({ id: Date.now(), title: title, done: false });
-    saveSprintData();
-    
-    await AppState.addNote({
-        type: 'task',
-        folder: 'sprint',
-        title: title,
-        text: '',
-        todos: [],
-        completed: false
-    });
-    showToast('🚀 Добавлено в Спринт!');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
 window.switchDumpSub = function(sub) {
@@ -405,10 +489,11 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ
+        // 1. БЭКЛОГ (Чипсы строго по ширине верхнего меню, индикаторы дедлайнов, карточки со сторонами, строчки)
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
+            // Ширина чипсов подстраивается под ширину контентного контейнера (~408px макс)
+            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; max-width: 440px; margin-left: auto; margin-right: auto; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
             const styleId = 'hideScrollbarStyle';
             if (!document.getElementById(styleId)) {
                 const s = document.createElement('style');
@@ -420,10 +505,20 @@ export const UIRenderer = {
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
                 const isActive = backlogFilterVal === cat;
+                
+                // Считаем горящие дедлайны для индикатора на чипсе
+                let urgentCount = 0;
+                if (cat === 'All') {
+                    urgentCount = backlogCustomItems.filter(i => i.urgent).length + backlogRows.filter(r => r.urgent).length;
+                } else {
+                    urgentCount = backlogCustomItems.filter(i => i.category === cat && i.urgent).length + backlogRows.filter(r => r.category === cat && r.urgent).length;
+                }
+
                 chipWrap.style.cssText = 'display: flex; align-items: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 4px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
                 
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
+                    ${urgentCount > intToSafeNum(0) ? `<span style="background: #f43f5e; color: #fff; font-size: 9px; padding: 0 5px; border-radius: 99px; margin-left: 4px; font-weight: bold;">${urgentCount}</span>` : ''}
                     ${isEditMode && cat !== 'All' ? `
                         <div style="display: flex; gap: 4px; margin-left: 6px; align-items: center;">
                             <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; cursor: pointer;">✏️</span>
@@ -450,44 +545,114 @@ export const UIRenderer = {
             container.appendChild(chipsContainer);
 
             const filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
+            const filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
+            // Сетка карточек
             const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;';
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; margin-bottom: 14px;';
 
             filteredBacklog.forEach(item => {
                 const card = document.createElement('div');
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
-                    display: flex; flex-direction: column; justify-content: space-between; height: 130px; position: relative;
+                    display: flex; flex-direction: column; justify-content: space-between; height: 130px; position: relative; cursor: pointer;
                 `;
-                card.innerHTML = `
-                    <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
-                            <div style="display: flex; gap: 6px; align-items: center;">
-                                <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
-                                ${isEditMode ? `
-                                    <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
-                                    <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
-                                ` : ''}
+                
+                // Клик по карточке переворачивает её
+                card.onclick = (e) => {
+                    if (e.target.closest('button') || e.target.closest('span') || e.target.tagName === 'INPUT') return;
+                    window.flipBacklogCard(item.id);
+                };
+
+                if (!item.flipped) {
+                    // Лицевая сторона карточки (без кнопки "В Спринт")
+                    card.innerHTML = `
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
+                                    ${isEditMode ? `
+                                        <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
+                                        <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
+                                <div style="background: rgba(255,255,255,0.7); height: 100%; width: ${item.progress}%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
+                                <span>${item.progress}%</span>
+                                <span style="color: rgba(255,255,255,0.4); font-style: italic;">Нажмите для подпунктов ↺</span>
                             </div>
                         </div>
-                        <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <div style="width: 100%; background: rgba(255,255,255,0.1); height: 4px; border-radius: 99px; overflow: hidden;">
-                            <div style="background: rgba(255,255,255,0.7); height: 100%; width: ${item.progress}%;"></div>
+                    `;
+                } else {
+                    // Обратная сторона карточки (с подпунктами и кнопками добавления в спринт)
+                    let subtasksHtml = (item.subtasks || []).map(sub => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; flex: 1;">
+                                <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="window.toggleSubtask(${item.id}, ${sub.id})" style="accent-color: #10b981;" />
+                                <span style="${sub.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${sub.text}</span>
+                            </label>
+                            <button onclick="window.addSubtaskToSprint('${sub.text}')" title="Добавить этот подпункт в Спринт" style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; font-size: 9px; padding: 2px 6px; border-radius: 6px; cursor: pointer;">В Спринт ↗</button>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: rgba(255,255,255,0.5);">
-                            <span>${item.progress}%</span>
-                            <span onclick="window.moveToSprint('${item.title}')" style="color: #6ee7b7; font-weight: 500; cursor: pointer; padding: 2px 4px;">В Спринт ↗</span>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 9px; color: #34d399; font-weight: 600;">Подпункты задачи</span>
+                                <span style="font-size: 10px; color: rgba(255,255,255,0.5); cursor: pointer;" title="Назад">✕</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 70px;">
+                                ${subtasksHtml || '<span style="font-size:10px; color:rgba(255,255,255,0.4);">Нет подпунктов</span>'}
+                            </div>
+                            <div style="font-size: 9px; text-align: right; color: rgba(255,255,255,0.4); font-style: italic;">Лицевая сторона ↺</div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
+
                 grid.appendChild(card);
             });
             container.appendChild(grid);
+
+            // Секция со строчками для простых задач в Бэклоге
+            const rowsHeader = document.createElement('div');
+            rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px;';
+            rowsHeader.innerHTML = `
+                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5);">Простые задачи (строчки)</span>
+                <button onclick="window.addNewBacklogRow()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 8px; cursor: pointer;">+ Строчка</button>
+            `;
+            container.appendChild(rowsHeader);
+
+            const rowsContainer = document.createElement('div');
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%;';
+
+            filteredRows.forEach(row => {
+                const rEl = document.createElement('div');
+                rEl.style.cssText = 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;';
+                rEl.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <span style="font-size: 12px; color: #fff; font-weight: 500;">${row.title}</span>
+                        <span style="font-size: 9px; color: ${row.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${row.deadline}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button onclick="window.rowToSprint('${row.title}')" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Спринт ↗</button>
+                        ${isEditMode ? `
+                            <button onclick="window.editBacklogRow(${row.id})" style="background:none; border:none; cursor:pointer; font-size:10px;">✏️</button>
+                            <button onclick="window.deleteBacklogRow(${row.id})" style="background:none; border:none; color:#f43f5e; cursor:pointer; font-size:11px; font-weight:bold;">✕</button>
+                        ` : ''}
+                    </div>
+                `;
+                rowsContainer.appendChild(rEl);
+            });
+            container.appendChild(rowsContainer);
+
             return;
         }
 
@@ -742,6 +907,10 @@ export const UIRenderer = {
 
 function datasetIdSafely(el) {
     return el.dataset.id;
+}
+
+function intToSafeNum(n) {
+    return Number(n) || 0;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
