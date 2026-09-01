@@ -4,14 +4,12 @@ let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 
-// Хранилище для Roadmap с сохранением в localStorage
 let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
     { id: 1, text: 'Закрыть семестр без хвостов', done: false },
     { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
     { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
 ];
 
-// Хранилище для Спринта с сохранением в localStorage
 let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
     { id: 101, title: 'Изучить главу 7', done: false },
     { id: 102, title: 'Собрать референсы', done: false },
@@ -21,8 +19,19 @@ let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
+// Сохраняемые карточки Бэклога
+let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
+    { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
+    { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
+    { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false },
+    { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false }
+];
+
+// Манифест сезона
+let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
+
 let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
-    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }, { title: 'Проблема с рендерингом', text: 'Память забивается на 98%.' }] },
+    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }] },
     day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
     day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку', text: 'Эмбиент на 5 минут.' }] }
 };
@@ -36,21 +45,12 @@ function getInitialDumpDay() {
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
 
-function saveRoadmapData() {
-    localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals));
-}
-
-function saveSprintData() {
-    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
-}
-
-function saveDumpData() {
-    localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays));
-}
-
-function saveCategoriesData() {
-    localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories));
-}
+function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
+function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
+function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
+function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
+function saveBacklogItems() { localStorage.setItem('app_backlog_custom_items', JSON.stringify(backlogCustomItems)); }
+function saveManifestData() { localStorage.setItem('app_manifest_words', JSON.stringify(manifestWords)); }
 
 function showToast(message) {
     let existingToast = document.getElementById('appToastNotification');
@@ -152,7 +152,62 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Глобальные методы управления Roadmap и Спринтом
+// Редактирование и удаление карточек в Бэклоге
+window.editBacklogItem = function(id) {
+    const item = backlogCustomItems.find(i => i.id === id);
+    if (!item) return;
+    const newTitle = prompt('Редактировать название плитки:', item.title);
+    if (newTitle !== null && newTitle.trim()) {
+        item.title = newTitle.trim();
+        saveBacklogItems();
+        showToast('Плитка обновлена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+window.deleteBacklogItem = function(id) {
+    if (confirm('Удалить эту плитку из Бэклога?')) {
+        backlogCustomItems = backlogCustomItems.filter(i => i.id !== id);
+        saveBacklogItems();
+        showToast('Плитка удалена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+// Редактирование Манифеста
+window.editManifest = function(index) {
+    const currentWord = manifestWords[index] || '';
+    const newWord = prompt('Изменить тег манифеста:', currentWord);
+    if (newWord !== null && newWord.trim()) {
+        manifestWords[index] = newWord.trim().replace(/^#/, '');
+        saveManifestData();
+        showToast('Манифест обновлен');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+// Добавление новой плитки в бэклог через плюс
+window.addNewBacklogItemModal = function() {
+    const title = prompt('Название новой плитки в Бэклог:');
+    if (title && title.trim()) {
+        backlogCustomItems.push({
+            id: Date.now(),
+            title: title.trim(),
+            category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
+            deadline: '3 days left',
+            progress: 0,
+            urgent: false
+        });
+        saveBacklogItems();
+        showToast('Плитка добавлена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
 window.toggleGoal = function(id) {
     const goal = localRoadmapGoals.find(g => g.id === id);
     if (goal) {
@@ -306,12 +361,23 @@ export const UIRenderer = {
         initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
 
+        // Манифест сезона с возможностью редактирования тегов
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
             if (AppState.currentTab === 'feed') {
                 manifestEl.style.display = 'block';
                 bornToWinEl.style.display = 'block';
+                manifestEl.innerHTML = `
+                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
+                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона (нажмите чтобы изменить)</span>
+                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
+                            ${manifestWords.map((word, i) => `
+                                <span onclick="window.editManifest(${i})" style="font-style: italic; color: #34d399; cursor: pointer;" title="Редактировать тег">#${word}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             } else {
                 manifestEl.style.display = 'none';
                 bornToWinEl.style.display = 'none';
@@ -320,10 +386,18 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ
+        // 1. БЭКЛОГ (Чипсы с невидимым скроллом, аккуратные иконки, редактирование карточек)
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px;';
+            // Скрываем скроллбар для чипсов через CSS свойства
+            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
+            const styleId = 'hideScrollbarStyle';
+            if (!document.getElementById(styleId)) {
+                const s = document.createElement('style');
+                s.id = styleId;
+                s.textContent = '::-webkit-scrollbar { display: none; }';
+                document.head.appendChild(s);
+            }
             
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
@@ -333,12 +407,14 @@ export const UIRenderer = {
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
                     ${cat !== 'All' ? `
-                        <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; margin-left: 4px; color: ${isActive ? '#555' : 'rgba(255,255,255,0.5)'};">✏️</span>
-                        <span onclick="window.deleteCategory('${cat}')" title="Удалить" style="font-size: 10px; margin-left: 2px; color: ${isActive ? '#e11d48' : '#f43f5e'}; font-weight: bold;">✕</span>
+                        <div style="display: flex; gap: 4px; margin-left: 6px; align-items: center;">
+                            <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; opacity: 0.7; cursor: pointer; padding: 2px;">✏️</span>
+                            <span onclick="window.deleteCategory('${cat}')" title="Удалить" style="font-size: 10px; color: ${isActive ? '#e11d48' : '#f43f5e'}; font-weight: bold; cursor: pointer; padding: 2px;">✕</span>
+                        </div>
                     ` : ''}
                 `;
                 chipWrap.onclick = (e) => {
-                    if (e.target.tagName === 'SPAN' && (e.target.textContent === '✏️' || e.target.textContent === '✕')) return;
+                    if (e.target.tagName === 'SPAN' && (e.target.title === 'Изменить' || e.target.title === 'Удалить')) return;
                     backlogFilterVal = cat;
                     UIRenderer.renderList(container, notes, handlers);
                 };
@@ -353,13 +429,7 @@ export const UIRenderer = {
 
             container.appendChild(chipsContainer);
 
-            const backlogItems = [
-                { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
-                { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
-                { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false },
-                { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false }
-            ];
-            const filteredBacklog = backlogFilterVal === 'All' ? backlogItems : backlogItems.filter(i => i.category === backlogFilterVal);
+            const filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
 
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;';
@@ -369,13 +439,16 @@ export const UIRenderer = {
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
-                    display: flex; flex-direction: column; justify-content: space-between; height: 130px;
+                    display: flex; flex-direction: column; justify-content: space-between; height: 130px; position: relative;
                 `;
                 card.innerHTML = `
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
-                            <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer; opacity: 0.6;">✏️</span>
+                                <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
+                            </div>
                         </div>
                         <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
                     </div>
@@ -395,7 +468,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP (Сохраняется в localStorage)
+        // 2. ROADMAP
         if (tab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
@@ -439,7 +512,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ (Сохраняется в localStorage)
+        // 3. СПРИНТ
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -568,7 +641,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. ЛЕНТА
+        // 5. ЛЕНТА (С автоскроллом в самый низ и возможностью редактирования постов)
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -583,7 +656,7 @@ export const UIRenderer = {
             card.style.cssText = 'cursor: pointer; width: 100%;';
 
             card.onclick = (e) => {
-                if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img')) return;
+                if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img') || e.target.closest('.edit-post-btn')) return;
                 if (handlers.onEditNote) handlers.onEditNote(note);
             };
 
@@ -599,7 +672,10 @@ export const UIRenderer = {
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                     <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
-                    <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="edit-post-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px;" title="Редактировать пост">✏️</button>
+                        <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
+                    </div>
                 </div>
                 <p>${note.text || ''}</p>
                 ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; font-size: 11px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
@@ -609,11 +685,30 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
+        // Автоматический скролл ленты в самый низ (к последнему посту)
+        setTimeout(() => {
+            const viewport = document.querySelector('.scroll-viewport');
+            if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
+            }
+        }, 50);
+
         container.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
                 const id = Number(btn.dataset.id);
                 if (handlers.onDelete) handlers.onDelete(id);
+            };
+        });
+
+        container.querySelectorAll('.edit-post-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const id = Number(btn.dataset.id);
+                const note = notes.find(n => n.id === id);
+                if (note && handlers.onEditNote) {
+                    handlers.onEditNote(note);
+                }
             };
         });
     }
