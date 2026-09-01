@@ -49,7 +49,6 @@ function getInitialDumpDay() {
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
 
-// Функция для расчета дедлайнов (сортировка: срочные сверху, без срока — внизу)
 function calculateDeadlineInfo(dateStr) {
     if (!dateStr || !dateStr.trim()) return { text: 'No deadline', color: 'rgba(255,255,255,0.4)', urgent: false, sortVal: 999999 };
     const today = new Date();
@@ -69,6 +68,37 @@ function calculateDeadlineInfo(dateStr) {
     } else {
         return { text: `${diffDays} days left`, color: '#ffffff', urgent: false, sortVal: diffDays };
     }
+}
+
+// Динамическое обновление маски размытия в зависимости от позиции скролла
+function handleScrollFade(e) {
+    const el = e.target;
+    const scrollTop = el.scrollTop;
+    const scrollHeight = el.scrollHeight;
+    const clientHeight = el.clientHeight;
+
+    if (scrollHeight <= clientHeight) {
+        el.style.maskImage = 'none';
+        el.style.webkitMaskImage = 'none';
+        return;
+    }
+
+    let topFade = scrollTop > 10;
+    let bottomFade = scrollTop + clientHeight < scrollHeight - 10;
+
+    let maskVal = '';
+    if (topFade && bottomFade) {
+        maskVal = 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)';
+    } else if (topFade) {
+        maskVal = 'linear-gradient(to bottom, transparent 0%, black 15%, black 100%)';
+    } else if (bottomFade) {
+        maskVal = 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)';
+    } else {
+        maskVal = 'none';
+    }
+
+    el.style.maskImage = maskVal;
+    el.style.webkitMaskImage = maskVal;
 }
 
 function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
@@ -262,7 +292,7 @@ window.deleteSubtask = function(cardId, subId) {
 window.editBacklogDeadline = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
-    const newDate = prompt('Введите дату дедлайна (ГГГГ-ММ-ДД или оставьте пустым):', item.dueDate || '');
+    const newDate = prompt('Введите дату дедлайна (ГГГГ-ММ-ДД или пусто для No deadline):', item.dueDate || '');
     if (newDate !== null) {
         item.dueDate = newDate.trim();
         saveBacklogItems();
@@ -275,7 +305,7 @@ window.editBacklogDeadline = function(id) {
 window.editBacklogRowDeadline = function(id) {
     const row = backlogRows.find(r => r.id === id);
     if (!row) return;
-    const newDate = prompt('Введите дату дедлайна (ГГГГ-ММ-ДД или оставьте пустым):', row.dueDate || '');
+    const newDate = prompt('Введите дату дедлайна (ГГГГ-ММ-ДД или пусто для No deadline):', row.dueDate || '');
     if (newDate !== null) {
         row.dueDate = newDate.trim();
         saveBacklogRows();
@@ -575,7 +605,7 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Сетка 2 колонки, растянутые контейнеры до уровня футера, сортировка, градиентное размытие)
+        // 1. БЭКЛОГ (Единый плотный матовый стиль для карточек и строчек, сортировка, динамическое размытие и сетка в 2 колонки)
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -631,17 +661,19 @@ export const UIRenderer = {
             let filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             let filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
-            // Сортировка по дедлайнам
+            // Сортировка по дедлайнам (срочные вверху, без срока — внизу)
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
 
-            // Сетка карточек в 2 колонки с градиентным размытием и высотой до футера
+            // Сетка карточек в 2 колонки (высота увеличена до футера, маска включена)
             const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 320px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);';
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box;';
+            grid.onscroll = handleScrollFade;
 
             filteredBacklog.forEach(item => {
                 const dl = calculateDeadlineInfo(item.dueDate);
                 const card = document.createElement('div');
+                // Единый плотный матовый стиль (Liquid Glass) для карточек
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
@@ -714,8 +746,9 @@ export const UIRenderer = {
                 grid.appendChild(card);
             });
             container.appendChild(grid);
+            setTimeout(() => { grid.onscroll({ target: grid }); }, 10);
 
-            // Секция строчек с единым плотным стилем карточек, градиентным размытием и высотой до футера
+            // Секция строчек с тем же единым плотным матовым стилем карточек
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px; width: 100%;';
             rowsHeader.innerHTML = `
@@ -725,13 +758,14 @@ export const UIRenderer = {
             container.appendChild(rowsHeader);
 
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 200px; overflow-y: auto; padding-right: 2px; box-sizing: border-box; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box;';
+            rowsContainer.onscroll = handleScrollFade;
 
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
-                // Единый плотный стиль карточки (Liquid Glass без лишней прозрачности)
-                rEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 12px 16px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
+                // Строчки теперь имеют абсолютно такой же плотный матовый стиль, как и карточки!
+                rEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 12px 16px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
                 rEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                         <span style="font-size: 13px; color: #fff; font-weight: 500;">${row.title}</span>
@@ -748,6 +782,7 @@ export const UIRenderer = {
                 rowsContainer.appendChild(rEl);
             });
             container.appendChild(rowsContainer);
+            setTimeout(() => { rowsContainer.onscroll({ target: rowsContainer }); }, 10);
 
             return;
         }
@@ -927,7 +962,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. LIBRARY (Лента переименована в Library)
+        // 5. LIBRARY (Лента)
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -1006,7 +1041,6 @@ function datasetIdSafely(el) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Меняем текст кнопки Лента на Library прямо в DOM
     const feedBtn = document.querySelector('.menu-btn[data-tab="feed"]');
     if (feedBtn) feedBtn.textContent = 'Library';
 
