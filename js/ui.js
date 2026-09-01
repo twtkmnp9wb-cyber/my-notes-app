@@ -3,6 +3,7 @@ import { AppState } from './state.js';
 let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
+let isEditMode = false; // Глобальный переключатель режима редактирования
 
 let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
     { id: 1, text: 'Закрыть семестр без хвостов', done: false },
@@ -19,7 +20,6 @@ let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
-// Сохраняемые карточки Бэклога
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
     { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true },
     { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false },
@@ -27,7 +27,6 @@ let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_ite
     { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false }
 ];
 
-// Манифест сезона
 let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
 
 let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
@@ -152,11 +151,20 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Редактирование и удаление карточек в Бэклоге
+// Управление режимом редактирования через кнопку рядом с плюсом
+window.toggleEditMode = function() {
+    isEditMode = !isEditMode;
+    showToast(isEditMode ? '✏️ Режим редактирования включен' : '🔒 Режим блокировки');
+    const container = document.querySelector('.main-container');
+    if (container && window.currentHandlers) {
+        UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
 window.editBacklogItem = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
-    const newTitle = prompt('Редактировать название плитки:', item.title);
+    const newTitle = prompt('Редактировать плитку:', item.title);
     if (newTitle !== null && newTitle.trim()) {
         item.title = newTitle.trim();
         saveBacklogItems();
@@ -167,16 +175,13 @@ window.editBacklogItem = function(id) {
 };
 
 window.deleteBacklogItem = function(id) {
-    if (confirm('Удалить эту плитку из Бэклога?')) {
-        backlogCustomItems = backlogCustomItems.filter(i => i.id !== id);
-        saveBacklogItems();
-        showToast('Плитка удалена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
+    backlogCustomItems = backlogCustomItems.filter(i => i.id !== id);
+    saveBacklogItems();
+    showToast('Плитка удалена');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
-// Редактирование Манифеста
 window.editManifest = function(index) {
     const currentWord = manifestWords[index] || '';
     const newWord = prompt('Изменить тег манифеста:', currentWord);
@@ -189,7 +194,6 @@ window.editManifest = function(index) {
     }
 };
 
-// Добавление новой плитки в бэклог через плюс
 window.addNewBacklogItemModal = function() {
     const title = prompt('Название новой плитки в Бэклог:');
     if (title && title.trim()) {
@@ -361,7 +365,24 @@ export const UIRenderer = {
         initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
 
-        // Манифест сезона с возможностью редактирования тегов
+        // Добавляем аккуратную кнопку режима редактирования рядом с футером (или в манифест)
+        let editToggleFooter = document.getElementById('globalEditModeBtn');
+        if (!editToggleFooter) {
+            const footerContainer = document.querySelector('.footer-container');
+            if (footerContainer) {
+                editToggleFooter = document.createElement('button');
+                editToggleFooter.id = 'globalEditModeBtn';
+                editToggleFooter.className = 'action-btn';
+                editToggleFooter.title = 'Режим редактирования';
+                editToggleFooter.innerHTML = '⚙️';
+                editToggleFooter.onclick = () => window.toggleEditMode();
+                footerContainer.insertBefore(editToggleFooter, footerContainer.firstChild);
+            }
+        }
+        if (editToggleFooter) {
+            editToggleFooter.style.background = isEditMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.12)';
+        }
+
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
@@ -370,10 +391,10 @@ export const UIRenderer = {
                 bornToWinEl.style.display = 'block';
                 manifestEl.innerHTML = `
                     <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
-                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона (нажмите чтобы изменить)</span>
+                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона ${isEditMode ? '(кликните для изменения)' : ''}</span>
                         <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
                             ${manifestWords.map((word, i) => `
-                                <span onclick="window.editManifest(${i})" style="font-style: italic; color: #34d399; cursor: pointer;" title="Редактировать тег">#${word}</span>
+                                <span ${isEditMode ? `onclick="window.editManifest(${i})"` : ''} style="font-style: italic; color: #34d399; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить тег' : ''}">#${word}</span>
                             `).join('')}
                         </div>
                     </div>
@@ -386,10 +407,9 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Чипсы с невидимым скроллом, аккуратные иконки, редактирование карточек)
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            // Скрываем скроллбар для чипсов через CSS свойства
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
             const styleId = 'hideScrollbarStyle';
             if (!document.getElementById(styleId)) {
@@ -406,10 +426,10 @@ export const UIRenderer = {
                 
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
-                    ${cat !== 'All' ? `
+                    ${isEditMode && cat !== 'All' ? `
                         <div style="display: flex; gap: 4px; margin-left: 6px; align-items: center;">
-                            <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; opacity: 0.7; cursor: pointer; padding: 2px;">✏️</span>
-                            <span onclick="window.deleteCategory('${cat}')" title="Удалить" style="font-size: 10px; color: ${isActive ? '#e11d48' : '#f43f5e'}; font-weight: bold; cursor: pointer; padding: 2px;">✕</span>
+                            <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; cursor: pointer;">✏️</span>
+                            <span onclick="window.deleteCategory('${cat}')" title="Удалить" style="font-size: 10px; color: #f43f5e; font-weight: bold; cursor: pointer;">✕</span>
                         </div>
                     ` : ''}
                 `;
@@ -421,11 +441,13 @@ export const UIRenderer = {
                 chipsContainer.appendChild(chipWrap);
             });
 
-            const addChipBtn = document.createElement('button');
-            addChipBtn.textContent = '+ Категория';
-            addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 9999px; font-size: 11px; cursor: pointer; white-space: nowrap;';
-            addChipBtn.onclick = () => window.addNewCategory();
-            chipsContainer.appendChild(addChipBtn);
+            if (isEditMode) {
+                const addChipBtn = document.createElement('button');
+                addChipBtn.textContent = '+ Категория';
+                addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 9999px; font-size: 11px; cursor: pointer; white-space: nowrap;';
+                addChipBtn.onclick = () => window.addNewCategory();
+                chipsContainer.appendChild(addChipBtn);
+            }
 
             container.appendChild(chipsContainer);
 
@@ -445,10 +467,12 @@ export const UIRenderer = {
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
-                            <div style="display: flex; gap: 6px; align-items: center;">
-                                <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer; opacity: 0.6;">✏️</span>
-                                <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
-                            </div>
+                            ${isEditMode ? `
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
+                                    <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
+                                </div>
+                            ` : ''}
                         </div>
                         <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
                     </div>
@@ -477,8 +501,10 @@ export const UIRenderer = {
                 <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
                     <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="window.editGoal(${g.id})" title="Редактировать" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
-                        <button onclick="window.deleteGoal(${g.id})" title="Удалить цель" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
+                        ${isEditMode ? `
+                            <button onclick="window.editGoal(${g.id})" title="Редактировать" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
+                            <button onclick="window.deleteGoal(${g.id})" title="Удалить цель" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
+                        ` : ''}
                         <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
                     </div>
                 </div>
@@ -534,7 +560,7 @@ export const UIRenderer = {
                 tEl.innerHTML = `
                     <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="window.deleteSprintTask(${task.id})" title="Удалить задачу" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
+                        ${isEditMode ? `<button onclick="window.deleteSprintTask(${task.id})" title="Удалить задачу" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>` : ''}
                         <button onclick="window.toggleSprintTask(${task.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${task.done ? '#f43f5e' : 'transparent'}; cursor:pointer;"></button>
                     </div>
                 `;
@@ -570,7 +596,7 @@ export const UIRenderer = {
                             <span style="font-weight: 500; color: #fff;">${noteObj.title}</span>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <button onclick="event.stopPropagation(); window.rescueDumpNote('${activeDumpDay}', ${idx})" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Ленту ↗</button>
-                                <button onclick="event.stopPropagation(); window.deleteDumpNote('${activeDumpDay}', ${idx})" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:12px; padding: 0 4px;" title="Удалить">✕</button>
+                                ${isEditMode ? `<button onclick="event.stopPropagation(); window.deleteDumpNote('${activeDumpDay}', ${idx})" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:12px; padding: 0 4px;" title="Удалить">✕</button>` : ''}
                                 <span style="font-size: 10px; color: rgba(255,255,255,0.5);">${isExpanded ? '▲' : '▼'}</span>
                             </div>
                         </div>
@@ -641,7 +667,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. ЛЕНТА (С автоскроллом в самый низ и возможностью редактирования постов)
+        // 5. ЛЕНТА (С автоскроллом в низ)
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -653,7 +679,7 @@ export const UIRenderer = {
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'cursor: pointer; width: 100%;';
+            card.style.cssText = 'cursor: pointer; width: 100%; position: relative;';
 
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img') || e.target.closest('.edit-post-btn')) return;
@@ -673,8 +699,10 @@ export const UIRenderer = {
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                     <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button class="edit-post-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px;" title="Редактировать пост">✏️</button>
-                        <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px;">✕</button>
+                        ${isEditMode ? `
+                            <button class="edit-post-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px;" title="Редактировать пост">✏️</button>
+                            <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(244,63,94,0.8); cursor: pointer; font-size: 16px;">✕</button>
+                        ` : ''}
                     </div>
                 </div>
                 <p>${note.text || ''}</p>
@@ -685,7 +713,7 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
-        // Автоматический скролл ленты в самый низ (к последнему посту)
+        // Автоскролл в низ ленты
         setTimeout(() => {
             const viewport = document.querySelector('.scroll-viewport');
             if (viewport) {
@@ -728,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalClick = btn.onclick;
             btn.onclick = (e) => {
                 const tabName = btn.getAttribute('data-tab');
-                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabName === 'backlog' || tabName === 'feed') {
+                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabname === 'backlog' || tabName === 'feed') {
                     e.stopImmediatePropagation();
                     AppState.currentTab = tabName;
                     
