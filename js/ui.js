@@ -3,7 +3,7 @@ import { AppState } from './state.js';
 let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
-let isEditMode = false; // Глобальный переключатель режима редактирования
+let isEditMode = false;
 
 let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
     { id: 1, text: 'Закрыть семестр без хвостов', done: false },
@@ -151,7 +151,6 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Управление режимом редактирования через кнопку рядом с плюсом
 window.toggleEditMode = function() {
     isEditMode = !isEditMode;
     showToast(isEditMode ? '✏️ Режим редактирования включен' : '🔒 Режим блокировки');
@@ -365,7 +364,6 @@ export const UIRenderer = {
         initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
 
-        // Добавляем аккуратную кнопку режима редактирования рядом с футером (или в манифест)
         let editToggleFooter = document.getElementById('globalEditModeBtn');
         if (!editToggleFooter) {
             const footerContainer = document.querySelector('.footer-container');
@@ -467,12 +465,13 @@ export const UIRenderer = {
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
-                            ${isEditMode ? `
-                                <div style="display: flex; gap: 6px; align-items: center;">
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
+                                ${isEditMode ? `
                                     <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
                                     <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
-                                </div>
-                            ` : ''}
+                                ` : ''}
+                            </div>
                         </div>
                         <h4 style="margin: 0; font-size: 13px; color: #fff; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.title}</h4>
                     </div>
@@ -667,7 +666,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. ЛЕНТА (С автоскроллом в низ)
+        // 5. ЛЕНТА
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -713,7 +712,6 @@ export const UIRenderer = {
             container.appendChild(card);
         });
 
-        // Автоскролл в низ ленты
         setTimeout(() => {
             const viewport = document.querySelector('.scroll-viewport');
             if (viewport) {
@@ -724,7 +722,7 @@ export const UIRenderer = {
         container.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
-                const id = Number(btn.dataset.id);
+                const id = Number(datasetIdSafely(btn));
                 if (handlers.onDelete) handlers.onDelete(id);
             };
         });
@@ -732,7 +730,7 @@ export const UIRenderer = {
         container.querySelectorAll('.edit-post-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
-                const id = Number(btn.dataset.id);
+                const id = Number(datasetIdSafely(btn));
                 const note = notes.find(n => n.id === id);
                 if (note && handlers.onEditNote) {
                     handlers.onEditNote(note);
@@ -741,6 +739,10 @@ export const UIRenderer = {
         });
     }
 };
+
+function datasetIdSafely(el) {
+    return el.dataset.id;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const searchToggleBtn = document.getElementById('searchToggleBtn');
@@ -756,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalClick = btn.onclick;
             btn.onclick = (e) => {
                 const tabName = btn.getAttribute('data-tab');
-                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabname === 'backlog' || tabName === 'feed') {
+                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabName === 'backlog' || tabName === 'feed') {
                     e.stopImmediatePropagation();
                     AppState.currentTab = tabName;
                     
