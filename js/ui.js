@@ -288,9 +288,8 @@ window.editBacklogRowDeadline = function(id) {
 };
 
 window.addSubtaskToSprint = async function(subtext) {
-    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
-    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
+    saveSprintData();
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: subtext, text: '', todos: [], completed: false
     });
@@ -299,9 +298,8 @@ window.addSubtaskToSprint = async function(subtext) {
 };
 
 window.rowToSprint = async function(title) {
-    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: title, done: false });
-    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
+    saveSprintData();
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: title, text: '', todos: [], completed: false
     });
@@ -404,6 +402,35 @@ window.deleteCategory = function(cat) {
     }
 };
 
+// Глобальные методы для Dump
+window.switchDumpSub = function(sub) {
+    dumpSubTab = sub;
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+window.switchDumpDay = function(day) {
+    activeDumpDay = day;
+    expandedDumpNoteIndex = null;
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+window.toggleDumpNoteExpand = function(idx) {
+    expandedDumpNoteIndex = expandedDumpNoteIndex === idx ? null : idx;
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+window.rescueDumpNote = async function(day, idx) {
+    const noteObj = localDumpDays[day].notes[idx];
+    await AppState.addNote({ type: 'feed', title: noteObj.title, text: noteObj.text || '' });
+    localDumpDays[day].notes.splice(idx, 1);
+    saveDumpData();
+    showToast('✨ Спасено в Ленту!');
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+window.deleteDumpNote = function(day, idx) {
+    localDumpDays[day].notes.splice(idx, 1);
+    saveDumpData();
+    showToast('Заметка удалена');
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+
 // Глобальные методы для Roadmap
 window.toggleGoal = function(id) {
     const goal = localRoadmapGoals.find(g => g.id === id);
@@ -447,6 +474,18 @@ window.deleteSprintTask = function(id) {
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
+// Редактирование манифеста
+window.editManifest = function(index) {
+    const currentWord = manifestWords[index] || '';
+    const newWord = prompt('Изменить тег манифеста:', currentWord);
+    if (newWord !== null && newWord.trim()) {
+        manifestWords[index] = newWord.trim().replace(/^#/, '');
+        saveManifestData();
+        showToast('Манифест обновлен');
+        if (window.renderCurrentTab) window.renderCurrentTab();
+    }
+};
+
 export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
@@ -473,7 +512,7 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // Управляем видимостью Манифеста и заголовка Born to Win (только для вкладки feed/Library)
+        // Манифест и Born to Win строго для вкладки Library (feed)
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
@@ -496,7 +535,7 @@ export const UIRenderer = {
             }
         }
 
-        // 1. БЭКЛОГ
+        // 1. BACKLOG
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -712,13 +751,13 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ
+        // 3. SPRINT (Приведен к единому матовому стилю карточек)
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
             const headerCard = document.createElement('div');
-            headerCard.style.cssText = 'background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 24px; padding: 16px; text-align: center;';
+            headerCard.style.cssText = 'background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 24px; padding: 16px; text-align: center; backdrop-filter: blur(16px);';
             headerCard.innerHTML = `
                 <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #fda4af; display: block; margin-bottom: 2px;">Зона экстрима на сегодня</span>
                 <h3 style="margin: 0; font-size: 14px; color: #fff; font-weight: 600;">Спринт</h3>
@@ -730,7 +769,8 @@ export const UIRenderer = {
 
             localSprintTasks.forEach(task => {
                 const tEl = document.createElement('div');
-                tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;';
+                // Единый плотный матовый стиль карточек во вкладке Sprint
+                tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px 18px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
                 tEl.innerHTML = `
                     <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -922,4 +962,35 @@ function datasetIdSafely(el) {
 document.addEventListener('DOMContentLoaded', () => {
     const feedBtn = document.querySelector('.menu-btn[data-tab="feed"]');
     if (feedBtn) feedBtn.textContent = 'Library';
+
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    searchToggleBtn?.addEventListener('click', () => {
+        isSearchOpen = !isSearchOpen;
+        initTelegramSearchBar(window.currentHandlers);
+        const viewport = document.querySelector('.scroll-viewport');
+        if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '65px';
+    });
+
+    setTimeout(() => {
+        document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
+            const originalClick = btn.onclick;
+            btn.onclick = (e) => {
+                const tabName = btn.getAttribute('data-tab');
+                if (tabName === 'roadmap' || tabName === 'dump' || tabName === 'livedump' || tabName === 'sprint' || tabName === 'backlog' || tabName === 'feed') {
+                    e.stopImmediatePropagation();
+                    AppState.currentTab = tabName;
+                    
+                    document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const container = document.querySelector('.main-container');
+                    if (container && window.currentHandlers) {
+                        UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+                    }
+                } else if (originalClick) {
+                    originalClick(e.target);
+                }
+            };
+        });
+    }, 300);
 });
