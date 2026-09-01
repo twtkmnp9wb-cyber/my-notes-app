@@ -3,33 +3,35 @@ import { AppState } from './state.js';
 let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
-let activeDumpDay = 'day1'; 
 
-const localAppData = {
-    roadmap: [
-        { id: 1, text: 'Закрыть семестр без хвостов', done: false },
-        { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
-        { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
-    ],
-    sprint: [
-        { id: 101, title: 'Изучить главу 7', done: false },
-        { id: 102, title: 'Собрать референсы', done: false },
-        { id: 103, title: 'Запустить тест', done: false },
-        { id: 104, title: 'Провести встречу', done: false }
-    ],
-    dumpDays: {
-        day1: { title: 'День 1', notes: ['Идея для нового трека', 'Проблема с рендерингом', 'Позвонить маме'] },
-        day2: { title: 'День 2', notes: ['Идея проекта фильм', 'Позвонить маме', 'Купить подарок'] },
-        day3: { title: 'День 3', notes: ['Записать музыку к видео', 'Идея для стрима', 'Опубликовать в ленту'] }
-    },
-    uncompletedSprint: [
-        { id: 301, title: 'Изучить главу 7', info: 'Просрочено' },
-        { id: 302, title: 'Собрать референсы', info: '3 дня назад' },
-        { id: 303, title: 'Провести встречу', info: 'Вчера' }
-    ]
+// Управление категориями бэклога с сохранением в localStorage
+let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
+
+// Хранилище для Dump с сохранением
+let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
+    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк, добавить вокал через фильтр.' }, { title: 'Проблема с рендерингом', text: 'Память забивается на 98% при экспорте 4K.' }, { title: 'Позвонить маме', text: 'Спросить как здоровье, обсудить планы на выходные.' }] },
+    day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста, который взломал сновидения.' }, { title: 'Купить подарок', text: 'Посмотреть кроссовки в сомнительном интернет-магазине.' }] },
+    day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку к видео', text: 'Эмбиент на 5 минут для расслабления.' }, { title: 'Опубликовать в ленту', text: 'Сделать пост про итоги недели.' }] }
 };
 
-// Функция красивого всплывающего уведомления (тост)
+// Автоматическое определение активного дня (цикл из 3 дней по дате)
+function getInitialDumpDay() {
+    const dayNumber = (Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % 3) + 1;
+    const key = `day${dayNumber}`;
+    return localDumpDays[key] ? key : 'day1';
+}
+
+let activeDumpDay = getInitialDumpDay();
+let expandedDumpNoteIndex = null; // Индекс раскрытой заметки в Dump
+
+function saveDumpData() {
+    localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays));
+}
+
+function saveCategoriesData() {
+    localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories));
+}
+
 function showToast(message) {
     let existingToast = document.getElementById('appToastNotification');
     if (existingToast) existingToast.remove();
@@ -38,23 +40,12 @@ function showToast(message) {
     toast.id = 'appToastNotification';
     toast.textContent = message;
     toast.style.cssText = `
-        position: fixed;
-        bottom: 90px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(16, 185, 129, 0.9);
-        backdrop-filter: blur(12px);
-        color: #fff;
-        padding: 8px 16px;
-        border-radius: 9999px;
-        font-size: 12px;
-        font-weight: 500;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        z-index: 9999;
-        animation: fadeInOut 2s ease forwards;
+        position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+        background: rgba(16, 185, 129, 0.9); backdrop-filter: blur(12px); color: #fff;
+        padding: 8px 16px; border-radius: 9999px; font-size: 12px; font-weight: 500;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4); z-index: 9999; animation: fadeInOut 2s ease forwards;
     `;
 
-    // Добавляем CSS анимацию, если её нет
     if (!document.getElementById('toastKeyframes')) {
         const style = document.createElement('style');
         style.id = 'toastKeyframes';
@@ -141,7 +132,7 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Глобальные методы управления
+// Глобальные методы
 window.toggleGoal = function(id) {
     const goal = localAppData.roadmap.find(g => g.id === id);
     if (goal) {
@@ -187,10 +178,7 @@ window.deleteSprintTask = function(id) {
 };
 
 window.moveToSprint = async function(title) {
-    // Добавляем в локальный спринт для отображения
     localAppData.sprint.push({ id: Date.now(), title: title, done: false });
-    
-    // Также добавляем задачу в общие notes приложения, чтобы она летела в Supabase и появилась в Спринте
     await AppState.addNote({
         type: 'task',
         folder: 'sprint',
@@ -199,7 +187,6 @@ window.moveToSprint = async function(title) {
         todos: [],
         completed: false
     });
-
     showToast('🚀 Добавлено в Спринт!');
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
@@ -213,17 +200,79 @@ window.switchDumpSub = function(sub) {
 
 window.switchDumpDay = function(day) {
     activeDumpDay = day;
+    expandedDumpNoteIndex = null; // сбрасываем раскрытие при смене дня
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.toggleDumpNoteExpand = function(idx) {
+    expandedDumpNoteIndex = expandedDumpNoteIndex === idx ? null : idx;
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
 window.rescueDumpNote = async function(day, idx) {
-    const text = localAppData.dumpDays[day].notes[idx];
-    await AppState.addNote({ type: 'feed', title: 'Спасено из Dump', text: text });
-    localAppData.dumpDays[day].notes.splice(idx, 1);
+    const noteObj = localDumpDays[day].notes[idx];
+    const fullText = noteObj.text ? `${noteObj.title}: ${noteObj.text}` : noteObj.title;
+    
+    await AppState.addNote({ type: 'feed', title: noteObj.title, text: noteObj.text || '' });
+    localDumpDays[day].notes.splice(idx, 1);
+    saveDumpData();
     showToast('✨ Спасено в Ленту!');
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+window.deleteDumpNote = function(day, idx) {
+    localDumpDays[day].notes.splice(idx, 1);
+    saveDumpData();
+    showToast('Заметка удалена');
+    const container = document.querySelector('.main-container');
+    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+};
+
+// Управление чипсами бэклога
+window.addNewCategory = function() {
+    const cat = prompt('Введите название новой категории:');
+    if (cat && cat.trim()) {
+        const cleanCat = cat.trim();
+        if (!backlogCategories.includes(cleanCat)) {
+            backlogCategories.push(cleanCat);
+            saveCategoriesData();
+            showToast('Категория добавлена');
+            const container = document.querySelector('.main-container');
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        }
+    }
+};
+
+window.editCategory = function(cat) {
+    if (cat === 'All') return;
+    const newName = prompt(`Переименовать категорию "${cat}":`, cat);
+    if (newName && newName.trim() && newName.trim() !== 'All') {
+        const cleanName = newName.trim();
+        const index = backlogCategories.indexOf(cat);
+        if (index !== -1) {
+            backlogCategories[index] = cleanName;
+            if (backlogFilterVal === cat) backlogFilterVal = cleanName;
+            saveCategoriesData();
+            showToast('Категория обновлена');
+            const container = document.querySelector('.main-container');
+            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        }
+    }
+};
+
+window.deleteCategory = function(cat) {
+    if (cat === 'All') return;
+    if (confirm(`Удалить категорию "${cat}"?`)) {
+        backlogCategories = backlogCategories.filter(c => c !== cat);
+        if (backlogFilterVal === cat) backlogFilterVal = 'All';
+        saveCategoriesData();
+        showToast('Категория удалена');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
 };
 
 export const UIRenderer = {
@@ -247,35 +296,38 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ
+        // 1. БЭКЛОГ (С управлением чипсами)
         if (tab === 'backlog') {
-            const categories = ['All', 'Study', 'Project', 'Music', 'Life'];
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%;';
+            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px;';
             
-            categories.forEach(cat => {
-                const chip = document.createElement('button');
+            backlogCategories.forEach(cat => {
+                const chipWrap = document.createElement('div');
+                chipWrap.style.cssText = 'display: flex; align-items: center; background: ' + (backlogFilterVal === cat ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 4px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
+                
                 const isActive = backlogFilterVal === cat;
-                chip.textContent = cat;
-                chip.style.cssText = `
-                    flex: 1;
-                    background: ${isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)'};
-                    color: ${isActive ? '#0a0a0a' : '#fff'};
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    padding: 6px 0;
-                    border-radius: 9999px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-weight: 500;
-                    text-align: center;
-                    transition: all 0.2s;
+                chipWrap.innerHTML = `
+                    <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
+                    ${cat !== 'All' ? `
+                        <span onclick="window.editCategory('${cat}')" title="Изменить" style="font-size: 9px; margin-left: 4px; color: ${isActive ? '#555' : 'rgba(255,255,255,0.5)'};">✏️</span>
+                        <span onclick="window.deleteCategory('${cat}')" title="Удалить" style="font-size: 10px; margin-left: 2px; color: ${isActive ? '#e11d48' : '#f43f5e'}; font-weight: bold;">✕</span>
+                    ` : ''}
                 `;
-                chip.onclick = () => {
+                chipWrap.onclick = (e) => {
+                    if (e.target.tagName === 'SPAN' && (e.target.textContent === '✏️' || e.target.textContent === '✕')) return;
                     backlogFilterVal = cat;
                     UIRenderer.renderList(container, notes, handlers);
                 };
-                chipsContainer.appendChild(chip);
+                chipsContainer.appendChild(chipWrap);
             });
+
+            // Кнопка добавления новой чипсы
+            const addChipBtn = document.createElement('button');
+            addChipBtn.textContent = '+ Категория';
+            addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 9999px; font-size: 11px; cursor: pointer; white-space: nowrap;';
+            addChipBtn.onclick = () => window.addNewCategory();
+            chipsContainer.appendChild(addChipBtn);
+
             container.appendChild(chipsContainer);
 
             const backlogItems = [
@@ -292,15 +344,9 @@ export const UIRenderer = {
             filteredBacklog.forEach(item => {
                 const card = document.createElement('div');
                 card.style.cssText = `
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                    border-radius: 20px;
-                    padding: 14px;
-                    backdrop-filter: blur(16px);
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    height: 130px;
+                    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
+                    display: flex; flex-direction: column; justify-content: space-between; height: 130px;
                 `;
                 card.innerHTML = `
                     <div>
@@ -326,7 +372,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP (С кнопкой удаления ✕)
+        // 2. ROADMAP
         if (tab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
@@ -369,7 +415,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ (С кнопкой удаления ✕)
+        // 3. СПРИНТ
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -403,21 +449,42 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. DUMP
+        // 4. DUMP (С авто-активным днем, маркером и разворачиванием заметок)
         if (tab === 'dump' || tab === 'livedump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
-            let daysButtonsHtml = Object.keys(localAppData.dumpDays).map(dKey => `
-                <button onclick="window.switchDumpDay('${dKey}')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(255,255,255,0.15); background: ${activeDumpDay === dKey ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">${localAppData.dumpDays[dKey].title}</button>
-            `).join('');
+            let daysButtonsHtml = Object.keys(localDumpDays).map(dKey => {
+                const isCurrent = activeDumpDay === dKey;
+                const isAutoActive = getInitialDumpDay() === dKey;
+                return `
+                    <button onclick="window.switchDumpDay('${dKey}')" style="flex:1; padding: 8px 4px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(255,255,255,0.15); background: ${isCurrent ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer; position: relative;">
+                        ${localDumpDays[dKey].title}
+                        ${isAutoActive ? '<span style="position: absolute; top: 2px; right: 4px; font-size: 8px; color: #34d399;" title="Актуальный день">●</span>' : ''}
+                    </button>
+                `;
+            }).join('');
 
-            let notesHtml = (localAppData.dumpDays[activeDumpDay]?.notes || []).map((note, idx) => `
-                <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 10px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                    <span>${note}</span>
-                    <button onclick="window.rescueDumpNote('${activeDumpDay}', ${idx})" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Ленту ↗</button>
-                </div>
-            `).join('');
+            let notesHtml = (localDumpDays[activeDumpDay]?.notes || []).map((noteObj, idx) => {
+                const isExpanded = expandedDumpNoteIndex === idx;
+                return `
+                    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; transition: all 0.2s;">
+                        <div onclick="window.toggleDumpNoteExpand(${idx})" style="padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+                            <span style="font-weight: 500; color: #fff;">${noteObj.title}</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button onclick="event.stopPropagation(); window.rescueDumpNote('${activeDumpDay}', ${idx})" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Ленту ↗</button>
+                                <button onclick="event.stopPropagation(); window.deleteDumpNote('${activeDumpDay}', ${idx})" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:12px; padding: 0 4px;" title="Удалить">✕</button>
+                                <span style="font-size: 10px; color: rgba(255,255,255,0.5);">${isExpanded ? '▲' : '▼'}</span>
+                            </div>
+                        </div>
+                        ${isExpanded ? `
+                            <div style="padding: 0 14px 14px 14px; font-size: 12px; color: rgba(255,255,255,0.8); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; white-space: pre-wrap; line-height: 1.4;">
+                                ${noteObj.text || 'Нет детального описания мысли.'}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
 
             wrap.innerHTML = `
                 <div style="display: flex; gap: 6px;">
@@ -428,9 +495,12 @@ export const UIRenderer = {
                 ${dumpSubTab === 'evening' ? `
                     <div style="display: flex; gap: 6px;">${daysButtonsHtml}</div>
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 8px;">
-                        <div style="display: flex; gap: 6px;">
-                            <input type="text" id="dumpNoteInput" placeholder="Поток мыслей перед сном..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
-                            <button id="dumpAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                        <div style="display: flex; gap: 6px; flex-direction: column;">
+                            <input type="text" id="dumpTitleInput" placeholder="Заголовок мысли..." style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="dumpNoteInput" placeholder="Поток мыслей перед сном..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                                <button id="dumpAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                            </div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">${notesHtml}</div>
                     </div>
@@ -454,9 +524,17 @@ export const UIRenderer = {
                 const dumpAddBtn = document.getElementById('dumpAddBtn');
                 if (dumpAddBtn) {
                     dumpAddBtn.onclick = () => {
-                        const inp = document.getElementById('dumpNoteInput');
-                        if (inp && inp.value.trim()) {
-                            localAppData.dumpDays[activeDumpDay].notes.push(inp.value.trim());
+                        const titleInp = document.getElementById('dumpTitleInput');
+                        const textInp = document.getElementById('dumpNoteInput');
+                        const titleVal = titleInp ? titleInp.value.trim() : '';
+                        const textVal = textInp ? textInp.value.trim() : '';
+                        
+                        if (titleVal || textVal) {
+                            localDumpDays[activeDumpDay].notes.push({
+                                title: titleVal || textVal.slice(0, 25) + '...',
+                                text: textVal
+                            });
+                            saveDumpData();
                             showToast('Заметка добавлена в Dump');
                             UIRenderer.renderList(container, notes, handlers);
                         }
