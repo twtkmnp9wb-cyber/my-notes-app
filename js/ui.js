@@ -237,6 +237,36 @@ window.deleteSubtask = function(cardId, subId) {
     }
 };
 
+// Изменение дедлайна карточки бэклога
+window.editBacklogDeadline = function(id) {
+    const item = backlogCustomItems.find(i => i.id === id);
+    if (!item) return;
+    const newDeadline = prompt('Введите новый дедлайн (например, "Due today", "Tomorrow", "3 days"):', item.deadline);
+    if (newDeadline !== null && newDeadline.trim()) {
+        item.deadline = newDeadline.trim();
+        item.urgent = item.deadline.toLowerCase().includes('today') || item.deadline.toLowerCase().includes('сейчас');
+        saveBacklogItems();
+        showToast('Дедлайн обновлен');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
+// Изменение дедлайна строчки бэклога
+window.editBacklogRowDeadline = function(id) {
+    const row = backlogRows.find(r => r.id === id);
+    if (!row) return;
+    const newDeadline = prompt('Введите новый дедлайн:', row.deadline);
+    if (newDeadline !== null && newDeadline.trim()) {
+        row.deadline = newDeadline.trim();
+        row.urgent = row.deadline.toLowerCase().includes('today') || row.deadline.toLowerCase().includes('сейчас');
+        saveBacklogRows();
+        showToast('Дедлайн обновлен');
+        const container = document.querySelector('.main-container');
+        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    }
+};
+
 window.addSubtaskToSprint = async function(subtext) {
     localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
     saveSprintData();
@@ -608,7 +638,7 @@ export const UIRenderer = {
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
                                 <div style="display: flex; gap: 6px; align-items: center;">
-                                    <span style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${item.deadline}</span>
+                                    <span ${isEditMode ? `onclick="event.stopPropagation(); window.editBacklogDeadline(${item.id})"` : ''} style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${item.deadline}</span>
                                     ${isEditMode ? `
                                         <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
                                         <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
@@ -682,7 +712,7 @@ export const UIRenderer = {
                 rEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                         <span style="font-size: 12px; color: #fff; font-weight: 500;">${row.title}</span>
-                        <span style="font-size: 9px; color: ${row.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'};">${row.deadline}</span>
+                        <span ${isEditMode ? `onclick="window.editBacklogRowDeadline(${row.id})"` : ''} style="font-size: 9px; color: ${row.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${row.deadline}</span>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button onclick="window.rowToSprint('${row.title}')" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Спринт ↗</button>
