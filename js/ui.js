@@ -5,19 +5,6 @@ let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 let isEditMode = false;
 
-let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
-    { id: 1, text: 'Закрыть семестр без хвостов', done: false },
-    { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
-    { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
-];
-
-let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
-    { id: 101, title: 'Изучить главу 7', done: false },
-    { id: 102, title: 'Собрать референсы', done: false },
-    { id: 103, title: 'Запустить тест', done: false },
-    { id: 104, title: 'Провести встречу', done: false }
-];
-
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
@@ -31,23 +18,6 @@ let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
     { id: 201, title: 'Купить батарейки', category: 'Life', dueDate: '2026-09-02', done: false },
     { id: 202, title: 'Послушать новый альбом', category: 'Music', dueDate: '', done: false }
 ];
-
-let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
-
-let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
-    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }] },
-    day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
-    day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку', text: 'Эмбиент на 5 минут.' }] }
-};
-
-function getInitialDumpDay() {
-    const dayNumber = (Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % 3) + 1;
-    const key = `day${dayNumber}`;
-    return localDumpDays[key] ? key : 'day1';
-}
-
-let activeDumpDay = getInitialDumpDay();
-let expandedDumpNoteIndex = null;
 
 function calculateDeadlineInfo(dateStr) {
     if (!dateStr || !dateStr.trim()) return { text: 'No deadline', color: 'rgba(255,255,255,0.4)', urgent: false, sortVal: 999999 };
@@ -70,44 +40,38 @@ function calculateDeadlineInfo(dateStr) {
     }
 }
 
-// Динамическое обновление маски размытия в зависимости от позиции скролла
+// Динамическое градиентное размытие (включается только при скролле)
 function handleScrollFade(e) {
     const el = e.target;
     const scrollTop = el.scrollTop;
     const scrollHeight = el.scrollHeight;
     const clientHeight = el.clientHeight;
 
-    if (scrollHeight <= clientHeight) {
+    if (scrollHeight <= clientHeight + 2) {
         el.style.maskImage = 'none';
         el.style.webkitMaskImage = 'none';
         return;
     }
 
-    let topFade = scrollTop > 10;
-    let bottomFade = scrollTop + clientHeight < scrollHeight - 10;
+    let topFade = scrollTop > 5;
+    let bottomFade = scrollTop + clientHeight < scrollHeight - 5;
 
-    let maskVal = '';
+    let maskVal = 'none';
     if (topFade && bottomFade) {
-        maskVal = 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)';
+        maskVal = 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)';
     } else if (topFade) {
-        maskVal = 'linear-gradient(to bottom, transparent 0%, black 15%, black 100%)';
+        maskVal = 'linear-gradient(to bottom, transparent 0%, black 12%, black 100%)';
     } else if (bottomFade) {
-        maskVal = 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)';
-    } else {
-        maskVal = 'none';
+        maskVal = 'linear-gradient(to bottom, black 0%, black 88%, transparent 100%)';
     }
 
     el.style.maskImage = maskVal;
     el.style.webkitMaskImage = maskVal;
 }
 
-function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
-function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
-function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
-function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
 function saveBacklogItems() { localStorage.setItem('app_backlog_custom_items', JSON.stringify(backlogCustomItems)); }
 function saveBacklogRows() { localStorage.setItem('app_backlog_rows', JSON.stringify(backlogRows)); }
-function saveManifestData() { localStorage.setItem('app_manifest_words', JSON.stringify(manifestWords)); }
+function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
 
 function showToast(message) {
     let existingToast = document.getElementById('appToastNotification');
@@ -122,100 +86,14 @@ function showToast(message) {
         padding: 8px 16px; border-radius: 9999px; font-size: 12px; font-weight: 500;
         box-shadow: 0 10px 25px rgba(0,0,0,0.4); z-index: 9999; animation: fadeInOut 2s ease forwards;
     `;
-
-    if (!document.getElementById('toastKeyframes')) {
-        const style = document.createElement('style');
-        style.id = 'toastKeyframes';
-        style.textContent = `
-            @keyframes fadeInOut {
-                0% { opacity: 0; transform: translate(-50%, 10px); }
-                15% { opacity: 1; transform: translate(-50%, 0); }
-                85% { opacity: 1; transform: translate(-50%, 0); }
-                100% { opacity: 0; transform: translate(-50%, -10px); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
-}
-
-function initTelegramSearchBar(handlers) {
-    const searchBarContainer = document.getElementById('telegramSearchBarContainer');
-    if (!searchBarContainer) return;
-
-    if (AppState.currentTab === 'feed' && isSearchOpen) {
-        if (!document.getElementById('liveSearchInput')) {
-            searchBarContainer.innerHTML = `
-                <div class="telegram-search-bar">
-                    <span style="color: rgba(255,255,255,0.4); padding-left: 4px;">🔍</span>
-                    <input type="text" id="liveSearchInput" class="telegram-search-input" placeholder="Поиск по заметкам..." value="${AppState.searchQuery || ''}" autofocus />
-                    <span id="searchCounter" style="font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap;"></span>
-                    <button id="closeSearchPanel" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;">✕</button>
-                </div>
-            `;
-
-            const input = document.getElementById('liveSearchInput');
-            input.oninput = (e) => {
-                AppState.searchQuery = e.target.value;
-                const container = document.querySelector('.main-container');
-                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-                updateSearchCounter();
-            };
-
-            document.getElementById('closeSearchPanel').onclick = () => {
-                isSearchOpen = false;
-                AppState.searchQuery = '';
-                searchBarContainer.innerHTML = '';
-                const container = document.querySelector('.main-container');
-                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
-            };
-        }
-        updateSearchCounter();
-    } else {
-        searchBarContainer.innerHTML = '';
-    }
-}
-
-function updateSearchCounter() {
-    const counter = document.getElementById('searchCounter');
-    if (counter) {
-        const notesCount = AppState.getFilteredNotes().length;
-        const totalFeedCount = AppState.notes.filter(n => n.type === 'feed').length;
-        counter.textContent = `${notesCount} из ${totalFeedCount}`;
-    }
-}
-
-function updateFooterButtonsVisibility() {
-    const searchBtn = document.getElementById('searchToggleBtn');
-    const addBtn = document.getElementById('addNoteBtn');
-    if (!searchBtn || !addBtn) return;
-
-    if (AppState.currentTab === 'feed') {
-        searchBtn.style.display = 'flex';
-    } else {
-        searchBtn.style.display = 'none';
-        isSearchOpen = false;
-        const searchBarContainer = document.getElementById('telegramSearchBarContainer');
-        if (searchBarContainer) searchBarContainer.innerHTML = '';
-    }
-
-    const tab = AppState.currentTab;
-    if (tab === 'roadmap' || tab === 'dump' || tab === 'livedump') {
-        addBtn.style.display = 'none';
-    } else {
-        addBtn.style.display = 'flex';
-    }
 }
 
 window.toggleEditMode = function() {
     isEditMode = !isEditMode;
     showToast(isEditMode ? '✏️ Режим редактирования включен' : '🔒 Режим блокировки');
-    const container = document.querySelector('.main-container');
-    if (container && window.currentHandlers) {
-        UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
+    if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
 window.flipBacklogCard = function(id) {
@@ -223,8 +101,7 @@ window.flipBacklogCard = function(id) {
     if (item) {
         item.flipped = !item.flipped;
         saveBacklogItems();
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -237,8 +114,7 @@ window.toggleSubtask = function(cardId, subId) {
             const completedCount = card.subtasks.filter(s => s.done).length;
             card.progress = card.subtasks.length > 0 ? Math.round((completedCount / card.subtasks.length) * 100) : 0;
             saveBacklogItems();
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+            if (window.renderCurrentTab) window.renderCurrentTab();
         }
     }
 };
@@ -253,8 +129,7 @@ window.addSubtaskToCard = function(cardId) {
             card.progress = Math.round((completedCount / card.subtasks.length) * 100);
             saveBacklogItems();
             showToast('Подпункт добавлен');
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+            if (window.renderCurrentTab) window.renderCurrentTab();
         }
     }
 };
@@ -269,8 +144,7 @@ window.editSubtask = function(cardId, subId) {
                 sub.text = newText.trim();
                 saveBacklogItems();
                 showToast('Подпункт обновлен');
-                const container = document.querySelector('.main-container');
-                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+                if (window.renderCurrentTab) window.renderCurrentTab();
             }
         }
     }
@@ -284,8 +158,7 @@ window.deleteSubtask = function(cardId, subId) {
         card.progress = card.subtasks.length > 0 ? Math.round((completedCount / card.subtasks.length) * 100) : 0;
         saveBacklogItems();
         showToast('Подпункт удален');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -297,8 +170,7 @@ window.editBacklogDeadline = function(id) {
         item.dueDate = newDate.trim();
         saveBacklogItems();
         showToast('Дедлайн обновлен');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -310,31 +182,30 @@ window.editBacklogRowDeadline = function(id) {
         row.dueDate = newDate.trim();
         saveBacklogRows();
         showToast('Дедлайн обновлен');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
 window.addSubtaskToSprint = async function(subtext) {
+    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
-    saveSprintData();
+    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: subtext, text: '', todos: [], completed: false
     });
     showToast('🚀 Подпункт добавлен в Спринт!');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
 window.rowToSprint = async function(title) {
+    let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: title, done: false });
-    saveSprintData();
+    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
     await AppState.addNote({
         type: 'task', folder: 'sprint', title: title, text: '', todos: [], completed: false
     });
     showToast('🚀 Задача добавлена в Спринт!');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
 window.editBacklogItem = function(id) {
@@ -345,8 +216,7 @@ window.editBacklogItem = function(id) {
         item.title = newTitle.trim();
         saveBacklogItems();
         showToast('Плитка обновлена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -354,8 +224,7 @@ window.deleteBacklogItem = function(id) {
     backlogCustomItems = backlogCustomItems.filter(i => i.id !== id);
     saveBacklogItems();
     showToast('Плитка удалена');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
 window.editBacklogRow = function(id) {
@@ -366,8 +235,7 @@ window.editBacklogRow = function(id) {
         row.title = newTitle.trim();
         saveBacklogRows();
         showToast('Задача обновлена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -375,8 +243,7 @@ window.deleteBacklogRow = function(id) {
     backlogRows = backlogRows.filter(r => r.id !== id);
     saveBacklogRows();
     showToast('Задача удалена');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+    if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
 window.addNewBacklogRow = function() {
@@ -392,126 +259,8 @@ window.addNewBacklogRow = function() {
         });
         saveBacklogRows();
         showToast('Задача добавлена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
-};
-
-window.editManifest = function(index) {
-    const currentWord = manifestWords[index] || '';
-    const newWord = prompt('Изменить тег манифеста:', currentWord);
-    if (newWord !== null && newWord.trim()) {
-        manifestWords[index] = newWord.trim().replace(/^#/, '');
-        saveManifestData();
-        showToast('Манифест обновлен');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
-};
-
-window.addNewBacklogItemModal = function() {
-    const title = prompt('Название новой плитки в Бэклог:');
-    if (title && title.trim()) {
-        backlogCustomItems.push({
-            id: Date.now(),
-            title: title.trim(),
-            category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
-            dueDate: '',
-            progress: 0,
-            flipped: false,
-            subtasks: [{ id: Date.now() + 1, text: 'Первый подпункт', done: false }]
-        });
-        saveBacklogItems();
-        showToast('Плитка добавлена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
-};
-
-window.toggleGoal = function(id) {
-    const goal = localRoadmapGoals.find(g => g.id === id);
-    if (goal) {
-        goal.done = !goal.done;
-        saveRoadmapData();
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
-};
-
-window.editGoal = function(id) {
-    const goal = localRoadmapGoals.find(g => g.id === id);
-    if (goal) {
-        const newText = prompt('Редактировать цель:', goal.text);
-        if (newText !== null && newText.trim()) {
-            goal.text = newText.trim();
-            saveRoadmapData();
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-        }
-    }
-};
-
-window.deleteGoal = function(id) {
-    localRoadmapGoals = localRoadmapGoals.filter(g => g.id !== id);
-    saveRoadmapData();
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    showToast('Цель удалена');
-};
-
-window.toggleSprintTask = function(id) {
-    const task = localSprintTasks.find(t => t.id === id);
-    if (task) {
-        task.done = !task.done;
-        saveSprintData();
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    }
-};
-
-window.deleteSprintTask = function(id) {
-    localSprintTasks = localSprintTasks.filter(t => t.id !== id);
-    saveSprintData();
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-    showToast('Задача удалена из Спринта');
-};
-
-window.switchDumpSub = function(sub) {
-    dumpSubTab = sub;
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-};
-
-window.switchDumpDay = function(day) {
-    activeDumpDay = day;
-    expandedDumpNoteIndex = null;
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-};
-
-window.toggleDumpNoteExpand = function(idx) {
-    expandedDumpNoteIndex = expandedDumpNoteIndex === idx ? null : idx;
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-};
-
-window.rescueDumpNote = async function(day, idx) {
-    const noteObj = localDumpDays[day].notes[idx];
-    await AppState.addNote({ type: 'feed', title: noteObj.title, text: noteObj.text || '' });
-    localDumpDays[day].notes.splice(idx, 1);
-    saveDumpData();
-    showToast('✨ Спасено в Ленту!');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
-};
-
-window.deleteDumpNote = function(day, idx) {
-    localDumpDays[day].notes.splice(idx, 1);
-    saveDumpData();
-    showToast('Заметка удалена');
-    const container = document.querySelector('.main-container');
-    if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
 window.addNewCategory = function() {
@@ -522,8 +271,7 @@ window.addNewCategory = function() {
             backlogCategories.push(cleanCat);
             saveCategoriesData();
             showToast('Категория добавлена');
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+            if (window.renderCurrentTab) window.renderCurrentTab();
         }
     }
 };
@@ -539,8 +287,7 @@ window.editCategory = function(cat) {
             if (backlogFilterVal === cat) backlogFilterVal = cleanName;
             saveCategoriesData();
             showToast('Категория обновлена');
-            const container = document.querySelector('.main-container');
-            if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+            if (window.renderCurrentTab) window.renderCurrentTab();
         }
     }
 };
@@ -552,8 +299,7 @@ window.deleteCategory = function(cat) {
         if (backlogFilterVal === cat) backlogFilterVal = 'All';
         saveCategoriesData();
         showToast('Категория удалена');
-        const container = document.querySelector('.main-container');
-        if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
+        if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
 
@@ -561,9 +307,8 @@ export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
-        initTelegramSearchBar(handlers);
-        updateFooterButtonsVisibility();
 
+        // Кнопка режима редактирования в футере
         let editToggleFooter = document.getElementById('globalEditModeBtn');
         if (!editToggleFooter) {
             const footerContainer = document.querySelector('.footer-container');
@@ -581,41 +326,12 @@ export const UIRenderer = {
             editToggleFooter.style.background = isEditMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.12)';
         }
 
-        const manifestEl = document.getElementById('manifestSection');
-        const bornToWinEl = document.getElementById('bornToWinTitle');
-        if (manifestEl && bornToWinEl) {
-            if (AppState.currentTab === 'feed') {
-                manifestEl.style.display = 'block';
-                bornToWinEl.style.display = 'block';
-                manifestEl.innerHTML = `
-                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
-                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона ${isEditMode ? '(кликните для изменения)' : ''}</span>
-                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
-                            ${manifestWords.map((word, i) => `
-                                <span ${isEditMode ? `onclick="window.editManifest(${i})"` : ''} style="font-style: italic; color: #34d399; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить тег' : ''}">#${word}</span>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                manifestEl.style.display = 'none';
-                bornToWinEl.style.display = 'none';
-            }
-        }
-
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Единый плотный матовый стиль для карточек и строчек, сортировка, динамическое размытие и сетка в 2 колонки)
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
-            const styleId = 'hideScrollbarStyle';
-            if (!document.getElementById(styleId)) {
-                const s = document.createElement('style');
-                s.id = styleId;
-                s.textContent = '::-webkit-scrollbar { display: none; }';
-                document.head.appendChild(s);
-            }
             
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
@@ -661,11 +377,11 @@ export const UIRenderer = {
             let filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             let filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
-            // Сортировка по дедлайнам (срочные вверху, без срока — внизу)
+            // Сортировка по дедлайнам
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
 
-            // Сетка карточек в 2 колонки (высота увеличена до футера, маска включена)
+            // Сетка карточек в 2 колонки
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box;';
             grid.onscroll = handleScrollFade;
@@ -673,7 +389,6 @@ export const UIRenderer = {
             filteredBacklog.forEach(item => {
                 const dl = calculateDeadlineInfo(item.dueDate);
                 const card = document.createElement('div');
-                // Единый плотный матовый стиль (Liquid Glass) для карточек
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 20px; padding: 14px; backdrop-filter: blur(16px);
@@ -748,7 +463,7 @@ export const UIRenderer = {
             container.appendChild(grid);
             setTimeout(() => { grid.onscroll({ target: grid }); }, 10);
 
-            // Секция строчек с тем же единым плотным матовым стилем карточек
+            // Секция строчек (с тем же плотным матовым стилем карточек)
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px; width: 100%;';
             rowsHeader.innerHTML = `
@@ -764,7 +479,7 @@ export const UIRenderer = {
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
-                // Строчки теперь имеют абсолютно такой же плотный матовый стиль, как и карточки!
+                // Строчки в точности как карточки — плотный матовый Liquid Glass
                 rEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 12px 16px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
                 rEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
@@ -962,7 +677,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. LIBRARY (Лента)
+        // 5. LIBRARY
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
