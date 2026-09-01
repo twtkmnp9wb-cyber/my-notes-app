@@ -20,17 +20,17 @@ let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
-// Возвращаем оригинальные текстовые дедлайны на английском
+// Используем поля dueDate (в формате YYYY-MM-DD) для точного расчета
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
-    { id: 1, title: 'Подготовка к зиме', category: 'Study', deadline: 'Due today', progress: 66, urgent: true, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
-    { id: 2, title: 'Идея для проекта - 2', category: 'Project', deadline: '2 days left', progress: 20, urgent: false, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
-    { id: 3, title: 'Идея для проекта', category: 'Project', deadline: '3 days left', progress: 95, urgent: false, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
-    { id: 4, title: 'Сделать ремонт', category: 'Life', deadline: '3 days left', progress: 10, urgent: false, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
+    { id: 1, title: 'Подготовка к зиме', category: 'Study', dueDate: '2026-09-01', progress: 66, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
+    { id: 2, title: 'Идея для проекта - 2', category: 'Project', dueDate: '2026-09-04', progress: 20, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
+    { id: 3, title: 'Идея для проекта', category: 'Project', dueDate: '2026-09-08', progress: 95, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
+    { id: 4, title: 'Сделать ремонт', category: 'Life', dueDate: '2026-09-12', progress: 10, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
 ];
 
 let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
-    { id: 201, title: 'Купить батарейки', category: 'Life', deadline: 'Due today', urgent: true, done: false },
-    { id: 202, title: 'Послушать новый альбом', category: 'Music', deadline: 'Tomorrow', urgent: false, done: false }
+    { id: 201, title: 'Купить батарейки', category: 'Life', dueDate: '2026-09-01', done: false },
+    { id: 202, title: 'Послушать новый альбом', category: 'Music', dueDate: '2026-09-05', done: false }
 ];
 
 let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
@@ -49,6 +49,28 @@ function getInitialDumpDay() {
 
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
+
+// Функция автоматического расчета дедлайна по дате
+function calculateDeadlineInfo(dateStr) {
+    if (!dateStr) return { text: 'Без срока', color: '#ffffff', urgent: false };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr);
+    target.setHours(0, 0, 0, 0);
+
+    const diffTime = target - today;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return { text: 'Просрочено', color: '#f43f5e', urgent: true }; // Красный
+    } else if (diffDays === 0) {
+        return { text: 'Сегодня', color: '#f43f5e', urgent: true }; // Красный
+    } else if (diffDays <= 3) {
+        return { text: `${diffDays} дн. лефт`, color: '#fbbf24', urgent: true }; // Желтый (идет в счетчик срочных)
+    } else {
+        return { text: `${diffDays} дн. до конца`, color: '#ffffff', urgent: false }; // Белый
+    }
+}
 
 function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
 function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
@@ -241,10 +263,9 @@ window.deleteSubtask = function(cardId, subId) {
 window.editBacklogDeadline = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
-    const newDl = prompt('Введите дедлайн (например, "Due today", "2 days left"):', item.deadline);
-    if (newDl !== null && newDl.trim()) {
-        item.deadline = newDl.trim();
-        item.urgent = item.deadline.toLowerCase().includes('today');
+    const newDate = prompt('Введите дату дедлайна в формате ГГГГ-ММ-ДД (например, 2026-09-10):', item.dueDate || '2026-09-10');
+    if (newDate !== null && newDate.trim()) {
+        item.dueDate = newDate.trim();
         saveBacklogItems();
         showToast('Дедлайн обновлен');
         const container = document.querySelector('.main-container');
@@ -255,10 +276,9 @@ window.editBacklogDeadline = function(id) {
 window.editBacklogRowDeadline = function(id) {
     const row = backlogRows.find(r => r.id === id);
     if (!row) return;
-    const newDl = prompt('Введите дедлайн (например, "Due today", "Tomorrow"):', row.deadline);
-    if (newDl !== null && newDl.trim()) {
-        row.deadline = newDl.trim();
-        row.urgent = row.deadline.toLowerCase().includes('today');
+    const newDate = prompt('Введите дату дедлайна в формате ГГГГ-ММ-ДД (например, 2026-09-10):', row.dueDate || '2026-09-10');
+    if (newDate !== null && newDate.trim()) {
+        row.dueDate = newDate.trim();
         saveBacklogRows();
         showToast('Дедлайн обновлен');
         const container = document.querySelector('.main-container');
@@ -333,14 +353,12 @@ window.deleteBacklogRow = function(id) {
 window.addNewBacklogRow = function() {
     const title = prompt('Название простой задачи:');
     if (title && title.trim()) {
-        const dlInput = prompt('Дедлайн (например, "Due today", "3 days left"):', '3 days left');
-        const isUrgent = confirm('Задача срочная? (ОК — да, Отмена — нет)');
+        const dateInput = prompt('Дедлайн в формате ГГГГ-ММ-ДД (например, 2026-09-10):', '2026-09-10');
         backlogRows.push({
             id: Date.now(),
             title: title.trim(),
             category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
-            deadline: dlInput ? dlInput.trim() : '3 days left',
-            urgent: isUrgent,
+            dueDate: dateInput ? dateInput.trim() : '2026-09-10',
             done: false
         });
         saveBacklogRows();
@@ -369,9 +387,8 @@ window.addNewBacklogItemModal = function() {
             id: Date.now(),
             title: title.trim(),
             category: backlogFilterVal === 'All' ? 'Study' : backlogFilterVal,
-            deadline: '3 days left',
+            dueDate: '2026-09-10',
             progress: 0,
-            urgent: false,
             flipped: false,
             subtasks: [{ id: Date.now() + 1, text: 'Первый подпункт', done: false }]
         });
@@ -559,7 +576,7 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Чипсы с цифрами, сетка карточек в 2 колонки, аккуратные строчки снизу)
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -577,9 +594,9 @@ export const UIRenderer = {
                 
                 let urgentCount = 0;
                 if (cat === 'All') {
-                    urgentCount = backlogCustomItems.filter(i => i.urgent).length + backlogRows.filter(r => r.urgent).length;
+                    urgentCount = backlogCustomItems.filter(i => calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => calculateDeadlineInfo(r.dueDate).urgent).length;
                 } else {
-                    urgentCount = backlogCustomItems.filter(i => i.category === cat && i.urgent).length + backlogRows.filter(r => r.category === cat && r.urgent).length;
+                    urgentCount = backlogCustomItems.filter(i => i.category === cat && calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => r.category === cat && calculateDeadlineInfo(r.dueDate).urgent).length;
                 }
 
                 chipWrap.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
@@ -620,6 +637,7 @@ export const UIRenderer = {
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 250px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px;';
 
             filteredBacklog.forEach(item => {
+                const dl = calculateDeadlineInfo(item.dueDate);
                 const card = document.createElement('div');
                 card.style.cssText = `
                     background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
@@ -638,7 +656,7 @@ export const UIRenderer = {
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span style="font-size: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 99px; color: #ccc;">${item.category}</span>
                                 <div style="display: flex; gap: 6px; align-items: center;">
-                                    <span ${isEditMode ? `onclick="event.stopPropagation(); window.editBacklogDeadline(${item.id})"` : ''} style="font-size: 9px; color: ${item.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${item.deadline}</span>
+                                    <span ${isEditMode ? `onclick="event.stopPropagation(); window.editBacklogDeadline(${item.id})"` : ''} style="font-size: 9px; color: ${dl.color}; font-weight: 600; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн (дата)' : ''}">${dl.text}</span>
                                     ${isEditMode ? `
                                         <span onclick="window.editBacklogItem(${item.id})" title="Редактировать" style="font-size: 9px; cursor: pointer;">✏️</span>
                                         <span onclick="window.deleteBacklogItem(${item.id})" title="Удалить" style="font-size: 11px; color: #f43f5e; cursor: pointer; font-weight: bold;">✕</span>
@@ -694,7 +712,7 @@ export const UIRenderer = {
             });
             container.appendChild(grid);
 
-            // Строчки с фиксированным аккуратным скроллом снизу
+            // Строчки со своим независимым скроллом снизу
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px;';
             rowsHeader.innerHTML = `
@@ -704,15 +722,16 @@ export const UIRenderer = {
             container.appendChild(rowsHeader);
 
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 140px; overflow-y: auto; padding-right: 2px;';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 180px; overflow-y: auto; padding-right: 2px;';
 
             filteredRows.forEach(row => {
+                const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
                 rEl.style.cssText = 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;';
                 rEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                         <span style="font-size: 12px; color: #fff; font-weight: 500;">${row.title}</span>
-                        <span ${isEditMode ? `onclick="window.editBacklogRowDeadline(${row.id})"` : ''} style="font-size: 9px; color: ${row.urgent ? '#f43f5e; font-weight:700;' : '#ffb74d'}; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн' : ''}">${row.deadline}</span>
+                        <span ${isEditMode ? `onclick="window.editBacklogRowDeadline(${row.id})"` : ''} style="font-size: 9px; color: ${dl.color}; font-weight: 600; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить дедлайн (дата)' : ''}">${dl.text}</span>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button onclick="window.rowToSprint('${row.title}')" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Спринт ↗</button>
@@ -983,8 +1002,8 @@ function datasetIdSafely(el) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const searchToggleBtn = document.getElementById('searchToggleBtn');
-    searchToggleBtn?.addEventListener('click', () => {
+    const searchToggleTag = document.getElementById('searchToggleBtn');
+    searchToggleTag?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
         initTelegramSearchBar(window.currentHandlers);
         const viewport = document.querySelector('.scroll-viewport');
