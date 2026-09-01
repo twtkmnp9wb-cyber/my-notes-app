@@ -4,17 +4,36 @@ let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 
-// Управление категориями бэклога с сохранением в localStorage
-let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
-
-// Хранилище для Dump с сохранением
-let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
-    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк, добавить вокал через фильтр.' }, { title: 'Проблема с рендерингом', text: 'Память забивается на 98% при экспорте 4K.' }, { title: 'Позвонить маме', text: 'Спросить как здоровье, обсудить планы на выходные.' }] },
-    day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста, который взломал сновидения.' }, { title: 'Купить подарок', text: 'Посмотреть кроссовки в сомнительном интернет-магазине.' }] },
-    day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку к видео', text: 'Эмбиент на 5 минут для расслабления.' }, { title: 'Опубликовать в ленту', text: 'Сделать пост про итоги недели.' }] }
+// Общие локальные данные для Roadmap, Sprint и Dump
+const localAppData = {
+    roadmap: [
+        { id: 1, text: 'Закрыть семестр без хвостов', done: false },
+        { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
+        { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
+    ],
+    sprint: [
+        { id: 101, title: 'Изучить главу 7', done: false },
+        { id: 102, title: 'Собрать референсы', done: false },
+        { id: 103, title: 'Запустить тест', done: false },
+        { id: 104, title: 'Провести встречу', done: false }
+    ],
+    uncompletedSprint: [
+        { id: 301, title: 'Изучить главу 7', info: 'Просрочено' },
+        { id: 302, title: 'Собрать референсы', info: '3 дня назад' },
+        { id: 303, title: 'Провести встречу', info: 'Вчера' }
+    ]
 };
 
-// Автоматическое определение активного дня (цикл из 3 дней по дате)
+// Управление категориями бэклога с сохранением
+let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
+
+// Хранилище для Dump
+let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
+    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }, { title: 'Проблема с рендерингом', text: 'Память забивается на 98%.' }] },
+    day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
+    day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку', text: 'Эмбиент на 5 минут.' }] }
+};
+
 function getInitialDumpDay() {
     const dayNumber = (Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % 3) + 1;
     const key = `day${dayNumber}`;
@@ -22,7 +41,7 @@ function getInitialDumpDay() {
 }
 
 let activeDumpDay = getInitialDumpDay();
-let expandedDumpNoteIndex = null; // Индекс раскрытой заметки в Dump
+let expandedDumpNoteIndex = null;
 
 function saveDumpData() {
     localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays));
@@ -200,7 +219,7 @@ window.switchDumpSub = function(sub) {
 
 window.switchDumpDay = function(day) {
     activeDumpDay = day;
-    expandedDumpNoteIndex = null; // сбрасываем раскрытие при смене дня
+    expandedDumpNoteIndex = null;
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
@@ -213,8 +232,6 @@ window.toggleDumpNoteExpand = function(idx) {
 
 window.rescueDumpNote = async function(day, idx) {
     const noteObj = localDumpDays[day].notes[idx];
-    const fullText = noteObj.text ? `${noteObj.title}: ${noteObj.text}` : noteObj.title;
-    
     await AppState.addNote({ type: 'feed', title: noteObj.title, text: noteObj.text || '' });
     localDumpDays[day].notes.splice(idx, 1);
     saveDumpData();
@@ -231,7 +248,6 @@ window.deleteDumpNote = function(day, idx) {
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
 };
 
-// Управление чипсами бэклога
 window.addNewCategory = function() {
     const cat = prompt('Введите название новой категории:');
     if (cat && cat.trim()) {
@@ -296,16 +312,16 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (С управлением чипсами)
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px;';
             
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
-                chipWrap.style.cssText = 'display: flex; align-items: center; background: ' + (backlogFilterVal === cat ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 4px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
-                
                 const isActive = backlogFilterVal === cat;
+                chipWrap.style.cssText = 'display: flex; align-items: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 4px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
+                
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
                     ${cat !== 'All' ? `
@@ -321,7 +337,6 @@ export const UIRenderer = {
                 chipsContainer.appendChild(chipWrap);
             });
 
-            // Кнопка добавления новой чипсы
             const addChipBtn = document.createElement('button');
             addChipBtn.textContent = '+ Категория';
             addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 4px 10px; border-radius: 9999px; font-size: 11px; cursor: pointer; white-space: nowrap;';
@@ -449,7 +464,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 4. DUMP (С авто-активным днем, маркером и разворачиванием заметок)
+        // 4. DUMP
         if (tab === 'dump' || tab === 'livedump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
