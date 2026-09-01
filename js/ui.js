@@ -5,6 +5,19 @@ let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 let isEditMode = false;
 
+let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
+    { id: 1, text: 'Закрыть семестр без хвостов', done: false },
+    { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
+    { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
+];
+
+let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
+    { id: 101, title: 'Изучить главу 7', done: false },
+    { id: 102, title: 'Собрать референсы', done: false },
+    { id: 103, title: 'Запустить тест', done: false },
+    { id: 104, title: 'Провести встречу', done: false }
+];
+
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
@@ -18,6 +31,23 @@ let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
     { id: 201, title: 'Купить батарейки', category: 'Life', dueDate: '2026-09-02', done: false },
     { id: 202, title: 'Послушать новый альбом', category: 'Music', dueDate: '', done: false }
 ];
+
+let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
+
+let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
+    day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }] },
+    day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
+    day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку', text: 'Эмбиент на 5 минут.' }] }
+};
+
+function getInitialDumpDay() {
+    const dayNumber = (Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % 3) + 1;
+    const key = `day${dayNumber}`;
+    return localDumpDays[key] ? key : 'day1';
+}
+
+let activeDumpDay = getInitialDumpDay();
+let expandedDumpNoteIndex = null;
 
 function calculateDeadlineInfo(dateStr) {
     if (!dateStr || !dateStr.trim()) return { text: 'No deadline', color: 'rgba(255,255,255,0.4)', urgent: false, sortVal: 999999 };
@@ -40,7 +70,6 @@ function calculateDeadlineInfo(dateStr) {
     }
 }
 
-// Динамическое градиентное размытие (включается только при прокрутке)
 function handleScrollFade(e) {
     const el = e.target;
     const scrollTop = el.scrollTop;
@@ -69,9 +98,13 @@ function handleScrollFade(e) {
     el.style.webkitMaskImage = maskVal;
 }
 
+function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
+function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
+function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
+function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
 function saveBacklogItems() { localStorage.setItem('app_backlog_custom_items', JSON.stringify(backlogCustomItems)); }
 function saveBacklogRows() { localStorage.setItem('app_backlog_rows', JSON.stringify(backlogRows)); }
-function saveCategoriesData() { localStorage.setItem('app_backlog_categories', JSON.stringify(backlogCategories)); }
+function saveManifestData() { localStorage.setItem('app_manifest_words', JSON.stringify(manifestWords)); }
 
 function showToast(message) {
     let existingToast = document.getElementById('appToastNotification');
@@ -88,6 +121,74 @@ function showToast(message) {
     `;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
+}
+
+function initTelegramSearchBar(handlers) {
+    const searchBarContainer = document.getElementById('telegramSearchBarContainer');
+    if (!searchBarContainer) return;
+
+    if (AppState.currentTab === 'feed' && isSearchOpen) {
+        if (!document.getElementById('liveSearchInput')) {
+            searchBarContainer.innerHTML = `
+                <div class="telegram-search-bar">
+                    <span style="color: rgba(255,255,255,0.4); padding-left: 4px;">🔍</span>
+                    <input type="text" id="liveSearchInput" class="telegram-search-input" placeholder="Поиск по заметкам..." value="${AppState.searchQuery || ''}" autofocus />
+                    <span id="searchCounter" style="font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap;"></span>
+                    <button id="closeSearchPanel" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;">✕</button>
+                </div>
+            `;
+
+            const input = document.getElementById('liveSearchInput');
+            input.oninput = (e) => {
+                AppState.searchQuery = e.target.value;
+                const container = document.querySelector('.main-container');
+                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                updateSearchCounter();
+            };
+
+            document.getElementById('closeSearchPanel').onclick = () => {
+                isSearchOpen = false;
+                AppState.searchQuery = '';
+                searchBarContainer.innerHTML = '';
+                const container = document.querySelector('.main-container');
+                if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+            };
+        }
+        updateSearchCounter();
+    } else {
+        searchBarContainer.innerHTML = '';
+    }
+}
+
+function updateSearchCounter() {
+    const counter = document.getElementById('searchCounter');
+    if (counter) {
+        const notesCount = AppState.getFilteredNotes().length;
+        const totalFeedCount = AppState.notes.filter(n => n.type === 'feed').length;
+        counter.textContent = `${notesCount} из ${totalFeedCount}`;
+    }
+}
+
+function updateFooterButtonsVisibility() {
+    const searchBtn = document.getElementById('searchToggleBtn');
+    const addBtn = document.getElementById('addNoteBtn');
+    if (!searchBtn || !addBtn) return;
+
+    if (AppState.currentTab === 'feed') {
+        searchBtn.style.display = 'flex';
+    } else {
+        searchBtn.style.display = 'none';
+        isSearchOpen = false;
+        const searchBarContainer = document.getElementById('telegramSearchBarContainer');
+        if (searchBarContainer) searchBarContainer.innerHTML = '';
+    }
+
+    const tab = AppState.currentTab;
+    if (tab === 'roadmap' || tab === 'dump' || tab === 'livedump') {
+        addBtn.style.display = 'none';
+    } else {
+        addBtn.style.display = 'flex';
+    }
 }
 
 window.toggleEditMode = function() {
@@ -303,10 +404,55 @@ window.deleteCategory = function(cat) {
     }
 };
 
+// Глобальные методы для Roadmap
+window.toggleGoal = function(id) {
+    const goal = localRoadmapGoals.find(g => g.id === id);
+    if (goal) {
+        goal.done = !goal.done;
+        saveRoadmapData();
+        if (window.renderCurrentTab) window.renderCurrentTab();
+    }
+};
+window.editGoal = function(id) {
+    const goal = localRoadmapGoals.find(g => g.id === id);
+    if (goal) {
+        const newText = prompt('Редактировать цель:', goal.text);
+        if (newText !== null && newText.trim()) {
+            goal.text = newText.trim();
+            saveRoadmapData();
+            if (window.renderCurrentTab) window.renderCurrentTab();
+        }
+    }
+};
+window.deleteGoal = function(id) {
+    localRoadmapGoals = localRoadmapGoals.filter(g => g.id !== id);
+    saveRoadmapData();
+    showToast('Цель удалена');
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+
+// Глобальные методы для Sprint
+window.toggleSprintTask = function(id) {
+    const task = localSprintTasks.find(t => t.id === id);
+    if (task) {
+        task.done = !task.done;
+        saveSprintData();
+        if (window.renderCurrentTab) window.renderCurrentTab();
+    }
+};
+window.deleteSprintTask = function(id) {
+    localSprintTasks = localSprintTasks.filter(t => t.id !== id);
+    saveSprintData();
+    showToast('Задача удалена из Спринта');
+    if (window.renderCurrentTab) window.renderCurrentTab();
+};
+
 export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
+        initTelegramSearchBar(handlers);
+        updateFooterButtonsVisibility();
 
         let editToggleFooter = document.getElementById('globalEditModeBtn');
         if (!editToggleFooter) {
@@ -327,7 +473,30 @@ export const UIRenderer = {
 
         const tab = AppState.currentTab;
 
-        // 1. БЭКЛОГ (Сетка 2 колонки, единый плотный стиль для карточек и строчек)
+        // Управляем видимостью Манифеста и заголовка Born to Win (только для вкладки feed/Library)
+        const manifestEl = document.getElementById('manifestSection');
+        const bornToWinEl = document.getElementById('bornToWinTitle');
+        if (manifestEl && bornToWinEl) {
+            if (tab === 'feed') {
+                manifestEl.style.display = 'block';
+                bornToWinEl.style.display = 'block';
+                manifestEl.innerHTML = `
+                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
+                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона ${isEditMode ? '(кликните для изменения)' : ''}</span>
+                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
+                            ${manifestWords.map((word, i) => `
+                                <span ${isEditMode ? `onclick="window.editManifest(${i})"` : ''} style="font-style: italic; color: #34d399; ${isEditMode ? 'cursor: pointer; text-decoration: underline;' : ''}" title="${isEditMode ? 'Изменить тег' : ''}">#${word}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                manifestEl.style.display = 'none';
+                bornToWinEl.style.display = 'none';
+            }
+        }
+
+        // 1. БЭКЛОГ
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
             chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
@@ -376,13 +545,11 @@ export const UIRenderer = {
             let filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             let filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
 
-            // Сортировка по дедлайнам (срочные вверху, без срока — внизу)
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
 
-            // Сетка карточек в 2 колонки
             const grid = document.createElement('div');
-            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 400px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box;';
+            grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box;';
             grid.onscroll = handleScrollFade;
 
             filteredBacklog.forEach(item => {
@@ -462,7 +629,6 @@ export const UIRenderer = {
             container.appendChild(grid);
             setTimeout(() => { grid.onscroll({ target: grid }); }, 10);
 
-            // Секция строчек с единым плотным матовым стилем карточек
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px; width: 100%;';
             rowsHeader.innerHTML = `
@@ -472,13 +638,12 @@ export const UIRenderer = {
             container.appendChild(rowsHeader);
 
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 240px; overflow-y: auto; padding-right: 2px; box-sizing: border-box;';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box;';
             rowsContainer.onscroll = handleScrollFade;
 
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
-                // Строчки в точности как карточки — плотный матовый Liquid Glass
                 rEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 12px 16px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
                 rEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
@@ -501,34 +666,258 @@ export const UIRenderer = {
             return;
         }
 
-        // Остальные вкладки (Roadmap, Sprint, Dump, Library) рендерятся штатно...
-        let items = notes;
-        if (tab === 'sprint') {
-            items = notes.filter(n => n.type === 'task' && n.folder === 'sprint');
-        } else if (tab === 'feed') {
-            items = notes.filter(n => n.type === 'feed');
-        }
+        // 2. ROADMAP
+        if (tab === 'roadmap') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
+            
+            let goalsHtml = localRoadmapGoals.map(g => `
+                <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        ${isEditMode ? `
+                            <button onclick="window.editGoal(${g.id})" title="Редактировать" style="background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; font-size:11px;">✏️</button>
+                            <button onclick="window.deleteGoal(${g.id})" title="Удалить цель" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>
+                        ` : ''}
+                        <button onclick="window.toggleGoal(${g.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${g.done ? '#10b981' : 'transparent'}; cursor:pointer;"></button>
+                    </div>
+                </div>
+            `).join('');
 
-        if (items.length === 0) {
-            container.innerHTML = `<div style="text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;">Ничего не найдено</div>`;
+            wrap.innerHTML = `
+                <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
+                <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                    <input type="text" id="roadmapInputText" placeholder="Новая цель на сезон..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                    <button id="roadmapAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">${goalsHtml}</div>
+            `;
+            container.appendChild(wrap);
+
+            setTimeout(() => {
+                const addBtn = document.getElementById('roadmapAddBtn');
+                if (addBtn) {
+                    addBtn.onclick = () => {
+                        const inp = document.getElementById('roadmapInputText');
+                        if (inp && inp.value.trim()) {
+                            localRoadmapGoals.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                            saveRoadmapData();
+                            showToast('Цель добавлена в Roadmap');
+                            UIRenderer.renderList(container, notes, handlers);
+                        }
+                    };
+                }
+            }, 50);
             return;
         }
 
-        items.forEach(note => {
+        // 3. СПРИНТ
+        if (tab === 'sprint') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
+
+            const headerCard = document.createElement('div');
+            headerCard.style.cssText = 'background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 24px; padding: 16px; text-align: center;';
+            headerCard.innerHTML = `
+                <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #fda4af; display: block; margin-bottom: 2px;">Зона экстрима на сегодня</span>
+                <h3 style="margin: 0; font-size: 14px; color: #fff; font-weight: 600;">Спринт</h3>
+            `;
+            wrap.appendChild(headerCard);
+
+            const tasksContainer = document.createElement('div');
+            tasksContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+
+            localSprintTasks.forEach(task => {
+                const tEl = document.createElement('div');
+                tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;';
+                tEl.innerHTML = `
+                    <span style="font-size: 13px; color: #fff; ${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.title}</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        ${isEditMode ? `<button onclick="window.deleteSprintTask(${task.id})" title="Удалить задачу" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:13px; font-weight:bold;">✕</button>` : ''}
+                        <button onclick="window.toggleSprintTask(${task.id})" style="width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: ${task.done ? '#f43f5e' : 'transparent'}; cursor:pointer;"></button>
+                    </div>
+                `;
+                tasksContainer.appendChild(tEl);
+            });
+
+            wrap.appendChild(tasksContainer);
+            container.appendChild(wrap);
+            return;
+        }
+
+        // 4. DUMP
+        if (tab === 'dump' || tab === 'livedump') {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
+
+            let daysButtonsHtml = Object.keys(localDumpDays).map(dKey => {
+                const isCurrent = activeDumpDay === dKey;
+                const isAutoActive = getInitialDumpDay() === dKey;
+                return `
+                    <button onclick="window.switchDumpDay('${dKey}')" style="flex:1; padding: 8px 4px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(255,255,255,0.15); background: ${isCurrent ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer; position: relative;">
+                        ${localDumpDays[dKey].title}
+                        ${isAutoActive ? '<span style="position: absolute; top: 2px; right: 4px; font-size: 8px; color: #34d399;" title="Актуальный день">●</span>' : ''}
+                    </button>
+                `;
+            }).join('');
+
+            let notesHtml = (localDumpDays[activeDumpDay]?.notes || []).map((noteObj, idx) => {
+                const isExpanded = expandedDumpNoteIndex === idx;
+                return `
+                    <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; transition: all 0.2s;">
+                        <div onclick="window.toggleDumpNoteExpand(${idx})" style="padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; cursor: pointer;">
+                            <span style="font-weight: 500; color: #fff;">${noteObj.title}</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button onclick="event.stopPropagation(); window.rescueDumpNote('${activeDumpDay}', ${idx})" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 8px; border-radius: 8px; cursor: pointer;">В Ленту ↗</button>
+                                ${isEditMode ? `<button onclick="event.stopPropagation(); window.deleteDumpNote('${activeDumpDay}', ${idx})" style="background:none; border:none; color:rgba(244,63,94,0.7); cursor:pointer; font-size:12px; padding: 0 4px;" title="Удалить">✕</button>` : ''}
+                                <span style="font-size: 10px; color: rgba(255,255,255,0.5);">${isExpanded ? '▲' : '▼'}</span>
+                            </div>
+                        </div>
+                        ${isExpanded ? `
+                            <div style="padding: 0 14px 14px 14px; font-size: 12px; color: rgba(255,255,255,0.8); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; white-space: pre-wrap; line-height: 1.4;">
+                                ${noteObj.text || 'Нет детального описания мысли.'}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            wrap.innerHTML = `
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="window.switchDumpSub('evening')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'evening' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Сброс (Dump)</button>
+                    <button onclick="window.switchDumpSub('uncompleted')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'uncompleted' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Невыполненное</button>
+                </div>
+
+                ${dumpSubTab === 'evening' ? `
+                    <div style="display: flex; gap: 6px;">${daysButtonsHtml}</div>
+                    <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 6px; flex-direction: column;">
+                            <input type="text" id="dumpTitleInput" placeholder="Заголовок мысли..." style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="dumpNoteInput" placeholder="Поток мыслей перед сном..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); padding:8px 12px; border-radius:12px; color:#fff; font-size:12px; outline:none;">
+                                <button id="dumpAddBtn" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:0 14px; border-radius:12px; font-size:14px; cursor:pointer;">+</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">${notesHtml}</div>
+                    </div>
+                ` : `
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        ${(localAppData?.uncompletedSprint || []).map(item => `
+                            <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 13px; color: #fff; font-weight: 500;">${item.title}</div>
+                                    <div style="font-size: 10px; color: #f43f5e;">${item.info}</div>
+                                </div>
+                                <button style="font-size: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">В Бэклог</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
+            `;
+            container.appendChild(wrap);
+
+            setTimeout(() => {
+                const dumpAddBtn = document.getElementById('dumpAddBtn');
+                if (dumpAddBtn) {
+                    dumpAddBtn.onclick = () => {
+                        const titleInp = document.getElementById('dumpTitleInput');
+                        const textInp = document.getElementById('dumpNoteInput');
+                        const titleVal = titleInp ? titleInp.value.trim() : '';
+                        const textVal = textInp ? textInp.value.trim() : '';
+                        
+                        if (titleVal || textVal) {
+                            localDumpDays[activeDumpDay].notes.push({
+                                title: titleVal || textVal.slice(0, 25) + '...',
+                                text: textVal
+                            });
+                            saveDumpData();
+                            showToast('Заметка добавлена в Dump');
+                            UIRenderer.renderList(container, notes, handlers);
+                        }
+                    };
+                }
+            }, 50);
+            return;
+        }
+
+        // 5. LIBRARY (Лента)
+        if (!notes || notes.length === 0) {
+            const emptyEl = document.createElement('div');
+            emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
+            emptyEl.textContent = 'Ничего не найдено';
+            container.appendChild(emptyEl);
+            return;
+        }
+
+        notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
             card.style.cssText = 'cursor: pointer; width: 100%; position: relative;';
+
+            card.onclick = (e) => {
+                if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img') || e.target.closest('.edit-post-btn')) return;
+                if (handlers.onEditNote) handlers.onEditNote(note);
+            };
+
+            let mediaHtml = '';
+            if (note.media && note.media.length > 0) {
+                mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
+                note.media.forEach((url, imgIdx) => {
+                    mediaHtml += `<img src="${url}" class="note-media-img" data-id="${note.id}" data-imgidx="${imgIdx}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15);">`;
+                });
+                mediaHtml += '</div>';
+            }
+
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                     <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        ${isEditMode ? `
+                            <button class="edit-post-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 13px;" title="Редактировать пост">✏️</button>
+                            <button class="delete-btn" data-id="${note.id}" style="background: none; border: none; color: rgba(244,63,94,0.8); cursor: pointer; font-size: 16px;">✕</button>
+                        ` : ''}
+                    </div>
                 </div>
                 <p>${note.text || ''}</p>
+                ${note.hashtag ? `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; font-size: 11px; color: #ddd; margin-bottom: 8px;">${note.hashtag}</span>` : ''}
+                ${mediaHtml}
                 <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: right; margin-top: 6px;">${note.createdAt}</div>
             `;
             container.appendChild(card);
         });
+
+        setTimeout(() => {
+            const viewport = document.querySelector('.scroll-viewport');
+            if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
+            }
+        }, 50);
+
+        container.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const id = Number(datasetIdSafely(btn));
+                if (handlers.onDelete) handlers.onDelete(id);
+            };
+        });
+
+        container.querySelectorAll('.edit-post-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const id = Number(datasetIdSafely(btn));
+                const note = notes.find(n => n.id === id);
+                if (note && handlers.onEditNote) {
+                    handlers.onEditNote(note);
+                }
+            };
+        });
     }
 };
+
+function datasetIdSafely(el) {
+    return el.dataset.id;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const feedBtn = document.querySelector('.menu-btn[data-tab="feed"]');
