@@ -588,7 +588,6 @@ export const UIRenderer = {
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
 
-            // Скрываем скроллбар в сетке карточек
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
             grid.onscroll = handleScrollFade;
@@ -649,7 +648,6 @@ export const UIRenderer = {
                         </div>
                     `).join('');
 
-                    // Исправление: выравнивание подпунктов с самого верха через justify-content: flex-start
                     card.innerHTML = `
                         <div style="display: flex; flex-direction: column; height: 100%; justify-content: flex-start; gap: 6px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -679,7 +677,6 @@ export const UIRenderer = {
             `;
             container.appendChild(rowsHeader);
 
-            // Скрываем скроллбар в строчках
             const rowsContainer = document.createElement('div');
             rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
             rowsContainer.onscroll = handleScrollFade;
@@ -884,7 +881,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. LIBRARY
+        // 5. LIBRARY (Лента)
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
@@ -932,7 +929,7 @@ export const UIRenderer = {
 
         setTimeout(() => {
             const viewport = document.querySelector('.scroll-viewport');
-            if, (viewport) {
+            if (viewport) {
                 viewport.scrollTop = viewport.scrollHeight;
             }
         }, 50);
@@ -984,7 +981,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     AppState.currentTab = tabName;
                     
                     document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('user-tab');
                     btn.classList.add('active');
 
                     const container = document.querySelector('.main-container');
