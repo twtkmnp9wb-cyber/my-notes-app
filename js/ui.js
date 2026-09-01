@@ -4,30 +4,23 @@ let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 
-// Общие локальные данные для Roadmap, Sprint и Dump
-const localAppData = {
-    roadmap: [
-        { id: 1, text: 'Закрыть семестр без хвостов', done: false },
-        { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
-        { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
-    ],
-    sprint: [
-        { id: 101, title: 'Изучить главу 7', done: false },
-        { id: 102, title: 'Собрать референсы', done: false },
-        { id: 103, title: 'Запустить тест', done: false },
-        { id: 104, title: 'Провести встречу', done: false }
-    ],
-    uncompletedSprint: [
-        { id: 301, title: 'Изучить главу 7', info: 'Просрочено' },
-        { id: 302, title: 'Собрать референсы', info: '3 дня назад' },
-        { id: 303, title: 'Провести встречу', info: 'Вчера' }
-    ]
-};
+// Хранилище для Roadmap с сохранением в localStorage
+let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
+    { id: 1, text: 'Закрыть семестр без хвостов', done: false },
+    { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
+    { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
+];
 
-// Управление категориями бэклога с сохранением
+// Хранилище для Спринта с сохранением в localStorage
+let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
+    { id: 101, title: 'Изучить главу 7', done: false },
+    { id: 102, title: 'Собрать референсы', done: false },
+    { id: 103, title: 'Запустить тест', done: false },
+    { id: 104, title: 'Провести встречу', done: false }
+];
+
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
 
-// Хранилище для Dump
 let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
     day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }, { title: 'Проблема с рендерингом', text: 'Память забивается на 98%.' }] },
     day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
@@ -42,6 +35,14 @@ function getInitialDumpDay() {
 
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
+
+function saveRoadmapData() {
+    localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals));
+}
+
+function saveSprintData() {
+    localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks));
+}
 
 function saveDumpData() {
     localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays));
@@ -151,22 +152,24 @@ function updateFooterButtonsVisibility() {
     }
 }
 
-// Глобальные методы
+// Глобальные методы управления Roadmap и Спринтом
 window.toggleGoal = function(id) {
-    const goal = localAppData.roadmap.find(g => g.id === id);
+    const goal = localRoadmapGoals.find(g => g.id === id);
     if (goal) {
         goal.done = !goal.done;
+        saveRoadmapData();
         const container = document.querySelector('.main-container');
         if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     }
 };
 
 window.editGoal = function(id) {
-    const goal = localAppData.roadmap.find(g => g.id === id);
+    const goal = localRoadmapGoals.find(g => g.id === id);
     if (goal) {
         const newText = prompt('Редактировать цель:', goal.text);
         if (newText !== null && newText.trim()) {
             goal.text = newText.trim();
+            saveRoadmapData();
             const container = document.querySelector('.main-container');
             if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
         }
@@ -174,30 +177,35 @@ window.editGoal = function(id) {
 };
 
 window.deleteGoal = function(id) {
-    localAppData.roadmap = localAppData.roadmap.filter(g => g.id !== id);
+    localRoadmapGoals = localRoadmapGoals.filter(g => g.id !== id);
+    saveRoadmapData();
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     showToast('Цель удалена');
 };
 
 window.toggleSprintTask = function(id) {
-    const task = localAppData.sprint.find(t => t.id === id);
+    const task = localSprintTasks.find(t => t.id === id);
     if (task) {
         task.done = !task.done;
+        saveSprintData();
         const container = document.querySelector('.main-container');
         if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     }
 };
 
 window.deleteSprintTask = function(id) {
-    localAppData.sprint = localAppData.sprint.filter(t => t.id !== id);
+    localSprintTasks = localSprintTasks.filter(t => t.id !== id);
+    saveSprintData();
     const container = document.querySelector('.main-container');
     if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
     showToast('Задача удалена из Спринта');
 };
 
 window.moveToSprint = async function(title) {
-    localAppData.sprint.push({ id: Date.now(), title: title, done: false });
+    localSprintTasks.push({ id: Date.now(), title: title, done: false });
+    saveSprintData();
+    
     await AppState.addNote({
         type: 'task',
         folder: 'sprint',
@@ -387,12 +395,12 @@ export const UIRenderer = {
             return;
         }
 
-        // 2. ROADMAP
+        // 2. ROADMAP (Сохраняется в localStorage)
         if (tab === 'roadmap') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); width: 100%;';
             
-            let goalsHtml = localAppData.roadmap.map(g => `
+            let goalsHtml = localRoadmapGoals.map(g => `
                 <div style="background: rgba(255,255,255,0.05); padding: 12px 14px; border-radius: 14px; font-size: 13px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
                     <span style="${g.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${g.text}</span>
                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -420,7 +428,8 @@ export const UIRenderer = {
                     addBtn.onclick = () => {
                         const inp = document.getElementById('roadmapInputText');
                         if (inp && inp.value.trim()) {
-                            localAppData.roadmap.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                            localRoadmapGoals.push({ id: Date.now(), text: inp.value.trim(), done: false });
+                            saveRoadmapData();
                             showToast('Цель добавлена в Roadmap');
                             UIRenderer.renderList(container, notes, handlers);
                         }
@@ -430,7 +439,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 3. СПРИНТ
+        // 3. СПРИНТ (Сохраняется в localStorage)
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
@@ -446,7 +455,7 @@ export const UIRenderer = {
             const tasksContainer = document.createElement('div');
             tasksContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
 
-            localAppData.sprint.forEach(task => {
+            localSprintTasks.forEach(task => {
                 const tEl = document.createElement('div');
                 tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;';
                 tEl.innerHTML = `
@@ -521,7 +530,7 @@ export const UIRenderer = {
                     </div>
                 ` : `
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        ${localAppData.uncompletedSprint.map(item => `
+                        ${(localAppData?.uncompletedSprint || []).map(item => `
                             <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <div style="font-size: 13px; color: #fff; font-weight: 500;">${item.title}</div>
