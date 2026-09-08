@@ -70,34 +70,6 @@ function calculateDeadlineInfo(dateStr) {
     }
 }
 
-function handleScrollFade(e) {
-    const el = e.target;
-    const scrollTop = el.scrollTop;
-    const scrollHeight = el.scrollHeight;
-    const clientHeight = el.clientHeight;
-
-    if (scrollHeight <= clientHeight + 2) {
-        el.style.maskImage = 'none';
-        el.style.webkitMaskImage = 'none';
-        return;
-    }
-
-    let topFade = scrollTop > 5;
-    let bottomFade = scrollTop + clientHeight < scrollHeight - 5;
-
-    let maskVal = 'none';
-    if (topFade && bottomFade) {
-        maskVal = 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)';
-    } else if (topFade) {
-        maskVal = 'linear-gradient(to bottom, transparent 0%, black 12%, black 100%)';
-    } else if (bottomFade) {
-        maskVal = 'linear-gradient(to bottom, black 0%, black 88%, transparent 100%)';
-    }
-
-    el.style.maskImage = maskVal;
-    el.style.webkitMaskImage = maskVal;
-}
-
 function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
 function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
 function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
@@ -404,7 +376,7 @@ window.deleteCategory = function(cat) {
     }
 };
 
-// Глобальные методы для Dump
+// Dump методы
 window.switchDumpSub = function(sub) {
     dumpSubTab = sub;
     if (window.renderCurrentTab) window.renderCurrentTab();
@@ -433,7 +405,7 @@ window.deleteDumpNote = function(day, idx) {
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
-// Глобальные методы для Roadmap
+// Roadmap методы
 window.toggleGoal = function(id) {
     const goal = localRoadmapGoals.find(g => g.id === id);
     if (goal) {
@@ -460,7 +432,7 @@ window.deleteGoal = function(id) {
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
-// Глобальные методы для Sprint
+// Sprint методы
 window.toggleSprintTask = function(id) {
     const task = localSprintTasks.find(t => t.id === id);
     if (task) {
@@ -476,7 +448,6 @@ window.deleteSprintTask = function(id) {
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
 
-// Редактирование манифеста
 window.editManifest = function(index) {
     const currentWord = manifestWords[index] || '';
     const newWord = prompt('Изменить тег манифеста:', currentWord);
@@ -494,23 +465,6 @@ export const UIRenderer = {
         container.innerHTML = '';
         initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
-
-        let editToggleFooter = document.getElementById('globalEditModeBtn');
-        if (!editToggleFooter) {
-            const footerContainer = document.querySelector('.footer-container');
-            if (footerContainer) {
-                editToggleFooter = document.createElement('button');
-                editToggleFooter.id = 'globalEditModeBtn';
-                editToggleFooter.className = 'action-btn';
-                editToggleFooter.title = 'Режим редактирования';
-                editToggleFooter.innerHTML = '⚙️';
-                editToggleFooter.onclick = () => window.toggleEditMode();
-                footerContainer.insertBefore(editToggleFooter, footerContainer.firstChild);
-            }
-        }
-        if (editToggleFooter) {
-            editToggleFooter.style.background = isEditMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.12)';
-        }
 
         const tab = AppState.currentTab;
 
@@ -590,7 +544,6 @@ export const UIRenderer = {
 
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
-            grid.onscroll = handleScrollFade;
 
             filteredBacklog.forEach(item => {
                 const dl = calculateDeadlineInfo(item.dueDate);
@@ -667,7 +620,6 @@ export const UIRenderer = {
                 grid.appendChild(card);
             });
             container.appendChild(grid);
-            setTimeout(() => { grid.onscroll({ target: grid }); }, 10);
 
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px; width: 100%;';
@@ -679,7 +631,6 @@ export const UIRenderer = {
 
             const rowsContainer = document.createElement('div');
             rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
-            rowsContainer.onscroll = handleScrollFade;
 
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
@@ -701,7 +652,6 @@ export const UIRenderer = {
                 rowsContainer.appendChild(rEl);
             });
             container.appendChild(rowsContainer);
-            setTimeout(() => { rowsContainer.onscroll({ target: rowsContainer }); }, 10);
 
             return;
         }
@@ -843,13 +793,13 @@ export const UIRenderer = {
                     </div>
                 ` : `
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        ${(localAppData?.uncompletedSprint || []).map(item => `
+                        ${localSprintTasks.filter(t => !t.done).map(item => `
                             <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <div style="font-size: 13px; color: #fff; font-weight: 500;">${item.title}</div>
-                                    <div style="font-size: 10px; color: #f43f5e;">${item.info}</div>
+                                    <div style="font-size: 10px; color: #f43f5e;">Невыполненная задача из Спринта</div>
                                 </div>
-                                <button style="font-size: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;">В Бэклог</button>
+                                <button onclick="window.rowToSprint('${item.title}')" style="font-size: 10px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 6px 10px; border-radius: 10px; cursor: pointer;">В Спринт ↗</button>
                             </div>
                         `).join('')}
                     </div>
@@ -881,7 +831,7 @@ export const UIRenderer = {
             return;
         }
 
-        // 5. LIBRARY (Лента)
+        // 5. LIBRARY
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 13px; width: 100%;';
