@@ -1,168 +1,78 @@
 import { AppState } from './state.js';
-import { UIRenderer } from './ui.js';
-import { StorageService } from './storage.js';
+import { UI } from './ui.js';
+import { Storage } from './storage.js';
 import { WallpaperService } from './wallpaper.js';
 
-let currentEditingId = null;
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Загрузка сохраненных заметок из localStorage
+    AppState.notes = Storage.loadNotes() || [];
 
-async function initApp() {
-    try {
-        if (StorageService?.init) await StorageService.init();
-        if (WallpaperService?.init) WallpaperService.init();
-
-        AppState.isEditMode = false;
-
-        window.openEditModal = (note) => {
-            currentEditingId = note.id;
-            const titleInput = document.getElementById('editModalTitle');
-            const textInput = document.getElementById('editModalText');
-            const modal = document.getElementById('editModal');
-
-            if (titleInput) titleInput.value = note.title || '';
-            if (textInput) textInput.value = note.text || '';
-            if (modal) modal.classList.add('active');
-        };
-
-        const refreshUI = () => {
-            UIRenderer.renderCurrentTab();
-        };
-
-        initNavigation(refreshUI);
-        initEditToggle(refreshUI);
-        initModalsAndCreation(refreshUI);
-        initEditModalLogic(refreshUI);
-
-        refreshUI();
-    } catch (err) {
-        console.error("Ошибка при инициализации приложения:", err);
+    // 2. Инициализация UI компонентов
+    UI.init();
+    UI.render();
+    if (WallpaperService && typeof WallpaperService.init === 'function') {
+        WallpaperService.init();
     }
-}
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
-
-function initEditToggle(refreshCallback) {
-    const editToggleBtn = document.getElementById('editToggleBtn');
-    if (editToggleBtn) {
-        editToggleBtn.onclick = () => {
-            AppState.isEditMode = !AppState.isEditMode;
-            if (AppState.isEditMode) {
-                editToggleBtn.style.background = 'rgba(52, 211, 153, 0.25)';
-                editToggleBtn.style.border = '1px solid rgba(52, 211, 153, 0.6)';
-                editToggleBtn.style.color = '#34d399';
-            } else {
-                editToggleBtn.style.background = '';
-                editToggleBtn.style.border = '';
-                editToggleBtn.style.color = '';
-            }
-            refreshCallback();
-        };
-    }
-}
-
-function initNavigation(refreshCallback) {
-    const menuBtns = document.querySelectorAll('.menu-btn[data-tab]');
-    menuBtns.forEach(btn => {
+    // 3. Переключение табов
+    document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            menuBtns.forEach(b => b.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-
-            const tab = e.currentTarget.getAttribute('data-tab');
-            if (tab === 'settings') {
-                document.getElementById('settingsModal')?.classList.add('active');
-            } else {
-                AppState.currentTab = tab;
-                refreshCallback();
-            }
+            document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            AppState.activeTab = e.target.dataset.tab;
+            UI.render();
         });
     });
-}
 
-function initModalsAndCreation(refreshCallback) {
-    const noteModal = document.getElementById('noteModal');
-    const settingsModal = document.getElementById('settingsModal');
+    // 4. Открытие модалки создания
     const addNoteBtn = document.getElementById('addNoteBtn');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const settingsCloseBtn = document.getElementById('settingsCloseBtn');
-    const saveNoteBtn = document.getElementById('saveNoteBtn');
-
     if (addNoteBtn) {
-        addNoteBtn.onclick = () => noteModal?.classList.add('active');
+        addNoteBtn.addEventListener('click', () => {
+            UI.openModalForCreate();
+        });
     }
 
+    // 5. Закрытие модалки
+    const closeModalBtn = document.getElementById('closeModalBtn');
     if (closeModalBtn) {
-        closeModalBtn.onclick = () => noteModal?.classList.remove('active');
+        closeModalBtn.addEventListener('click', () => {
+            UI.closeModal();
+        });
     }
 
-    if (settingsCloseBtn) {
-        settingsCloseBtn.onclick = () => settingsModal?.classList.remove('active');
-    }
-
+    // 6. Сохранение (Создание или Редактирование)
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
     if (saveNoteBtn) {
-        saveNoteBtn.onclick = async () => {
-            const title = document.getElementById('noteTitleInput')?.value || '';
-            const text = document.getElementById('noteTextInput')?.value || '';
-            const tag = document.getElementById('noteHashtagInput')?.value || '';
+        saveNoteBtn.addEventListener('click', () => {
+            const editId = document.getElementById('editingNoteId')?.value;
+            const title = document.getElementById('noteTitleInput')?.value.trim() || '';
+            const text = document.getElementById('noteTextInput')?.value.trim() || '';
+            const hashtag = document.getElementById('noteHashtagInput')?.value.trim() || '';
+            const isTask = document.getElementById('typeTaskBtn')?.classList.contains('active');
+            const type = isTask ? 'task' : 'feed';
 
             if (!title && !text) return;
 
-            const newNote = {
-                id: Date.now().toString(),
-                title,
-                text,
-                tag,
-                type: AppState.currentTab === 'backlog' ? 'task' : 'feed',
-                date: new Date().toLocaleDateString('ru-RU')
-            };
-
-            await AppState.addNote(newNote);
-            
-            const titleIn = document.getElementById('noteTitleInput');
-            const textIn = document.getElementById('noteTextInput');
-            const tagIn = document.getElementById('noteHashtagInput');
-            if (titleIn) titleIn.value = '';
-            if (textIn) textIn.value = '';
-            if (tagIn) tagIn.value = '';
-            
-            noteModal?.classList.remove('active');
-            refreshCallback();
-        };
-    }
-}
-
-function initEditModalLogic(refreshCallback) {
-    const modal = document.getElementById('editModal');
-    const cancelBtn = document.getElementById('editModalCancel');
-    const saveBtn = document.getElementById('editModalSave');
-
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            modal?.classList.remove('active');
-            currentEditingId = null;
-        };
-    }
-
-    if (saveBtn) {
-        saveBtn.onclick = async () => {
-            if (!currentEditingId) return;
-            
-            const note = AppState.notes.find(n => n.id === currentEditingId);
-            if (note) {
-                const titleInput = document.getElementById('editModalTitle');
-                const textInput = document.getElementById('editModalText');
-
-                if (titleInput) note.title = titleInput.value;
-                if (textInput) note.text = textInput.value;
-
-                await AppState.updateNote(note);
-                refreshCallback();
+            if (editId) {
+                // Обновляем существующую заметку
+                AppState.updateNote(editId, { title, text, hashtag, type });
+            } else {
+                // Создаем новую заметку
+                const newNote = {
+                    id: Date.now().toString(),
+                    title,
+                    text,
+                    hashtag,
+                    type,
+                    createdAt: new Date().toISOString()
+                };
+                AppState.addNote(newNote);
             }
-            
-            modal?.classList.remove('active');
-            currentEditingId = null;
-        };
+
+            // Сохраняем в localStorage и перерисовываем
+            Storage.saveNotes(AppState.notes);
+            UI.render();
+            UI.closeModal();
+        });
     }
-}
+});

@@ -13,11 +13,11 @@
     <title>Монитор Души</title>
 </head>
 <body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
-    <!-- Слой обоев -->
+    <!-- Слой обоев с поддержкой зума -->
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ ТОП-БАР -->
+        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -37,7 +37,7 @@
         <div class="scroll-viewport">
             <div class="content-wrapper">
                 
-                <!-- МАНИФЕСТ СЕЗОНА (Только для Ленты) -->
+                <!-- МАНИФЕСТ СЕЗОНА (Сразу под меню, только для Ленты) -->
                 <div id="manifestSection" style="margin-top: 10px; margin-bottom: 6px;">
                     <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
                         <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
@@ -53,7 +53,7 @@
                 <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
                 <div id="telegramSearchBarContainer"></div>
 
-                <!-- ЗАГОЛОВОК BORN TO WIN -->
+                <!-- ЗАГОЛОВОК BORN TO WIN (Ниже плашек, только на Ленте) -->
                 <div id="bornToWinTitle" style="text-align: center; margin: 10px 0 8px 0;">
                     <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
                 </div>
@@ -66,29 +66,25 @@
             </div>
         </div>
 
-        <!-- Футер с плавающими стильными кнопками -->
+        <!-- Футер с плавающими кнопками управления -->
         <footer class="app-footer">
-            <div class="footer-container" style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                <button type="button" class="action-btn" id="searchToggleBtn" title="Поиск">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                </button>
-                <button type="button" class="action-btn" id="editToggleBtn" title="Режим редактирования">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                </button>
-                <button type="button" class="action-btn add-btn" id="addNoteBtn" title="Создать">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
+            <div class="footer-container">
+                <button type="button" class="action-btn" id="searchToggleBtn" title="Поиск">🔍</button>
+                <button type="button" class="action-btn add-btn" id="addNoteBtn" title="Создать">+</button>
             </div>
         </footer>
     </div>
 
-    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
+    <!-- МОДАЛКА СОЗДАНИЯ / РЕДАКТИРОВАНИЯ ЗАПИСИ -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Создать запись</h3>
+                <h3 id="modalTitle">Создать запись</h3>
                 <button type="button" class="close-btn" id="closeModalBtn">×</button>
             </div>
+            <!-- Скрытый ID для отслеживания редактирования -->
+            <input type="hidden" id="editingNoteId" value="">
+
             <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
                 <button type="button" class="menu-btn active" id="typeFeedBtn" style="flex:1;">📝 Лента</button>
                 <button type="button" class="menu-btn" id="typeTaskBtn" style="flex:1;">⚡ Задача</button>
@@ -98,6 +94,12 @@
                 <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
                 <div id="feedFieldsBlock">
                     <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
+                    <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#осанка</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#речь</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
+                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="margin-top: 16px;">
@@ -106,28 +108,11 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА РЕДАКТИРОВАНИЯ ЗАПИСИ -->
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Редактировать запись</h3>
-                <button type="button" class="close-btn" id="editModalCancel">×</button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="editModalTitle" class="modal-input" placeholder="Заголовок...">
-                <textarea id="editModalText" class="modal-textarea" placeholder="Текст или описание..."></textarea>
-            </div>
-            <div class="modal-footer" style="margin-top: 16px;">
-                <button type="button" class="menu-btn active" id="editModalSave" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- МОДАЛКА НАСТРОЕК -->
+    <!-- Модалка настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Настройки</h3>
+                <h3>Темы и обои</h3>
                 <button type="button" class="close-btn" id="settingsCloseBtn">×</button>
             </div>
             <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
