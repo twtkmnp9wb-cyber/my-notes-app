@@ -49,6 +49,26 @@ function getInitialDumpDay() {
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
 
+// ==========================================
+// ЛИПКАЯ ШАПКА ЛЕНТЫ: синхронизация высоты и позиции
+// ==========================================
+function syncStickyHeaderLayout() {
+    const topBar = document.querySelector('.fixed-top-bar');
+    const stickyHeader = document.getElementById('feedStickyHeader');
+    const viewport = document.querySelector('.scroll-viewport');
+    if (!topBar || !stickyHeader || !viewport) return;
+
+    const isFeed = AppState.currentTab === 'feed';
+    stickyHeader.classList.toggle('hidden', !isFeed);
+
+    const topBarH = topBar.offsetHeight;
+    stickyHeader.style.top = topBarH + 'px';
+
+    const stickyH = isFeed ? stickyHeader.offsetHeight : 0;
+    viewport.style.paddingTop = (topBarH + stickyH + 10) + 'px';
+}
+window.addEventListener('resize', syncStickyHeaderLayout);
+
 function calculateDeadlineInfo(dateStr) {
     if (!dateStr || !dateStr.trim()) return { text: 'No deadline', color: 'rgba(255,255,255,0.4)', urgent: false, sortVal: 999999 };
     const today = new Date();
@@ -124,12 +144,14 @@ function initTelegramSearchBar(handlers) {
                 searchBarContainer.innerHTML = '';
                 const container = document.querySelector('.main-container');
                 if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
+                syncStickyHeaderLayout();
             };
         }
         updateSearchCounter();
     } else {
         searchBarContainer.innerHTML = '';
     }
+    syncStickyHeaderLayout();
 }
 
 function updateSearchCounter() {
@@ -490,11 +512,13 @@ export const UIRenderer = {
             }
         }
 
+        syncStickyHeaderLayout();
+
         // 1. BACKLOG
         if (tab === 'backlog') {
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none;';
-            
+            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding: 2px 10px 6px 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
+
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
                 const isActive = backlogFilterVal === cat;
@@ -506,8 +530,8 @@ export const UIRenderer = {
                     urgentCount = backlogCustomItems.filter(i => i.category === cat && calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => r.category === cat && calculateDeadlineInfo(r.dueDate).urgent).length;
                 }
 
-                chipWrap.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; white-space: nowrap;';
-                
+                chipWrap.style.cssText = 'flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-sizing: border-box;';
+
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
                     ${urgentCount > 0 ? `<span style="background: #f43f5e; color: #fff; font-size: 9px; padding: 0 5px; border-radius: 9px; margin-left: 4px; font-weight: bold;">${urgentCount}</span>` : ''}
@@ -529,7 +553,7 @@ export const UIRenderer = {
             if (isEditMode) {
                 const addChipBtn = document.createElement('button');
                 addChipBtn.textContent = '+';
-                addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; cursor: pointer;';
+                addChipBtn.style.cssText = 'flex: 0 0 auto; background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; cursor: pointer; box-sizing: border-box;';
                 addChipBtn.onclick = () => window.addNewCategory();
                 chipsContainer.appendChild(addChipBtn);
             }
@@ -622,15 +646,16 @@ export const UIRenderer = {
             container.appendChild(grid);
 
             const rowsHeader = document.createElement('div');
-            rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 4px; width: 100%;';
+            rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 0; width: 100%; box-sizing: border-box;';
             rowsHeader.innerHTML = `
                 <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5);">Простые задачи (строчки)</span>
-                <button onclick="window.addNewBacklogRow()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 8px; cursor: pointer;">+ Строчка</button>
+                <button onclick="window.addNewBacklogRow()" style="flex-shrink: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 10px; padding: 5px 10px; border-radius: 9999px; cursor: pointer; box-sizing: border-box;">+ Строчка</button>
             `;
             container.appendChild(rowsHeader);
 
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding-right: 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding: 6px 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
+            rowsContainer.classList.add('edge-fade-y');
 
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
@@ -917,8 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
         initTelegramSearchBar(window.currentHandlers);
-        const viewport = document.querySelector('.scroll-viewport');
-        if (viewport) viewport.style.paddingTop = isSearchOpen ? '120px' : '65px';
+        syncStickyHeaderLayout();
     });
 
     setTimeout(() => {
