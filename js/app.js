@@ -307,6 +307,7 @@ function runMidnightMaintenance() {
 function escapeHtml(text) {
     return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])) : '';
 }
+
 // ==========================================
 // ЛОГИКА LIVE DUMP (СБРОС ТРЕВОГИ ПЕРЕД СНОМ)
 // ==========================================

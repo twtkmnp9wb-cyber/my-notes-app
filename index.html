@@ -75,16 +75,13 @@
         </footer>
     </div>
 
-    <!-- МОДАЛКА СОЗДАНИЯ / РЕДАКТИРОВАНИЯ ЗАПИСИ -->
+    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Создать запись</h3>
+                <h3>Создать запись</h3>
                 <button type="button" class="close-btn" id="closeModalBtn">×</button>
             </div>
-            <!-- Скрытый ID для отслеживания редактирования -->
-            <input type="hidden" id="editingNoteId" value="">
-
             <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
                 <button type="button" class="menu-btn active" id="typeFeedBtn" style="flex:1;">📝 Лента</button>
                 <button type="button" class="menu-btn" id="typeTaskBtn" style="flex:1;">⚡ Задача</button>
