@@ -50,11 +50,13 @@ function initEditToggle(refreshCallback) {
         editToggleBtn.onclick = () => {
             AppState.isEditMode = !AppState.isEditMode;
             if (AppState.isEditMode) {
-                editToggleBtn.style.background = 'rgba(52, 211, 153, 0.3)';
+                editToggleBtn.style.background = 'rgba(52, 211, 153, 0.25)';
                 editToggleBtn.style.border = '1px solid rgba(52, 211, 153, 0.6)';
+                editToggleBtn.style.color = '#34d399';
             } else {
                 editToggleBtn.style.background = '';
                 editToggleBtn.style.border = '';
+                editToggleBtn.style.color = '';
             }
             refreshCallback();
         };
