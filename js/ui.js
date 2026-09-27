@@ -34,41 +34,35 @@ export const UIRenderer = {
             card.className = 'note-card';
             card.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; margin-bottom: 12px; backdrop-filter: blur(12px); position: relative;';
 
-            let editControls = '';
-            if (AppState.isEditMode) {
-                editControls = `
-                    <div style="display: flex; gap: 8px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-                        <button class="edit-btn" style="background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Редактировать</button>
-                        <button class="delete-btn" style="background: rgba(239, 68, 68, 0.2); border: none; color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;">🗑️ Удалить</button>
-                    </div>
-                `;
-            }
-
             card.innerHTML = `
-                ${note.title ? `<h4 style="font-weight: 600; font-size: 15px; margin-bottom: 6px;">${note.title}</h4>` : ''}
-                <p style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4;">${note.text || ''}</p>
-                ${note.tag ? `<span style="font-size: 11px; color: #34d399; margin-top: 6px; display: inline-block;">${note.tag}</span>` : ''}
-                ${editControls}
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
+                    <h4 style="font-weight: 600; font-size: 15px; margin: 0; flex: 1;">${note.title || ''}</h4>
+                    <div style="display: flex; gap: 8px; opacity: 0.6;" class="card-actions">
+                        <button class="edit-btn" style="background: none; border: none; color: #fff; cursor: pointer; padding: 2px 4px; font-size: 13px;" title="Редактировать">✏️</button>
+                        <button class="delete-btn" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 2px 4px; font-size: 13px;" title="Удалить">🗑️</button>
+                    </div>
+                </div>
+                <p style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4; margin: 0;">${note.text || ''}</p>
+                ${note.tag ? `<span style="font-size: 11px; color: #34d399; margin-top: 8px; display: inline-block;">${note.tag}</span>` : ''}
             `;
 
-            if (AppState.isEditMode) {
-                const editBtn = card.querySelector('.edit-btn');
-                const deleteBtn = card.querySelector('.delete-btn');
+            // Навешиваем быстрые действия на кнопки
+            const editBtn = card.querySelector('.edit-btn');
+            const deleteBtn = card.querySelector('.delete-btn');
 
-                if (editBtn) {
-                    editBtn.onclick = () => {
-                        if (window.openEditModal) window.openEditModal(note);
-                    };
-                }
+            if (editBtn) {
+                editBtn.onclick = () => {
+                    if (window.openEditModal) window.openEditModal(note);
+                };
+            }
 
-                if (deleteBtn) {
-                    deleteBtn.onclick = async () => {
-                        if (confirm('Удалить эту запись?')) {
-                            await AppState.deleteNote(note.id);
-                            this.renderCurrentTab();
-                        }
-                    };
-                }
+            if (deleteBtn) {
+                deleteBtn.onclick = async () => {
+                    if (confirm('Удалить эту запись?')) {
+                        await AppState.deleteNote(note.id);
+                        this.renderCurrentTab();
+                    }
+                };
             }
 
             container.appendChild(card);

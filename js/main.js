@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await StorageService.init();
     WallpaperService.init();
 
-    // 2. Инициализация глобальной функции редактирования
+    // 2. Глобальная функция открытия редактирования
     window.openEditModal = (note) => {
         currentEditingId = note.id;
         const titleInput = document.getElementById('editModalTitle');
@@ -22,27 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (modal) modal.classList.add('active');
     };
 
-    window.toggleEditMode = () => {
-        AppState.isEditMode = !AppState.isEditMode;
-        const toggleBtn = document.getElementById('toggleEditBtn');
-        if (toggleBtn) {
-            toggleBtn.textContent = AppState.isEditMode 
-                ? '✏️ Режим редактирования: Вкл' 
-                : '✏️ Режим редактирования: Выкл';
-            toggleBtn.style.background = AppState.isEditMode ? 'rgba(52, 211, 153, 0.2)' : '';
-        }
-        refreshUI();
-    };
-
     // 3. Функция обновления UI
     const refreshUI = () => {
         UIRenderer.renderCurrentTab();
     };
 
-    // 4. Инициализация табов
+    // 4. Инициализация систем
     initNavigation(refreshUI);
-
-    // 5. Инициализация модалок
     initModalsAndCreation(refreshUI);
     initEditModalLogic(refreshUI);
 
@@ -75,7 +61,6 @@ function initModalsAndCreation(refreshCallback) {
     const closeModalBtn = document.getElementById('closeModalBtn');
     const settingsCloseBtn = document.getElementById('settingsCloseBtn');
     const saveNoteBtn = document.getElementById('saveNoteBtn');
-    const toggleEditBtn = document.getElementById('toggleEditBtn');
 
     if (addNoteBtn) {
         addNoteBtn.onclick = () => noteModal?.classList.add('active');
@@ -87,10 +72,6 @@ function initModalsAndCreation(refreshCallback) {
 
     if (settingsCloseBtn) {
         settingsCloseBtn.onclick = () => settingsModal?.classList.remove('active');
-    }
-
-    if (toggleEditBtn) {
-        toggleEditBtn.onclick = () => window.toggleEditMode();
     }
 
     if (saveNoteBtn) {
