@@ -10,7 +10,8 @@ async function initApp() {
         if (StorageService?.init) await StorageService.init();
         if (WallpaperService?.init) WallpaperService.init();
 
-        // Глобальная функция открытия модалки редактирования
+        AppState.isEditMode = false;
+
         window.openEditModal = (note) => {
             currentEditingId = note.id;
             const titleInput = document.getElementById('editModalTitle');
@@ -27,21 +28,37 @@ async function initApp() {
         };
 
         initNavigation(refreshUI);
+        initEditToggle(refreshUI);
         initModalsAndCreation(refreshUI);
         initEditModalLogic(refreshUI);
 
-        // Первый рендер интерфейса
         refreshUI();
     } catch (err) {
         console.error("Ошибка при инициализации приложения:", err);
     }
 }
 
-// Проверка состояния загрузки DOM (гарантирует запуск, даже если DOM уже загружен)
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
+}
+
+function initEditToggle(refreshCallback) {
+    const editToggleBtn = document.getElementById('editToggleBtn');
+    if (editToggleBtn) {
+        editToggleBtn.onclick = () => {
+            AppState.isEditMode = !AppState.isEditMode;
+            if (AppState.isEditMode) {
+                editToggleBtn.style.background = 'rgba(52, 211, 153, 0.3)';
+                editToggleBtn.style.border = '1px solid rgba(52, 211, 153, 0.6)';
+            } else {
+                editToggleBtn.style.background = '';
+                editToggleBtn.style.border = '';
+            }
+            refreshCallback();
+        };
+    }
 }
 
 function initNavigation(refreshCallback) {

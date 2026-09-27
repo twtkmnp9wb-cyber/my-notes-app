@@ -50,36 +50,43 @@ export const UIRenderer = {
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
-            card.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; margin-bottom: 12px; backdrop-filter: blur(12px); position: relative;';
+            card.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 14px; margin-bottom: 12px; backdrop-filter: blur(12px); position: relative; transition: all 0.2s ease;';
+
+            // Если режим редактирования активен — добавляем плашку управления
+            const actionControls = AppState.isEditMode ? `
+                <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" class="card-actions">
+                    <button class="edit-btn" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 12px;" title="Редактировать">✏️ Редактировать</button>
+                    <button class="delete-btn" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 12px;" title="Удалить">🗑️</button>
+                </div>
+            ` : '';
 
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px;">
                     <h4 style="font-weight: 600; font-size: 15px; margin: 0; flex: 1;">${note.title || ''}</h4>
-                    <div style="display: flex; gap: 8px; opacity: 0.7;" class="card-actions">
-                        <button class="edit-btn" style="background: none; border: none; color: #fff; cursor: pointer; padding: 2px 4px; font-size: 13px;" title="Редактировать">✏️</button>
-                        <button class="delete-btn" style="background: none; border: none; color: #f87171; cursor: pointer; padding: 2px 4px; font-size: 13px;" title="Удалить">🗑️</button>
-                    </div>
+                    ${actionControls}
                 </div>
                 <p style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4; margin: 0;">${note.text || ''}</p>
                 ${note.tag ? `<span style="font-size: 11px; color: #34d399; margin-top: 8px; display: inline-block;">${note.tag}</span>` : ''}
             `;
 
-            const editBtn = card.querySelector('.edit-btn');
-            const deleteBtn = card.querySelector('.delete-btn');
+            if (AppState.isEditMode) {
+                const editBtn = card.querySelector('.edit-btn');
+                const deleteBtn = card.querySelector('.delete-btn');
 
-            if (editBtn) {
-                editBtn.onclick = () => {
-                    if (window.openEditModal) window.openEditModal(note);
-                };
-            }
+                if (editBtn) {
+                    editBtn.onclick = () => {
+                        if (window.openEditModal) window.openEditModal(note);
+                    };
+                }
 
-            if (deleteBtn) {
-                deleteBtn.onclick = async () => {
-                    if (confirm('Удалить эту запись?')) {
-                        await AppState.deleteNote(note.id);
-                        this.renderCurrentTab();
-                    }
-                };
+                if (deleteBtn) {
+                    deleteBtn.onclick = async () => {
+                        if (confirm('Удалить эту запись?')) {
+                            await AppState.deleteNote(note.id);
+                            this.renderCurrentTab();
+                        }
+                    };
+                }
             }
 
             container.appendChild(card);
@@ -89,8 +96,8 @@ export const UIRenderer = {
     renderRoadmap(container) {
         container.innerHTML = `
             <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px; backdrop-filter: blur(12px);">
-                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #34d399;">🗺️ Roadmap сезона</h3>
-                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">Стратегические цели и ориентиры сезона.</p>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #34d399;">🗺️ Roadmap сезона</h3>
+                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; margin:0;">Стратегические цели и вектор движения.</p>
             </div>
         `;
     },
@@ -98,8 +105,8 @@ export const UIRenderer = {
     renderSprint(container) {
         container.innerHTML = `
             <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px; backdrop-filter: blur(12px);">
-                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #60a5fa;">⚡ Текущий Спринт</h3>
-                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">Фокусные задачи на день и ближайшее время.</p>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #60a5fa;">⚡ Текущий Спринт</h3>
+                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; margin:0;">Фокусные задачи на эту неделю.</p>
             </div>
         `;
     },
@@ -124,7 +131,7 @@ export const UIRenderer = {
                     <h4 style="font-weight: 600; font-size: 14px; margin: 0;">${task.title || 'Без названия'}</h4>
                     <span style="font-size: 11px; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 6px;">Задача</span>
                 </div>
-                ${task.text ? `<p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 6px;">${task.text}</p>` : ''}
+                ${task.text ? `<p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 6px; margin-bottom: 0;">${task.text}</p>` : ''}
             `;
             container.appendChild(card);
         });
@@ -133,8 +140,8 @@ export const UIRenderer = {
     renderDump(container) {
         container.innerHTML = `
             <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 16px; backdrop-filter: blur(12px);">
-                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #f472b6;">🧠 Core Dump</h3>
-                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5;">Сброс мыслей и разгрузка головы перед сном.</p>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #f472b6;">🧠 Core Dump</h3>
+                <p style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; margin:0;">Сброс мыслей и расчистка головы.</p>
             </div>
         `;
     }

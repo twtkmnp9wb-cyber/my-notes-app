@@ -13,11 +13,11 @@
     <title>Монитор Души</title>
 </head>
 <body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
-    <!-- Слой обоев с поддержкой зума -->
+    <!-- Слой обоев -->
     <div id="bgLayer" class="bg-glow"></div>
 
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
+        <!-- ФИКСИРОВАННЫЙ ТОП-БАР -->
         <header class="fixed-top-bar">
             <aside class="main-menu">
                 <nav class="main-menu-nav">
@@ -37,7 +37,7 @@
         <div class="scroll-viewport">
             <div class="content-wrapper">
                 
-                <!-- МАНИФЕСТ СЕЗОНА (Сразу под меню, только для Ленты) -->
+                <!-- МАНИФЕСТ СЕЗОНА (Только для Ленты) -->
                 <div id="manifestSection" style="margin-top: 10px; margin-bottom: 6px;">
                     <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
                         <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
@@ -53,7 +53,7 @@
                 <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
                 <div id="telegramSearchBarContainer"></div>
 
-                <!-- ЗАГОЛОВОК BORN TO WIN (Ниже плашек, только на Ленте) -->
+                <!-- ЗАГОЛОВОК BORN TO WIN -->
                 <div id="bornToWinTitle" style="text-align: center; margin: 10px 0 8px 0;">
                     <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
                 </div>
@@ -70,6 +70,7 @@
         <footer class="app-footer">
             <div class="footer-container">
                 <button type="button" class="action-btn" id="searchToggleBtn" title="Поиск">🔍</button>
+                <button type="button" class="action-btn" id="editToggleBtn" title="Режим редактирования">✏️</button>
                 <button type="button" class="action-btn add-btn" id="addNoteBtn" title="Создать">+</button>
             </div>
         </footer>
@@ -91,12 +92,6 @@
                 <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
                 <div id="feedFieldsBlock">
                     <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
-                    <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#осанка</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#речь</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
-                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="margin-top: 16px;">
