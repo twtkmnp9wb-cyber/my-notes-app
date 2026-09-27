@@ -105,12 +105,32 @@
         </div>
     </div>
 
-    <!-- Модалка настроек -->
+    <!-- МОДАЛКА РЕДАКТИРОВАНИЯ ЗАПИСИ -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Редактировать запись</h3>
+                <button type="button" class="close-btn" id="editModalCancel">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editModalTitle" class="modal-input" placeholder="Заголовок...">
+                <textarea id="editModalText" class="modal-textarea" placeholder="Текст или описание..."></textarea>
+            </div>
+            <div class="modal-footer" style="margin-top: 16px;">
+                <button type="button" class="menu-btn active" id="editModalSave" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА НАСТРОЕК -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Темы и обои</h3>
+                <h3>Настройки</h3>
                 <button type="button" class="close-btn" id="settingsCloseBtn">×</button>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <button type="button" class="menu-btn" id="toggleEditBtn" style="width: 100%; text-align: center; border: 1px solid rgba(255,255,255,0.2);">✏️ Режим редактирования: Выкл</button>
             </div>
             <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
             <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
