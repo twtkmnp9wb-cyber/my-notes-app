@@ -25,7 +25,7 @@ export const UIRenderer = {
         const notes = AppState.notes || [];
 
         if (notes.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px;">Заметок пока нет</div>';
+            container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 14px;">Заметок пока нет</div>';
             return;
         }
 
@@ -46,7 +46,6 @@ export const UIRenderer = {
                 ${note.tag ? `<span style="font-size: 11px; color: #34d399; margin-top: 8px; display: inline-block;">${note.tag}</span>` : ''}
             `;
 
-            // Навешиваем быстрые действия на кнопки
             const editBtn = card.querySelector('.edit-btn');
             const deleteBtn = card.querySelector('.delete-btn');
 
@@ -70,6 +69,6 @@ export const UIRenderer = {
     },
 
     renderOtherTabs(container) {
-        container.innerHTML = `<div style="text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px;">Раздел "${AppState.currentTab}" в разработке</div>`;
+        container.innerHTML = `<div style="text-align: center; color: rgba(255,255,255,0.4); margin-top: 40px; font-size: 14px;">Раздел "${AppState.currentTab}" в разработке</div>`;
     }
 };

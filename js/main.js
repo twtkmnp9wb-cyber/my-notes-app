@@ -5,36 +5,44 @@ import { WallpaperService } from './wallpaper.js';
 
 let currentEditingId = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Загрузка сохраненных данных
-    await StorageService.init();
-    WallpaperService.init();
+async function initApp() {
+    try {
+        if (StorageService?.init) await StorageService.init();
+        if (WallpaperService?.init) WallpaperService.init();
 
-    // 2. Глобальная функция открытия редактирования
-    window.openEditModal = (note) => {
-        currentEditingId = note.id;
-        const titleInput = document.getElementById('editModalTitle');
-        const textInput = document.getElementById('editModalText');
-        const modal = document.getElementById('editModal');
+        // Глобальная функция открытия модалки редактирования
+        window.openEditModal = (note) => {
+            currentEditingId = note.id;
+            const titleInput = document.getElementById('editModalTitle');
+            const textInput = document.getElementById('editModalText');
+            const modal = document.getElementById('editModal');
 
-        if (titleInput) titleInput.value = note.title || '';
-        if (textInput) textInput.value = note.text || '';
-        if (modal) modal.classList.add('active');
-    };
+            if (titleInput) titleInput.value = note.title || '';
+            if (textInput) textInput.value = note.text || '';
+            if (modal) modal.classList.add('active');
+        };
 
-    // 3. Функция обновления UI
-    const refreshUI = () => {
-        UIRenderer.renderCurrentTab();
-    };
+        const refreshUI = () => {
+            UIRenderer.renderCurrentTab();
+        };
 
-    // 4. Инициализация систем
-    initNavigation(refreshUI);
-    initModalsAndCreation(refreshUI);
-    initEditModalLogic(refreshUI);
+        initNavigation(refreshUI);
+        initModalsAndCreation(refreshUI);
+        initEditModalLogic(refreshUI);
 
-    // Первичный рендер
-    refreshUI();
-});
+        // Первый рендер интерфейса
+        refreshUI();
+    } catch (err) {
+        console.error("Ошибка при инициализации приложения:", err);
+    }
+}
+
+// Проверка состояния загрузки DOM (гарантирует запуск, даже если DOM уже загружен)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 function initNavigation(refreshCallback) {
     const menuBtns = document.querySelectorAll('.menu-btn[data-tab]');
@@ -93,9 +101,12 @@ function initModalsAndCreation(refreshCallback) {
 
             await AppState.addNote(newNote);
             
-            document.getElementById('noteTitleInput').value = '';
-            document.getElementById('noteTextInput').value = '';
-            document.getElementById('noteHashtagInput').value = '';
+            const titleIn = document.getElementById('noteTitleInput');
+            const textIn = document.getElementById('noteTextInput');
+            const tagIn = document.getElementById('noteHashtagInput');
+            if (titleIn) titleIn.value = '';
+            if (textIn) textIn.value = '';
+            if (tagIn) tagIn.value = '';
             
             noteModal?.classList.remove('active');
             refreshCallback();
