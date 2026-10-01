@@ -1,84 +1,77 @@
-import { AppState } from './state.js';
 
+Ui · JS
+import { AppState } from './state.js';
+ 
 let isSearchOpen = false;
 let backlogFilterVal = 'All';
 let dumpSubTab = 'evening'; 
 let isEditMode = false;
-
+ 
 let localRoadmapGoals = JSON.parse(localStorage.getItem('app_roadmap_goals')) || [
     { id: 1, text: 'Закрыть семестр без хвостов', done: false },
     { id: 2, text: 'Прокачать физическую форму (турник х 15)', done: true },
     { id: 3, text: 'Запустить финальную версию Монитора Души', done: false }
 ];
-
+ 
 let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [
     { id: 101, title: 'Изучить главу 7', done: false },
     { id: 102, title: 'Собрать референсы', done: false },
     { id: 103, title: 'Запустить тест', done: false },
     { id: 104, title: 'Провести встречу', done: false }
 ];
-
+ 
 let backlogCategories = JSON.parse(localStorage.getItem('app_backlog_categories')) || ['All', 'Study', 'Project', 'Music', 'Life'];
-
+ 
 let backlogCustomItems = JSON.parse(localStorage.getItem('app_backlog_custom_items')) || [
     { id: 1, title: 'Подготовка к зиме', category: 'Study', dueDate: '2026-09-02', progress: 66, flipped: false, subtasks: [{ id: 11, text: 'Купить пуховик', done: true }, { id: 12, text: 'Проверить резину', done: false }] },
     { id: 2, title: 'Идея для проекта - 2', category: 'Project', dueDate: '2026-09-05', progress: 20, flipped: false, subtasks: [{ id: 21, text: 'Набросать архитектуру', done: true }, { id: 22, text: 'Написать доку', done: false }] },
     { id: 3, title: 'Идея для проекта', category: 'Project', dueDate: '', progress: 95, flipped: false, subtasks: [{ id: 31, text: 'Дизайн в Figma', done: true }] },
     { id: 4, title: 'Сделать ремонт', category: 'Life', dueDate: '2026-09-15', progress: 10, flipped: false, subtasks: [{ id: 41, text: 'Выбрать обои', done: false }] }
 ];
-
+ 
 let backlogRows = JSON.parse(localStorage.getItem('app_backlog_rows')) || [
     { id: 201, title: 'Купить батарейки', category: 'Life', dueDate: '2026-09-02', done: false },
     { id: 202, title: 'Послушать новый альбом', category: 'Music', dueDate: '', done: false }
 ];
-
+ 
 let manifestWords = JSON.parse(localStorage.getItem('app_manifest_words')) || ['осанка', 'речь', 'турник', 'фокус'];
-
+ 
 let localDumpDays = JSON.parse(localStorage.getItem('app_dump_days_v2')) || {
     day1: { title: 'День 1', date: 'Сегодня', notes: [{ title: 'Идея для нового трека', text: 'Записать плотный бас в стиле киберпанк.' }] },
     day2: { title: 'День 2', date: 'Вчера', notes: [{ title: 'Идея проекта фильм', text: 'Сценарий про программиста.' }] },
     day3: { title: 'День 3', date: 'Позавчера', notes: [{ title: 'Записать музыку', text: 'Эмбиент на 5 минут.' }] }
 };
-
+ 
 function getInitialDumpDay() {
     const dayNumber = (Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % 3) + 1;
     const key = `day${dayNumber}`;
     return localDumpDays[key] ? key : 'day1';
 }
-
+ 
 let activeDumpDay = getInitialDumpDay();
 let expandedDumpNoteIndex = null;
-
+ 
 // ==========================================
-// ЛИПКАЯ ШАПКА ЛЕНТЫ: синхронизация высоты и позиции
+// ЛИПКАЯ ШАПКА ЛЕНТЫ: показываем только на вкладке "Лента".
+// Сама "липкость" и блюр теперь целиком на CSS (position: sticky в .feed-sticky-header),
+// поэтому тут только скрываем/показываем шапку в зависимости от вкладки — без JS-расчётов высоты.
 // ==========================================
 function syncStickyHeaderLayout() {
-    const topBar = document.querySelector('.fixed-top-bar');
     const stickyHeader = document.getElementById('feedStickyHeader');
-    const viewport = document.querySelector('.scroll-viewport');
-    if (!topBar || !stickyHeader || !viewport) return;
-
-    const isFeed = AppState.currentTab === 'feed';
-    stickyHeader.classList.toggle('hidden', !isFeed);
-
-    const topBarH = topBar.offsetHeight;
-    stickyHeader.style.top = topBarH + 'px';
-
-    const stickyH = isFeed ? stickyHeader.offsetHeight : 0;
-    viewport.style.paddingTop = (topBarH + stickyH + 10) + 'px';
+    if (!stickyHeader) return;
+    stickyHeader.classList.toggle('hidden', AppState.currentTab !== 'feed');
 }
-window.addEventListener('resize', syncStickyHeaderLayout);
-
+ 
 function calculateDeadlineInfo(dateStr) {
     if (!dateStr || !dateStr.trim()) return { text: 'No deadline', color: 'rgba(255,255,255,0.4)', urgent: false, sortVal: 999999 };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const target = new Date(dateStr);
     target.setHours(0, 0, 0, 0);
-
+ 
     const diffTime = target - today;
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
+ 
     if (diffDays < 0) {
         return { text: 'Overdue', color: '#f43f5e', urgent: true, sortVal: diffDays };
     } else if (diffDays === 0) {
@@ -89,7 +82,7 @@ function calculateDeadlineInfo(dateStr) {
         return { text: `${diffDays} days left`, color: '#ffffff', urgent: false, sortVal: diffDays };
     }
 }
-
+ 
 function saveRoadmapData() { localStorage.setItem('app_roadmap_goals', JSON.stringify(localRoadmapGoals)); }
 function saveSprintData() { localStorage.setItem('app_sprint_tasks', JSON.stringify(localSprintTasks)); }
 function saveDumpData() { localStorage.setItem('app_dump_days_v2', JSON.stringify(localDumpDays)); }
@@ -97,11 +90,11 @@ function saveCategoriesData() { localStorage.setItem('app_backlog_categories', J
 function saveBacklogItems() { localStorage.setItem('app_backlog_custom_items', JSON.stringify(backlogCustomItems)); }
 function saveBacklogRows() { localStorage.setItem('app_backlog_rows', JSON.stringify(backlogRows)); }
 function saveManifestData() { localStorage.setItem('app_manifest_words', JSON.stringify(manifestWords)); }
-
+ 
 function showToast(message) {
     let existingToast = document.getElementById('appToastNotification');
     if (existingToast) existingToast.remove();
-
+ 
     const toast = document.createElement('div');
     toast.id = 'appToastNotification';
     toast.textContent = message;
@@ -114,11 +107,11 @@ function showToast(message) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
 }
-
+ 
 function initTelegramSearchBar(handlers) {
     const searchBarContainer = document.getElementById('telegramSearchBarContainer');
     if (!searchBarContainer) return;
-
+ 
     if (AppState.currentTab === 'feed' && isSearchOpen) {
         if (!document.getElementById('liveSearchInput')) {
             searchBarContainer.innerHTML = `
@@ -129,7 +122,7 @@ function initTelegramSearchBar(handlers) {
                     <button id="closeSearchPanel" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 4px;">✕</button>
                 </div>
             `;
-
+ 
             const input = document.getElementById('liveSearchInput');
             input.oninput = (e) => {
                 AppState.searchQuery = e.target.value;
@@ -137,7 +130,7 @@ function initTelegramSearchBar(handlers) {
                 if (container) UIRenderer.renderList(container, AppState.getFilteredNotes(), handlers);
                 updateSearchCounter();
             };
-
+ 
             document.getElementById('closeSearchPanel').onclick = () => {
                 isSearchOpen = false;
                 AppState.searchQuery = '';
@@ -153,7 +146,7 @@ function initTelegramSearchBar(handlers) {
     }
     syncStickyHeaderLayout();
 }
-
+ 
 function updateSearchCounter() {
     const counter = document.getElementById('searchCounter');
     if (counter) {
@@ -162,12 +155,12 @@ function updateSearchCounter() {
         counter.textContent = `${notesCount} из ${totalFeedCount}`;
     }
 }
-
+ 
 function updateFooterButtonsVisibility() {
     const searchBtn = document.getElementById('searchToggleBtn');
     const addBtn = document.getElementById('addNoteBtn');
     if (!searchBtn || !addBtn) return;
-
+ 
     if (AppState.currentTab === 'feed') {
         searchBtn.style.display = 'flex';
     } else {
@@ -176,7 +169,7 @@ function updateFooterButtonsVisibility() {
         const searchBarContainer = document.getElementById('telegramSearchBarContainer');
         if (searchBarContainer) searchBarContainer.innerHTML = '';
     }
-
+ 
     const tab = AppState.currentTab;
     if (tab === 'roadmap' || tab === 'dump' || tab === 'livedump') {
         addBtn.style.display = 'none';
@@ -184,13 +177,13 @@ function updateFooterButtonsVisibility() {
         addBtn.style.display = 'flex';
     }
 }
-
+ 
 window.toggleEditMode = function() {
     isEditMode = !isEditMode;
     showToast(isEditMode ? '✏️ Режим редактирования включен' : '🔒 Режим блокировки');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.flipBacklogCard = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (item) {
@@ -199,7 +192,7 @@ window.flipBacklogCard = function(id) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.toggleSubtask = function(cardId, subId) {
     const card = backlogCustomItems.find(c => c.id === cardId);
     if (card) {
@@ -213,7 +206,7 @@ window.toggleSubtask = function(cardId, subId) {
         }
     }
 };
-
+ 
 window.addSubtaskToCard = function(cardId) {
     const card = backlogCustomItems.find(c => c.id === cardId);
     if (card) {
@@ -228,7 +221,7 @@ window.addSubtaskToCard = function(cardId) {
         }
     }
 };
-
+ 
 window.editSubtask = function(cardId, subId) {
     const card = backlogCustomItems.find(c => c.id === cardId);
     if (card) {
@@ -244,7 +237,7 @@ window.editSubtask = function(cardId, subId) {
         }
     }
 };
-
+ 
 window.deleteSubtask = function(cardId, subId) {
     const card = backlogCustomItems.find(c => c.id === cardId);
     if (card) {
@@ -256,7 +249,7 @@ window.deleteSubtask = function(cardId, subId) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.editBacklogDeadline = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
@@ -268,7 +261,7 @@ window.editBacklogDeadline = function(id) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.editBacklogRowDeadline = function(id) {
     const row = backlogRows.find(r => r.id === id);
     if (!row) return;
@@ -280,7 +273,7 @@ window.editBacklogRowDeadline = function(id) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.addSubtaskToSprint = async function(subtext) {
     let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: subtext, done: false });
@@ -291,7 +284,7 @@ window.addSubtaskToSprint = async function(subtext) {
     showToast('🚀 Подпункт добавлен в Спринт!');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.rowToSprint = async function(title) {
     let localSprintTasks = JSON.parse(localStorage.getItem('app_sprint_tasks')) || [];
     localSprintTasks.push({ id: Date.now(), title: title, done: false });
@@ -302,7 +295,7 @@ window.rowToSprint = async function(title) {
     showToast('🚀 Задача добавлена в Спринт!');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.editBacklogItem = function(id) {
     const item = backlogCustomItems.find(i => i.id === id);
     if (!item) return;
@@ -314,14 +307,14 @@ window.editBacklogItem = function(id) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.deleteBacklogItem = function(id) {
     backlogCustomItems = backlogCustomItems.filter(i => i.id !== id);
     saveBacklogItems();
     showToast('Плитка удалена');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.editBacklogRow = function(id) {
     const row = backlogRows.find(r => r.id === id);
     if (!row) return;
@@ -333,14 +326,14 @@ window.editBacklogRow = function(id) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.deleteBacklogRow = function(id) {
     backlogRows = backlogRows.filter(r => r.id !== id);
     saveBacklogRows();
     showToast('Задача удалена');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.addNewBacklogRow = function() {
     const title = prompt('Название простой задачи:');
     if (title && title.trim()) {
@@ -357,7 +350,7 @@ window.addNewBacklogRow = function() {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 window.addNewCategory = function() {
     const cat = prompt('Введите название новой категории:');
     if (cat && cat.trim()) {
@@ -370,7 +363,7 @@ window.addNewCategory = function() {
         }
     }
 };
-
+ 
 window.editCategory = function(cat) {
     if (cat === 'All') return;
     const newName = prompt(`Переименовать категорию "${cat}":`, cat);
@@ -386,7 +379,7 @@ window.editCategory = function(cat) {
         }
     }
 };
-
+ 
 window.deleteCategory = function(cat) {
     if (cat === 'All') return;
     if (confirm(`Удалить категорию "${cat}"?`)) {
@@ -397,7 +390,7 @@ window.deleteCategory = function(cat) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 // Dump методы
 window.switchDumpSub = function(sub) {
     dumpSubTab = sub;
@@ -426,7 +419,7 @@ window.deleteDumpNote = function(day, idx) {
     showToast('Заметка удалена');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 // Roadmap методы
 window.toggleGoal = function(id) {
     const goal = localRoadmapGoals.find(g => g.id === id);
@@ -453,7 +446,7 @@ window.deleteGoal = function(id) {
     showToast('Цель удалена');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 // Sprint методы
 window.toggleSprintTask = function(id) {
     const task = localSprintTasks.find(t => t.id === id);
@@ -469,7 +462,7 @@ window.deleteSprintTask = function(id) {
     showToast('Задача удалена из Спринта');
     if (window.renderCurrentTab) window.renderCurrentTab();
 };
-
+ 
 window.editManifest = function(index) {
     const currentWord = manifestWords[index] || '';
     const newWord = prompt('Изменить тег манифеста:', currentWord);
@@ -480,16 +473,16 @@ window.editManifest = function(index) {
         if (window.renderCurrentTab) window.renderCurrentTab();
     }
 };
-
+ 
 export const UIRenderer = {
     renderList(container, notes, handlers) {
         window.currentHandlers = handlers;
         container.innerHTML = '';
         initTelegramSearchBar(handlers);
         updateFooterButtonsVisibility();
-
+ 
         const tab = AppState.currentTab;
-
+ 
         const manifestEl = document.getElementById('manifestSection');
         const bornToWinEl = document.getElementById('bornToWinTitle');
         if (manifestEl && bornToWinEl) {
@@ -511,14 +504,16 @@ export const UIRenderer = {
                 bornToWinEl.style.display = 'none';
             }
         }
-
+ 
         syncStickyHeaderLayout();
-
+ 
         // 1. BACKLOG
         if (tab === 'backlog') {
+            // Чипсы переносятся на новую строку (flex-wrap), а не скроллятся горизонтально —
+            // так последний/первый чип никогда не обрезается краем контейнера.
             const chipsContainer = document.createElement('div');
-            chipsContainer.style.cssText = 'display: flex; gap: 6px; margin-bottom: 16px; width: 100%; overflow-x: auto; padding: 2px 10px 6px 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
-
+            chipsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; width: 100%; box-sizing: border-box;';
+ 
             backlogCategories.forEach(cat => {
                 const chipWrap = document.createElement('div');
                 const isActive = backlogFilterVal === cat;
@@ -529,9 +524,9 @@ export const UIRenderer = {
                 } else {
                     urgentCount = backlogCustomItems.filter(i => i.category === cat && calculateDeadlineInfo(i.dueDate).urgent).length + backlogRows.filter(r => r.category === cat && calculateDeadlineInfo(r.dueDate).urgent).length;
                 }
-
-                chipWrap.style.cssText = 'flex: 0 0 auto; display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-sizing: border-box;';
-
+ 
+                chipWrap.style.cssText = 'display: flex; align-items: center; justify-content: center; background: ' + (isActive ? '#fff' : 'rgba(255, 255, 255, 0.08)') + '; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; padding: 6px 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; box-sizing: border-box;';
+ 
                 chipWrap.innerHTML = `
                     <span style="font-size: 11px; font-weight: 500; color: ${isActive ? '#0a0a0a' : '#fff'};">${cat}</span>
                     ${urgentCount > 0 ? `<span style="background: #f43f5e; color: #fff; font-size: 9px; padding: 0 5px; border-radius: 9px; margin-left: 4px; font-weight: bold;">${urgentCount}</span>` : ''}
@@ -549,26 +544,26 @@ export const UIRenderer = {
                 };
                 chipsContainer.appendChild(chipWrap);
             });
-
+ 
             if (isEditMode) {
                 const addChipBtn = document.createElement('button');
                 addChipBtn.textContent = '+';
-                addChipBtn.style.cssText = 'flex: 0 0 auto; background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; cursor: pointer; box-sizing: border-box;';
+                addChipBtn.style.cssText = 'background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; cursor: pointer; box-sizing: border-box;';
                 addChipBtn.onclick = () => window.addNewCategory();
                 chipsContainer.appendChild(addChipBtn);
             }
-
+ 
             container.appendChild(chipsContainer);
-
+ 
             let filteredBacklog = backlogFilterVal === 'All' ? backlogCustomItems : backlogCustomItems.filter(i => i.category === backlogFilterVal);
             let filteredRows = backlogFilterVal === 'All' ? backlogRows : backlogRows.filter(r => r.category === backlogFilterVal);
-
+ 
             filteredBacklog.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
             filteredRows.sort((a, b) => calculateDeadlineInfo(a.dueDate).sortVal - calculateDeadlineInfo(b.dueDate).sortVal);
-
+ 
             const grid = document.createElement('div');
             grid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 380px; overflow-y: auto; padding-right: 2px; margin-bottom: 14px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
-
+ 
             filteredBacklog.forEach(item => {
                 const dl = calculateDeadlineInfo(item.dueDate);
                 const card = document.createElement('div');
@@ -582,7 +577,7 @@ export const UIRenderer = {
                     if (e.target.closest('button') || e.target.closest('span') || e.target.tagName === 'INPUT') return;
                     window.flipBacklogCard(item.id);
                 };
-
+ 
                 if (!item.flipped) {
                     card.innerHTML = `
                         <div>
@@ -624,7 +619,7 @@ export const UIRenderer = {
                             </div>
                         </div>
                     `).join('');
-
+ 
                     card.innerHTML = `
                         <div style="display: flex; flex-direction: column; height: 100%; justify-content: flex-start; gap: 6px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -640,11 +635,11 @@ export const UIRenderer = {
                         </div>
                     `;
                 }
-
+ 
                 grid.appendChild(card);
             });
             container.appendChild(grid);
-
+ 
             const rowsHeader = document.createElement('div');
             rowsHeader.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px 0; width: 100%; box-sizing: border-box;';
             rowsHeader.innerHTML = `
@@ -652,11 +647,12 @@ export const UIRenderer = {
                 <button onclick="window.addNewBacklogRow()" style="flex-shrink: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 10px; padding: 5px 10px; border-radius: 9999px; cursor: pointer; box-sizing: border-box;">+ Строчка</button>
             `;
             container.appendChild(rowsHeader);
-
+ 
+            // Без внутреннего скролла и без max-height: список растёт вместе со страницей,
+            // страница целиком скроллится через .scroll-viewport — обрезаться нечему.
             const rowsContainer = document.createElement('div');
-            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 220px; overflow-y: auto; padding: 6px 2px; box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none;';
-            rowsContainer.classList.add('edge-fade-y');
-
+            rowsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; box-sizing: border-box;';
+ 
             filteredRows.forEach(row => {
                 const dl = calculateDeadlineInfo(row.dueDate);
                 const rEl = document.createElement('div');
@@ -677,10 +673,10 @@ export const UIRenderer = {
                 rowsContainer.appendChild(rEl);
             });
             container.appendChild(rowsContainer);
-
+ 
             return;
         }
-
+ 
         // 2. ROADMAP
         if (tab === 'roadmap') {
             const wrap = document.createElement('div');
@@ -698,7 +694,7 @@ export const UIRenderer = {
                     </div>
                 </div>
             `).join('');
-
+ 
             wrap.innerHTML = `
                 <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; text-align: center; margin-bottom: 4px;">Стратегия</span>
                 <h3 style="margin: 0 0 16px 0; font-size: 15px; text-align: center; color: #fff; font-weight: 600;">Цели на сезон (Roadmap)</h3>
@@ -709,7 +705,7 @@ export const UIRenderer = {
                 <div style="display: flex; flex-direction: column; gap: 8px;">${goalsHtml}</div>
             `;
             container.appendChild(wrap);
-
+ 
             setTimeout(() => {
                 const addBtn = document.getElementById('roadmapAddBtn');
                 if (addBtn) {
@@ -726,12 +722,12 @@ export const UIRenderer = {
             }, 50);
             return;
         }
-
+ 
         // 3. SPRINT
         if (tab === 'sprint') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
-
+ 
             const headerCard = document.createElement('div');
             headerCard.style.cssText = 'background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: 24px; padding: 16px; text-align: center; backdrop-filter: blur(16px);';
             headerCard.innerHTML = `
@@ -739,10 +735,10 @@ export const UIRenderer = {
                 <h3 style="margin: 0; font-size: 14px; color: #fff; font-weight: 600;">Спринт</h3>
             `;
             wrap.appendChild(headerCard);
-
+ 
             const tasksContainer = document.createElement('div');
             tasksContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
-
+ 
             localSprintTasks.forEach(task => {
                 const tEl = document.createElement('div');
                 tEl.style.cssText = 'background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 14px 18px; backdrop-filter: blur(16px); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;';
@@ -755,17 +751,17 @@ export const UIRenderer = {
                 `;
                 tasksContainer.appendChild(tEl);
             });
-
+ 
             wrap.appendChild(tasksContainer);
             container.appendChild(wrap);
             return;
         }
-
+ 
         // 4. DUMP
         if (tab === 'dump' || tab === 'livedump') {
             const wrap = document.createElement('div');
             wrap.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
-
+ 
             let daysButtonsHtml = Object.keys(localDumpDays).map(dKey => {
                 const isCurrent = activeDumpDay === dKey;
                 const isAutoActive = getInitialDumpDay() === dKey;
@@ -776,7 +772,7 @@ export const UIRenderer = {
                     </button>
                 `;
             }).join('');
-
+ 
             let notesHtml = (localDumpDays[activeDumpDay]?.notes || []).map((noteObj, idx) => {
                 const isExpanded = expandedDumpNoteIndex === idx;
                 return `
@@ -797,13 +793,13 @@ export const UIRenderer = {
                     </div>
                 `;
             }).join('');
-
+ 
             wrap.innerHTML = `
                 <div style="display: flex; gap: 6px;">
                     <button onclick="window.switchDumpSub('evening')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'evening' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Сброс (Dump)</button>
                     <button onclick="window.switchDumpSub('uncompleted')" style="flex:1; padding: 8px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: ${dumpSubTab === 'uncompleted' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.05)'}; color: #fff; cursor: pointer;">Невыполненное</button>
                 </div>
-
+ 
                 ${dumpSubTab === 'evening' ? `
                     <div style="display: flex; gap: 6px;">${daysButtonsHtml}</div>
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 14px; backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 8px;">
@@ -831,7 +827,7 @@ export const UIRenderer = {
                 `}
             `;
             container.appendChild(wrap);
-
+ 
             setTimeout(() => {
                 const dumpAddBtn = document.getElementById('dumpAddBtn');
                 if (dumpAddBtn) {
@@ -855,7 +851,7 @@ export const UIRenderer = {
             }, 50);
             return;
         }
-
+ 
         // 5. LIBRARY
         if (!notes || notes.length === 0) {
             const emptyEl = document.createElement('div');
@@ -864,17 +860,17 @@ export const UIRenderer = {
             container.appendChild(emptyEl);
             return;
         }
-
+ 
         notes.forEach(note => {
             const card = document.createElement('div');
             card.className = 'note-card';
             card.style.cssText = 'cursor: pointer; width: 100%; position: relative;';
-
+ 
             card.onclick = (e) => {
                 if (e.target.closest('.delete-btn') || e.target.closest('.todo-checkbox') || e.target.closest('.note-media-img') || e.target.closest('.edit-post-btn')) return;
                 if (handlers.onEditNote) handlers.onEditNote(note);
             };
-
+ 
             let mediaHtml = '';
             if (note.media && note.media.length > 0) {
                 mediaHtml = '<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">';
@@ -883,7 +879,7 @@ export const UIRenderer = {
                 });
                 mediaHtml += '</div>';
             }
-
+ 
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                     <h3 style="margin: 0; font-size: 15px; color: #fff; font-weight: 600;">${note.title || 'Без названия'}</h3>
@@ -901,14 +897,14 @@ export const UIRenderer = {
             `;
             container.appendChild(card);
         });
-
+ 
         setTimeout(() => {
             const viewport = document.querySelector('.scroll-viewport');
             if (viewport) {
                 viewport.scrollTop = viewport.scrollHeight;
             }
         }, 50);
-
+ 
         container.querySelectorAll('.delete-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
@@ -916,7 +912,7 @@ export const UIRenderer = {
                 if (handlers.onDelete) handlers.onDelete(id);
             };
         });
-
+ 
         container.querySelectorAll('.edit-post-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.stopPropagation();
@@ -929,22 +925,22 @@ export const UIRenderer = {
         });
     }
 };
-
+ 
 function datasetIdSafely(el) {
     return el.dataset.id;
 }
-
+ 
 document.addEventListener('DOMContentLoaded', () => {
     const feedBtn = document.querySelector('.menu-btn[data-tab="feed"]');
     if (feedBtn) feedBtn.textContent = 'Library';
-
+ 
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     searchToggleBtn?.addEventListener('click', () => {
         isSearchOpen = !isSearchOpen;
         initTelegramSearchBar(window.currentHandlers);
         syncStickyHeaderLayout();
     });
-
+ 
     setTimeout(() => {
         document.querySelectorAll('.menu-btn[data-tab]').forEach(btn => {
             const originalClick = btn.onclick;
@@ -956,7 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     document.querySelectorAll('.menu-btn[data-tab]').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-
+ 
                     const container = document.querySelector('.main-container');
                     if (container && window.currentHandlers) {
                         UIRenderer.renderList(container, AppState.getFilteredNotes(), window.currentHandlers);
@@ -968,3 +964,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 300);
 });
+ 

@@ -1,3 +1,6 @@
+
+
+Index · HTML
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -15,7 +18,7 @@
 <body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
     <!-- Слой обоев с поддержкой зума -->
     <div id="bgLayer" class="bg-glow"></div>
-
+ 
     <div class="app-container">
         <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
         <header class="fixed-top-bar">
@@ -32,37 +35,37 @@
                 </nav>
             </aside>
         </header>
-
-        <!-- ЛИПКИЙ ЗАГОЛОВОК ЛЕНТЫ: манифест + поиск + "Born to win".
-             Не скроллится вместе с постами — посты проезжают под ним с эффектом блюра, как в Telegram.
-             Показывается только на вкладке "Лента" (управляется из ui.js -> syncStickyHeaderLayout). -->
-        <div class="feed-sticky-header" id="feedStickyHeader">
-            <div class="feed-sticky-inner">
-                <div id="manifestSection" style="margin-bottom: 6px;">
-                    <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
-                        <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
-                        <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
-                            <span style="font-style: italic; color: #34d399;">#осанка</span>
-                            <span style="font-style: italic; color: #34d399;">#речь</span>
-                            <span style="font-style: italic; color: #34d399;">#турник</span>
-                            <span style="font-style: italic; color: #34d399;">#фокус</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
-                <div id="telegramSearchBarContainer"></div>
-
-                <!-- ЗАГОЛОВОК BORN TO WIN -->
-                <div id="bornToWinTitle" style="text-align: center; margin: 8px 0 2px 0;">
-                    <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
-                </div>
-            </div>
-        </div>
-
-        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ (только контент вкладок: посты, roadmap, sprint, backlog, dump) -->
+ 
+        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ -->
         <div class="scroll-viewport">
             <div class="content-wrapper">
+ 
+                <!-- ЛИПКИЙ ЗАГОЛОВОК ЛЕНТЫ: манифест + поиск + "Born to win".
+                     position: sticky — лежит внутри колонки .content-wrapper (440px), а не на весь экран.
+                     Прилипает к верху при скролле, посты проезжают под ним с блюром. Показывается только
+                     на вкладке "Лента" (управляется из ui.js -> syncStickyHeaderLayout). -->
+                <div class="feed-sticky-header" id="feedStickyHeader">
+                    <div id="manifestSection" style="margin-bottom: 6px;">
+                        <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
+                            <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
+                            <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
+                                <span style="font-style: italic; color: #34d399;">#осанка</span>
+                                <span style="font-style: italic; color: #34d399;">#речь</span>
+                                <span style="font-style: italic; color: #34d399;">#турник</span>
+                                <span style="font-style: italic; color: #34d399;">#фокус</span>
+                            </div>
+                        </div>
+                    </div>
+ 
+                    <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
+                    <div id="telegramSearchBarContainer"></div>
+ 
+                    <!-- ЗАГОЛОВОК BORN TO WIN -->
+                    <div id="bornToWinTitle" style="text-align: center; margin: 8px 0 2px 0;">
+                        <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
+                    </div>
+                </div>
+ 
                 <main class="notes-area">
                     <div class="main-container">
                         <!-- Контент динамически рендерится из ui.js -->
@@ -70,7 +73,7 @@
                 </main>
             </div>
         </div>
-
+ 
         <!-- Футер с плавающими кнопками управления -->
         <footer class="app-footer">
             <div class="footer-container">
@@ -79,7 +82,7 @@
             </div>
         </footer>
     </div>
-
+ 
     <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
     <div class="modal" id="noteModal">
         <div class="modal-content">
@@ -109,7 +112,7 @@
             </div>
         </div>
     </div>
-
+ 
     <!-- Модалка настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
@@ -121,7 +124,8 @@
             <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
         </div>
     </div>
-
+ 
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
+ 
