@@ -1,5 +1,4 @@
 
-Ui · JS
 import { AppState } from './state.js';
  
 let isSearchOpen = false;
