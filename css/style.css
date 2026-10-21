@@ -228,6 +228,62 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 .hashtag:hover { text-decoration: underline; }
 mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
 
+/* ================= ВЛОЖЕНИЯ В ПОСТАХ =================
+   Альбом как в Telegram: 1 фото — по пропорциям файла, 2 — пополам, 3 — одно сверху и два снизу, 4 — сеткой. */
+.album { display: grid; gap: 3px; margin: -6px -10px 10px; border-radius: 16px; overflow: hidden; }
+.album-1 { grid-template-columns: 1fr; aspect-ratio: 4 / 3; max-height: 460px; }
+.album-2 { grid-template-columns: 1fr 1fr; aspect-ratio: 2 / 1; }
+.album-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr; aspect-ratio: 1 / 1; }
+.album-3 .att-tile:first-child { grid-column: 1 / -1; }
+.album-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 1 / 1; }
+.att-tile { position: relative; padding: 0; border: none; cursor: pointer; background: rgba(255, 255, 255, 0.06); overflow: hidden; min-height: 0; }
+.att-tile img, .att-tile video { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.att-tile .play {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; padding-left: 3px; font-size: 16px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.att-tile .more { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; font-weight: 600; background: rgba(0, 0, 0, 0.5); }
+.post-title + .att, .post-text + .att, .att + .att { margin-top: 8px; }
+.att-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.att-file { padding: 4px 0; text-decoration: none; color: inherit; }
+.att-audio audio { display: block; width: 100%; height: 36px; margin-top: 6px; color-scheme: dark; }
+.file-icon {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--accent-bg); color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+}
+.file-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.file-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font-size: 11px; color: var(--muted); }
+.att.is-missing { opacity: 0.4; }
+
+/* Вложения в форме поста */
+.att-list { display: flex; flex-direction: column; gap: 6px; }
+.att-list:empty { display: none; }
+.att-chip { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
+.att-chip img { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.attach-btn { margin-top: 6px; }
+
+/* ================= ПРОСМОТРЩИК ================= */
+.viewer { position: fixed; inset: 0; z-index: 3000; background: rgba(0, 0, 0, 0.94); display: flex; flex-direction: column; animation: pop 0.15s ease-out; }
+.viewer-top {
+    display: flex; align-items: center; gap: 8px; padding: max(12px, env(safe-area-inset-top)) 12px 8px 16px;
+}
+.viewer-count { flex: 1; font-size: 13px; color: var(--text-2); }
+.viewer-btn {
+    width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; font-size: 17px;
+    background: rgba(255, 255, 255, 0.1); border: none; color: #fff; text-decoration: none;
+}
+.viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 0 max(16px, env(safe-area-inset-bottom)); cursor: zoom-out; }
+.viewer-stage img, .viewer-stage video { max-width: 100%; max-height: 100%; object-fit: contain; cursor: default; }
+.viewer-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    background: rgba(255, 255, 255, 0.12); border: none; color: #fff; font-size: 26px; line-height: 1; display: grid; place-items: center;
+}
+.viewer-nav.prev { left: 12px; }
+.viewer-nav.next { right: 12px; }
+.viewer-nav:disabled { opacity: 0; pointer-events: none; }
+@media (pointer: coarse) { .viewer-nav { display: none; } }
+
 /* ================= BACKLOG: КАРТОЧКИ С ПЕРЕВОРОТОМ ================= */
 .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .flip { height: 150px; perspective: 900px; cursor: pointer; }
@@ -343,3 +399,6 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
         animation-timeline: view();
     }
 }
+
+/* Кнопка «⋯» поверх фото должна читаться на любой картинке */
+.post:has(> .album:nth-child(2)) .post-menu { z-index: 1; top: 12px; right: 12px; color: #fff; background: rgba(0, 0, 0, 0.45); }

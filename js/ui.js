@@ -1,5 +1,6 @@
 import { deadlineInfo, formatTime, dayLabel, calendarDayKey, logicalDayKey, daysBetween } from './dates.js';
 import { DUMP_TTL_DAYS, STRIKE_LIMIT, SEASON_KINDS, cardProgress, isCardDone } from './store.js';
+import { formatSize } from './media.js';
 
 // Состояние интерфейса, которое не нужно сохранять (открытый поиск, перевёрнутые карточки и т.п.)
 export const view = {
@@ -34,8 +35,77 @@ function postMatches(p, q) {
         const t = q.slice(1);
         return !t || postTags(p).some((x) => x.startsWith(t));
     }
-    return `${p.title}\n${p.text}`.toLowerCase().includes(q) || postTags(p).some((x) => x.includes(q));
+    const names = (p.attachments || []).map((a) => a.name).join('\n');
+    return `${p.title}\n${p.text}\n${names}`.toLowerCase().includes(q) || postTags(p).some((x) => x.includes(q));
 }
+
+// ================= ВЛОЖЕНИЯ =================
+const ALBUM_MAX = 4;
+const ext = (name) => (name.includes('.') ? name.split('.').pop().slice(0, 4).toUpperCase() : 'FILE');
+const visualOf = (p) => (p.attachments || []).filter((a) => a.kind === 'image' || a.kind === 'video');
+
+function tileHtml(postId, a, extra = '') {
+    const inner = a.kind === 'image'
+        ? `<img data-att="${a.id}" alt="" loading="lazy" decoding="async">`
+        : `<video data-att="${a.id}" data-poster="1" muted playsinline preload="metadata"></video><span class="play">▶</span>`;
+    return `<button class="att att-tile" data-act="open-media" data-post="${postId}" data-id="${a.id}">${inner}${extra}</button>`;
+}
+
+// Альбом как в Telegram: до 4 плиток, на последней «+N», остальное листается в просмотрщике
+function albumHtml(p) {
+    const visual = visualOf(p);
+    if (!visual.length) return '';
+    const shown = visual.slice(0, ALBUM_MAX);
+    const more = visual.length - ALBUM_MAX;
+    const style = shown.length === 1 && shown[0].w
+        ? `style="aspect-ratio:${Math.min(1.9, Math.max(0.6, shown[0].w / shown[0].h))}"` : '';
+    return `<div class="album album-${shown.length}" ${style}>${shown.map((a, i) =>
+        tileHtml(p.id, a, more > 0 && i === ALBUM_MAX - 1 ? `<span class="more">+${more}</span>` : '')).join('')}</div>`;
+}
+
+function otherAttsHtml(p) {
+    return (p.attachments || []).filter((a) => a.kind === 'audio' || a.kind === 'file').map((a) => (a.kind === 'audio'
+        ? `<div class="att att-audio">
+               <div class="att-row"><span class="file-icon">♪</span><span class="file-meta"><span class="file-name">${esc(a.name)}</span><span class="file-size">${formatSize(a.size)}</span></span></div>
+               <audio data-att="${a.id}" controls preload="metadata"></audio>
+           </div>`
+        // PDF откроется в новой вкладке, остальное — скачается
+        : `<a class="att att-file att-row" data-att="${a.id}" target="_blank" rel="noopener" ${a.type === 'application/pdf' ? '' : `download="${esc(a.name)}"`}>
+               <span class="file-icon">${esc(ext(a.name))}</span>
+               <span class="file-meta"><span class="file-name">${esc(a.name)}</span><span class="file-size">${formatSize(a.size)}</span></span>
+           </a>`)).join('');
+}
+
+// Список вложений в форме поста. Новые файлы показываются по превью-ссылке, сохранённые — из базы.
+export function renderAttList(list) {
+    return list.map((a) => {
+        let thumb = `<span class="file-icon">${a.kind === 'audio' ? '♪' : a.kind === 'video' ? '▶' : esc(ext(a.name))}</span>`;
+        if (a.kind === 'image') thumb = a.preview ? `<img src="${a.preview}" alt="">` : `<img data-att="${a.id}" alt="">`;
+        return `<div class="att-chip">
+            ${thumb}
+            <span class="file-meta"><span class="file-name">${esc(a.name)}</span><span class="file-size">${formatSize(a.size)}</span></span>
+            <button type="button" class="icon-btn danger" data-act="att-remove" data-id="${a.id}" title="Убрать">✕</button>
+        </div>`;
+    }).join('');
+}
+
+export function renderViewer(items, index) {
+    const a = items[index];
+    const stage = a.kind === 'image'
+        ? `<img data-att="${a.id}" alt="">`
+        : `<video data-att="${a.id}" controls autoplay playsinline></video>`;
+    return `
+        <div class="viewer-top">
+            <span class="viewer-count">${items.length > 1 ? `${index + 1} из ${items.length}` : ''}</span>
+            <a class="viewer-btn" data-att="${a.id}" download="${esc(a.name)}" title="Скачать">⤓</a>
+            <button class="viewer-btn" data-act="media-close" title="Закрыть">✕</button>
+        </div>
+        <div class="viewer-stage" data-act="media-close">${stage}</div>
+        ${items.length > 1 ? `
+            <button class="viewer-nav prev" data-act="media-nav" data-dir="-1" ${index === 0 ? 'disabled' : ''}>‹</button>
+            <button class="viewer-nav next" data-act="media-nav" data-dir="1" ${index === items.length - 1 ? 'disabled' : ''}>›</button>` : ''}`;
+}
+export { visualOf };
 
 function richText(text, q) {
     let html = esc(text).replace(TAG_RE, (m, tag) =>
@@ -97,8 +167,10 @@ export function renderFeed(s, ro) {
         out += `
             <article class="post">
                 ${ro ? '' : `<button class="post-menu" data-act="edit-post" data-id="${p.id}" title="Редактировать">⋯</button>`}
+                ${albumHtml(p)}
                 ${p.title ? `<h3 class="post-title">${richText(p.title, q)}</h3>` : ''}
                 ${p.text ? `<div class="post-text">${richText(p.text, q)}</div>` : ''}
+                ${otherAttsHtml(p)}
                 ${extra.length ? `<div class="post-tags">${extra.map((t) =>
                     `<button class="hashtag" data-act="search-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join(' ')}</div>` : ''}
                 <div class="post-meta">${p.editedAt ? 'изм. ' : ''}${formatTime(p.createdAt)}</div>
@@ -383,7 +455,7 @@ export function renderSettings(s, archive, hasWallpaper) {
 
         <div class="settings-section">
             <span class="kicker">Данные</span>
-            <p class="muted small">Всё хранится только в этом браузере. Периодически делай резервную копию.</p>
+            <p class="muted small">Всё хранится только в этом браузере. Периодически делай резервную копию. Фото, видео и файлы в копию пока не входят — только тексты и задачи.</p>
             <button class="btn-wide ghost" data-act="export">Скачать резервную копию</button>
             <label class="btn-wide ghost">Восстановить из файла<input type="file" id="importInput" accept="application/json,.json" hidden></label>
         </div>`;
@@ -404,6 +476,11 @@ export function renderForm(cfg) {
             return `<div class="field">${label}<div class="chips-wrap" data-chips="${f.name}">${f.options.map((o) =>
                 `<button type="button" class="chip ${(f.value || []).includes(o) ? 'is-active' : ''}" data-act="form-chip" data-value="${esc(o)}">#${esc(o)}</button>`).join('')
                 || '<span class="muted small">Список тегов пуст — добавь их в настройках</span>'}</div></div>`;
+        case 'attachments':
+            return `<div class="field">${label}
+                <div id="attList" class="att-list">${renderAttList(f.value || [])}</div>
+                <label class="btn-wide ghost attach-btn">📎 Фото, видео, аудио или файл<input type="file" id="attInput" multiple hidden></label>
+            </div>`;
         case 'checkbox':
             return `<label class="field field-check"><input type="checkbox" name="${f.name}" ${f.value ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
         default:

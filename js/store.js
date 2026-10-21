@@ -49,7 +49,7 @@ function emptyState(season = makeSeason()) {
     return {
         version: 1,
         season,
-        posts: [],      // { id, title, text, tags[], createdAt, editedAt? }
+        posts: [],      // { id, title, text, tags[], attachments[], createdAt, editedAt? } — сами файлы в IndexedDB (media.js)
         manifest: [],   // тейки сезона: «красота», «осанка»...
         tags: ['мысли', 'учёба', 'спорт', 'музыка'],  // регламент тегов ленты
         goals: [],      // Roadmap: { id, text, done }
@@ -70,7 +70,10 @@ export function normalize(s) {
         if (Array.isArray(base[k]) && !Array.isArray(out[k])) out[k] = base[k];
     }
     out.cards.forEach((c) => { if (!Array.isArray(c.subtasks)) c.subtasks = []; });
-    out.posts.forEach((p) => { if (!Array.isArray(p.tags)) p.tags = []; });
+    out.posts.forEach((p) => {
+        if (!Array.isArray(p.tags)) p.tags = [];
+        if (!Array.isArray(p.attachments)) p.attachments = [];
+    });
     return out;
 }
 

@@ -3,7 +3,9 @@ import {
     view, esc, feedCounts,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
+    renderAttList, renderViewer, visualOf,
 } from './ui.js';
+import { media, kindOf, measure } from './media.js';
 import { WallpaperService } from './wallpaper.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -61,6 +63,7 @@ function renderContent() {
     const ro = RO();
     const renderers = { feed: renderFeed, roadmap: renderRoadmap, sprint: renderSprint, backlog: renderBacklog, dump: renderDump };
     $('.main-container').innerHTML = renderers[view.tab](s, ro);
+    media.hydrate($('.main-container'));
 }
 
 // Затухание края ряда чипсов — только там, куда ещё можно прокрутить
@@ -116,6 +119,7 @@ function readForm() {
     const form = $('#formEl');
     const values = {};
     for (const f of currentForm.fields) {
+        if (f.type === 'attachments') continue;   // вложения живут в currentForm.atts, а не в полях формы
         if (f.type === 'chips') {
             values[f.name] = [...form.querySelectorAll(`[data-chips="${f.name}"] .chip.is-active`)].map((c) => c.dataset.value);
         } else if (f.type === 'checkbox') {
@@ -140,28 +144,107 @@ const defaultCategory = (s) => (view.backlogFilter !== 'all' ? view.backlogFilte
 // ================= ФОРМЫ СУЩНОСТЕЙ =================
 function postForm(post) {
     const s = store.state;
+    // Рабочий список вложений формы: сохранённые + только что выбранные (у них есть file и preview)
+    const atts = (post?.attachments || []).map((a) => ({ ...a }));
     openForm({
         title: post ? 'Редактировать пост' : 'Новый пост',
+        atts,
         fields: [
             { type: 'text', name: 'title', label: 'Заголовок', value: post?.title, placeholder: 'необязательно' },
             { type: 'textarea', name: 'text', label: 'Текст', value: post?.text, rows: 7, placeholder: 'Что происходит? #теги прямо в тексте тоже работают' },
+            { type: 'attachments', name: 'atts', label: 'Вложения', value: atts },
             { type: 'chips', name: 'tags', label: 'Теги', options: s.tags, value: post?.tags },
         ],
         submitLabel: post ? 'Сохранить' : 'Опубликовать',
         onDelete: post && (() => {
             if (!confirm('Удалить пост?')) return false;
             s.posts = s.posts.filter((p) => p.id !== post.id);
+            gcMedia();
         }),
-        onSubmit: (v) => {
-            if (!v.title && !v.text) { toast('Пост пустой'); return false; }
+        onSubmit: async (v) => {
+            const list = currentForm.atts;
+            if (!v.title && !v.text && !list.length) { toast('Пост пустой'); return false; }
+            const fresh = list.filter((a) => a.file);
+            if (fresh.length) toast(`Сохраняю ${fresh.length > 1 ? 'файлы' : 'файл'}…`);
+            try {
+                for (const a of fresh) await media.put(a.id, a.file);
+            } catch (e) {
+                console.error(e);
+                alert('Не удалось сохранить файл: в браузере не хватает места.');
+                return false;
+            }
+            list.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });
+            const attachments = list.map(({ id, name, type, size, kind, w, h }) => ({ id, name, type, size, kind, w, h }));
             if (post) {
-                Object.assign(post, { title: v.title, text: v.text, tags: v.tags, editedAt: new Date().toISOString() });
+                Object.assign(post, { title: v.title, text: v.text, tags: v.tags, attachments, editedAt: new Date().toISOString() });
+                gcMedia();
             } else {
-                s.posts.push({ id: uid(), title: v.title, text: v.text, tags: v.tags, createdAt: new Date().toISOString() });
+                s.posts.push({ id: uid(), title: v.title, text: v.text, tags: v.tags, attachments, createdAt: new Date().toISOString() });
                 return { scrollToEnd: true };
             }
         },
     });
+}
+
+async function addFormFiles(files) {
+    if (!currentForm?.atts) return;
+    for (const file of files) {
+        const kind = kindOf(file.type);
+        const size = await measure(file);
+        currentForm.atts.push({
+            id: uid(), name: file.name || 'файл', type: file.type, size: file.size, kind, ...size, file,
+            preview: kind === 'image' ? URL.createObjectURL(file) : null,
+        });
+    }
+    refreshAttList();
+}
+
+function refreshAttList() {
+    const el = $('#attList');
+    if (!el) return;
+    el.innerHTML = renderAttList(currentForm.atts);
+    media.hydrate(el);
+}
+
+// Файлы, на которые не ссылается ни один пост ни в текущем сезоне, ни в архиве, удаляются из IndexedDB
+function gcMedia() {
+    const ids = new Set();
+    const collect = (state) => (state?.posts || []).forEach((p) => (p.attachments || []).forEach((a) => ids.add(a.id)));
+    collect(store.state);
+    store.loadArchive().forEach((a) => collect(a.state));
+    media.gc(ids).catch((e) => console.error(e));
+}
+
+// ================= ПРОСМОТРЩИК МЕДИА =================
+let viewerState = null;
+
+function openViewer(items, index) {
+    viewerState = { items, index };
+    drawViewer();
+    $('#mediaViewer').hidden = false;
+}
+
+function drawViewer() {
+    const el = $('#mediaViewer');
+    el.innerHTML = renderViewer(viewerState.items, viewerState.index);
+    media.hydrate(el);
+}
+
+function navViewer(dir) {
+    if (!viewerState) return;
+    const next = viewerState.index + dir;
+    if (next < 0 || next >= viewerState.items.length) return;
+    viewerState.index = next;
+    drawViewer();
+}
+
+function closeViewer() {
+    if (!viewerState) return false;
+    viewerState = null;
+    const el = $('#mediaViewer');
+    el.hidden = true;
+    el.innerHTML = '';   // заодно останавливает видео
+    return true;
 }
 
 function goalForm(goal) {
@@ -342,7 +425,7 @@ function closeSeasonForm() {
 // Все клики идут через data-act. В архиве разрешены только действия из READONLY_OK.
 const READONLY_OK = new Set([
     'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'filter', 'flip', 'dump-sub',
-    'exit-archive', 'close-modal', 'form-chip', 'form-delete',
+    'exit-archive', 'close-modal', 'form-chip', 'form-delete', 'open-media', 'media-nav', 'media-close',
     'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
 ]);
 
@@ -541,6 +624,7 @@ const actions = {
         if (!entry || !confirm(`Удалить архив «${entry.state.season?.name}» навсегда?`)) return;
         store.saveArchive(list.filter((a) => a.id !== id));
         if (view.archive?.entry.id === id) view.archive = null;
+        gcMedia();
         openSettings();
         render();
     },
@@ -569,6 +653,27 @@ const actions = {
     // --- формы
     'close-modal': () => closeModals(),
     'form-chip'(_, el) { el.classList.toggle('is-active'); },
+    'att-remove'({ id }) {
+        const a = currentForm?.atts?.find((x) => x.id === id);
+        if (!a) return;
+        if (a.preview) URL.revokeObjectURL(a.preview);
+        currentForm.atts = currentForm.atts.filter((x) => x.id !== id);
+        refreshAttList();
+    },
+
+    // --- просмотр медиа
+    'open-media'({ post, id }) {
+        const p = find(S().posts, post);
+        if (!p) return;
+        const items = visualOf(p);
+        openViewer(items, Math.max(0, items.findIndex((a) => a.id === id)));
+    },
+    'media-nav'({ dir }) { navViewer(Number(dir)); },
+    'media-close'(_, el, e) {
+        // Клик по самой картинке/видео не закрывает просмотр — только по фону и крестику
+        if (e.target.closest('.viewer-stage img, .viewer-stage video')) return;
+        closeViewer();
+    },
     'form-delete'() {
         if (!currentForm?.onDelete) return;
         if (currentForm.onDelete() === false) return;
@@ -578,9 +683,12 @@ const actions = {
 };
 
 async function submitCurrentForm() {
-    if (!currentForm) return;
-    const result = currentForm.onSubmit(readForm());
-    if (result === false) return;
+    if (!currentForm || currentForm.busy) return;
+    const form = currentForm;
+    form.busy = true;   // сохранение файлов асинхронное — защищаемся от двойного нажатия
+    const result = await form.onSubmit(readForm());
+    form.busy = false;
+    if (result === false || currentForm !== form) return;
     closeModals();
     commit(result || {});
     if (result?.reopenSettings) openSettings();
@@ -613,12 +721,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
+        if (viewerState) {
+            if (e.key === 'Escape') closeViewer();
+            if (e.key === 'ArrowLeft') navViewer(-1);
+            if (e.key === 'ArrowRight') navViewer(1);
+            return;
+        }
         if (e.key === 'Escape') closeModals();
         // Cmd/Ctrl+Enter — отправить форму или выгрузить Dump
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             if (currentForm) submitCurrentForm();
             else if (e.target.id === 'dumpInput') actions['dump-save']();
         }
+    });
+
+    // Свайп влево/вправо в просмотрщике листает фото и видео
+    let touchX = null;
+    $('#mediaViewer').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+    $('#mediaViewer').addEventListener('touchend', (e) => {
+        if (touchX === null) return;
+        const dx = e.changedTouches[0].clientX - touchX;
+        touchX = null;
+        if (Math.abs(dx) > 50) navViewer(dx < 0 ? 1 : -1);
     });
 
     // scroll не всплывает, поэтому ловим на фазе перехвата
@@ -638,6 +762,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('change', async (e) => {
+        if (e.target.id === 'attInput' && e.target.files.length) {
+            await addFormFiles([...e.target.files]);
+            e.target.value = '';
+        }
         if (e.target.id === 'bgFileInput' && e.target.files[0]) {
             try {
                 await WallpaperService.setFromFile(e.target.files[0]);
