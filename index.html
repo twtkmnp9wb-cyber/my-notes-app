@@ -1,6 +1,3 @@
-
-
-Index · HTML
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,124 +5,59 @@ Index · HTML
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/style-v2.css">
+    <meta name="theme-color" content="#0a0a0a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
     <title>Монитор Души</title>
 </head>
-<body class="bg-neutral-950 text-neutral-100 min-h-screen pb-32">
-    <!-- Слой обоев с поддержкой зума -->
-    <div id="bgLayer" class="bg-glow"></div>
- 
+<body>
+    <!-- Слой обоев -->
+    <div id="bgLayer"></div>
+
     <div class="app-container">
-        <!-- ФИКСИРОВАННЫЙ ТОП-БАР (Liquid Glass капсула) -->
+        <!-- Верхнее меню (Liquid Glass капсула) + плашка архива -->
         <header class="fixed-top-bar">
-            <aside class="main-menu">
-                <nav class="main-menu-nav">
-                    <ul class="menu-list">
-                        <li><button class="menu-btn active" data-tab="feed">Лента</button></li>
-                        <li><button class="menu-btn" data-tab="roadmap">Roadmap</button></li>
-                        <li><button class="menu-btn" data-tab="sprint">Sprint</button></li>
-                        <li><button class="menu-btn" data-tab="backlog">Backlog</button></li>
-                        <li><button class="menu-btn" data-tab="dump">Dump</button></li>
-                        <li><button class="menu-btn" data-tab="settings">⚙️</button></li>
-                    </ul>
-                </nav>
-            </aside>
+            <nav class="menu-list">
+                <button class="menu-btn active" data-act="tab" data-tab="feed">Library</button>
+                <button class="menu-btn" data-act="tab" data-tab="roadmap">Roadmap</button>
+                <button class="menu-btn" data-act="tab" data-tab="sprint">Sprint</button>
+                <button class="menu-btn" data-act="tab" data-tab="backlog">Backlog</button>
+                <button class="menu-btn" data-act="tab" data-tab="dump">Dump</button>
+                <button class="menu-btn" data-act="settings" title="Настройки">⚙️</button>
+            </nav>
+            <div class="archive-banner" id="archiveBanner" hidden></div>
         </header>
- 
-        <!-- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ -->
-        <div class="scroll-viewport">
-            <div class="content-wrapper">
- 
-                <!-- ЛИПКИЙ ЗАГОЛОВОК ЛЕНТЫ: манифест + поиск + "Born to win".
-                     position: sticky — лежит внутри колонки .content-wrapper (440px), а не на весь экран.
-                     Прилипает к верху при скролле, посты проезжают под ним с блюром. Показывается только
-                     на вкладке "Лента" (управляется из ui.js -> syncStickyHeaderLayout). -->
-                <div class="feed-sticky-header" id="feedStickyHeader">
-                    <div id="manifestSection" style="margin-bottom: 6px;">
-                        <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 10px; backdrop-filter: blur(16px); text-align: center;">
-                            <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); display: block; margin-bottom: 2px;">Манифест сезона</span>
-                            <div style="display: flex; justify-content: center; gap: 10px; font-size: 11px; font-weight: 500;">
-                                <span style="font-style: italic; color: #34d399;">#осанка</span>
-                                <span style="font-style: italic; color: #34d399;">#речь</span>
-                                <span style="font-style: italic; color: #34d399;">#турник</span>
-                                <span style="font-style: italic; color: #34d399;">#фокус</span>
-                            </div>
-                        </div>
-                    </div>
- 
-                    <!-- ВЫДВИЖНАЯ ПЛАШКА ПОИСКА -->
-                    <div id="telegramSearchBarContainer"></div>
- 
-                    <!-- ЗАГОЛОВОК BORN TO WIN -->
-                    <div id="bornToWinTitle" style="text-align: center; margin: 8px 0 2px 0;">
-                        <h2 class="italic font-serif tracking-wide text-neutral-200 drop-shadow-md" style="font-size: 1.3rem; font-style: italic;">Born to win.</h2>
-                    </div>
-                </div>
- 
-                <main class="notes-area">
-                    <div class="main-container">
-                        <!-- Контент динамически рендерится из ui.js -->
-                    </div>
-                </main>
-            </div>
+
+        <!-- Подшапка ленты: манифест + поиск + «Born to win». Заполняется из ui.js -->
+        <div class="page-sticky-header hidden" id="feedStickyHeader">
+            <div class="page-sticky-header-inner"></div>
         </div>
- 
-        <!-- Футер с плавающими кнопками управления -->
+
+        <!-- Подшапка Backlog: чипсы категорий -->
+        <div class="page-sticky-header hidden" id="backlogStickyHeader">
+            <div class="page-sticky-header-inner" id="backlogChipsSlot"></div>
+        </div>
+
+        <div class="scroll-viewport" id="scrollViewport">
+            <main class="content-wrapper main-container"></main>
+        </div>
+
         <footer class="app-footer">
             <div class="footer-container">
-                <button type="button" class="action-btn" id="searchToggleBtn" title="Поиск">🔍</button>
-                <button type="button" class="action-btn add-btn" id="addNoteBtn" title="Создать">+</button>
+                <button type="button" class="action-btn" id="searchToggleBtn" data-act="search-toggle" title="Поиск">🔍</button>
+                <button type="button" class="action-btn add-btn" id="addNoteBtn" data-act="add" title="Добавить">+</button>
             </div>
         </footer>
     </div>
- 
-    <!-- МОДАЛКА СОЗДАНИЯ ЗАПИСИ -->
-    <div class="modal" id="noteModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Создать запись</h3>
-                <button type="button" class="close-btn" id="closeModalBtn">×</button>
-            </div>
-            <div class="type-selector" style="display: flex; gap: 8px; margin-bottom: 14px;">
-                <button type="button" class="menu-btn active" id="typeFeedBtn" style="flex:1;">📝 Лента</button>
-                <button type="button" class="menu-btn" id="typeTaskBtn" style="flex:1;">⚡ Задача</button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="noteTitleInput" placeholder="Заголовок..." class="modal-input">
-                <textarea id="noteTextInput" placeholder="Текст или описание..." class="modal-textarea"></textarea>
-                <div id="feedFieldsBlock">
-                    <input type="text" id="noteHashtagInput" placeholder="#хештег..." class="modal-input">
-                    <div class="quick-tags" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#осанка</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#речь</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#турник</span>
-                        <span class="tag-chip" style="background:rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;">#фокус</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="margin-top: 16px;">
-                <button type="button" class="menu-btn active" id="saveNoteBtn" style="width: 100%; background: rgba(255,255,255,0.25); font-weight: bold; text-align: center;">Сохранить</button>
-            </div>
-        </div>
-    </div>
- 
-    <!-- Модалка настроек -->
-    <div class="modal" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Темы и обои</h3>
-                <button type="button" class="close-btn" id="settingsCloseBtn">×</button>
-            </div>
-            <p style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:8px;">Загрузить свои обои:</p>
-            <input type="file" id="bgFileInput" accept="image/*" class="modal-input" style="margin-bottom: 16px; cursor:pointer;">
-        </div>
-    </div>
- 
+
+    <!-- Универсальная модалка форм (пост, цель, задача, карточка...) -->
+    <div class="modal" id="formModal"><div class="modal-content"></div></div>
+
+    <!-- Настройки -->
+    <div class="modal" id="settingsModal"><div class="modal-content"></div></div>
+
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
- 

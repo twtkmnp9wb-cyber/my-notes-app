@@ -1,300 +1,302 @@
-* {
-    box-sizing: border-box;
+/* ================= ТОКЕНЫ =================
+   Сезоны 2 (зимние каникулы) и 4 (лето) — «ивентовые»: меняют акцент.
+   Это база для тематического оформления — дальше сюда можно добавлять что угодно. */
+:root {
+    --bg: #0a0a0a;
+    --text: #fff;
+    --text-2: rgba(255, 255, 255, 0.75);
+    --muted: rgba(255, 255, 255, 0.45);
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-2: rgba(255, 255, 255, 0.14);
+    --line: rgba(255, 255, 255, 0.15);
+    --accent: #34d399;
+    --accent-bg: rgba(52, 211, 153, 0.15);
+    --hot: #f43f5e;
+    --warm: #fb923c;
+    --radius: 20px;
+    --blur: blur(16px);
 }
+body[data-season="2"] { --accent: #7dd3fc; --accent-bg: rgba(125, 211, 252, 0.15); }
+body[data-season="4"] { --accent: #fbbf24; --accent-bg: rgba(251, 191, 36, 0.15); }
 
+* { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: #121212;
-    color: #fff;
-    overflow: hidden;
-    height: 100vh;
-    height: 100dvh;
+    margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text);
+    overflow: hidden; height: 100vh; height: 100dvh; font-size: 14px;
 }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
 
-.app-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    position: relative;
-    overflow: hidden;
-}
+.muted { color: var(--muted); }
+.small { font-size: 11px; }
+.accent { color: var(--accent); }
+.hot { color: var(--hot); }
 
-/* Верхнее меню — фиксировано сверху */
+.app-container { display: flex; flex-direction: column; height: 100vh; height: 100dvh; position: relative; overflow: hidden; }
+
+/* Слой обоев + лёгкое затемнение, чтобы текст читался на любой картинке */
+#bgLayer { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; }
+#bgLayer::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
+
+/* ================= ВЕРХНЕЕ МЕНЮ =================
+   mask-image плавно гасит blur к низу — иначе backdrop-filter обрывается жёсткой полосой поверх фото. */
 .fixed-top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 150;
-    padding: max(12px, env(safe-area-inset-top)) 16px 8px 16px;
-    background: linear-gradient(to bottom, rgba(18,18,18,0.98) 70%, rgba(18,18,18,0));
-    backdrop-filter: blur(12px);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 150;
+    padding: max(12px, env(safe-area-inset-top)) 12px 8px;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.9) 70%, rgba(10, 10, 10, 0));
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
-
-.main-menu-nav {
-    display: flex;
-    justify-content: center;
-}
-
 .menu-list {
-    display: flex;
-    gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 4px;
-    background: rgba(30, 30, 30, 0.75);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    overflow-x: auto;
+    display: flex; gap: 4px; padding: 4px; max-width: 100%;
+    background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--line); border-radius: 9999px; overflow-x: auto; scrollbar-width: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-
+.menu-list::-webkit-scrollbar { display: none; }
 .menu-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    padding: 8px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s ease;
+    background: transparent; border: none; color: rgba(255, 255, 255, 0.6); padding: 6px 12px;
+    border-radius: 9999px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
 }
+@media (max-width: 400px) { .menu-btn { padding: 6px 9px; font-size: 11.5px; } }
+.menu-btn.active { background: rgba(255, 255, 255, 0.22); color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
 
-.menu-btn.active {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+.archive-banner {
+    display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 14px; font-size: 12px;
+    background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 9999px; color: #fde68a;
 }
+.archive-banner button { background: rgba(255, 255, 255, 0.15); border: none; border-radius: 9999px; padding: 4px 10px; cursor: pointer; font-size: 11px; }
 
-/* Плашка поиска — строго под меню, ниже него, без наложений */
-.search-dropdown-bar {
-    position: fixed;
-    top: 72px; 
-    left: 16px;
-    right: 16px;
-    z-index: 140;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: rgba(30, 30, 30, 0.95);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+/* ================= ПОДШАПКИ ВКЛАДОК =================
+   position: fixed, как верхнее меню. top и отступ контента выставляет main.js (syncLayout). */
+.page-sticky-header {
+    position: fixed; left: 0; right: 0; z-index: 140; display: flex; justify-content: center;
+    padding: 8px 16px 14px;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.92) 55%, rgba(10, 10, 10, 0) 100%);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
 }
+.page-sticky-header.hidden { display: none !important; }
+.page-sticky-header-inner { width: 100%; max-width: 440px; }
 
-.search-dropdown-bar.active {
-    display: flex;
+.manifest {
+    display: block; width: 100%; padding: 10px; text-align: center; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: var(--blur);
 }
+.manifest:disabled { cursor: default; }
+.manifest-words { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; font-weight: 500; font-style: italic; color: var(--accent); }
+.manifest-words .muted { font-style: normal; font-weight: 400; }
+.born { margin: 10px 0 0; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; font-size: 1.3rem; color: #e5e5e5; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
 
-.search-dropdown-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 13px;
-    outline: none;
+.kicker { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 3px; }
+
+/* Поиск в стиле Telegram */
+.search-bar {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 8px 6px 14px;
+    background: rgba(20, 20, 20, 0.9); border: 1px solid var(--line); border-radius: var(--radius);
 }
+.search-input { flex: 1; min-width: 0; background: transparent; border: none; color: #fff; font-size: 14px; outline: none; }
+.search-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.search-input::-webkit-search-cancel-button { display: none; }
+.search-counter { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.search-tags { margin-top: 6px; }
 
-.search-dropdown-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+/* ================= ЧИПСЫ ================= */
+.chips-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.chips-scroll::-webkit-scrollbar { display: none; }
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; white-space: nowrap;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 9999px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s;
 }
+.chip.is-active { background: #fff; color: #0a0a0a; }
+.chip-ghost { border-style: dashed; color: var(--muted); }
+.badge { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 9px; background: var(--hot); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
 
-.search-counter {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    white-space: nowrap;
+/* ================= ОБЛАСТЬ КОНТЕНТА ================= */
+.scroll-viewport { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 120px; }
+.scroll-viewport::-webkit-scrollbar { width: 0; }
+.content-wrapper { max-width: 440px; margin: 0 auto; padding: 0 16px; }
+
+.empty { text-align: center; color: var(--muted); padding: 32px 12px; font-size: 13px; line-height: 1.5; }
+.hint { color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; margin: 14px 8px; }
+
+.panel { background: var(--glass); border: 1px solid var(--line); border-radius: 24px; padding: 16px; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); margin-bottom: 12px; text-align: center; }
+.panel-title { margin: 0; font-size: 15px; font-weight: 600; }
+.panel-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.panel .bar { margin-top: 12px; }
+.panel-sprint { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.25); }
+.panel-sprint .kicker { color: #fda4af; }
+.panel-sprint .bar i { background: var(--hot); }
+
+.bar { height: 4px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+
+.section-head { display: flex; justify-content: space-between; align-items: center; margin: 16px 2px 8px; }
+.section-head .kicker { margin: 0; }
+
+/* Универсальная строка списка (цели, задачи спринта, строчки бэклога, архив) */
+.list { display: flex; flex-direction: column; gap: 6px; }
+.item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 48px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
 }
+.item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.item-text { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; word-break: break-word; }
+.item-meta { font-size: 10px; color: var(--muted); }
+.item.is-done .item-text { text-decoration: line-through; opacity: 0.5; }
 
-.search-nav-btn, .search-close-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    cursor: pointer;
+.check {
+    flex: 0 0 auto; width: 20px; height: 20px; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 1.5px solid rgba(255, 255, 255, 0.35); background: transparent; position: relative; transition: all 0.15s;
 }
+.check.sm { width: 16px; height: 16px; }
+.is-done > .check { background: var(--accent); border-color: var(--accent); }
+.is-done > .check::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: #0a0a0a; font-weight: 700; }
+.panel-sprint ~ .list .is-done > .check { background: var(--hot); border-color: var(--hot); }
+.panel-sprint ~ .list .is-done > .check::after { color: #fff; }
 
-.search-close-btn {
-    font-size: 12px;
+.icon-btn { flex: 0 0 auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: 8px; }
+.icon-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.icon-btn.danger { color: rgba(244, 63, 94, 0.8); }
+.btn-mini {
+    flex: 0 0 auto; font-size: 11px; padding: 5px 10px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+    background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); color: var(--accent);
 }
-
-/* Область скролла ленты с безопасными отступами */
-.scroll-viewport {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-top: 85px;
-    padding-bottom: 110px;
+.tag-sprint { flex: 0 0 auto; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); opacity: 0.8; white-space: nowrap; }
+.btn-wide {
+    display: block; width: 100%; padding: 12px; margin-top: 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 500;
+    background: var(--glass-2); border: 1px solid var(--line); border-radius: 14px;
 }
+.btn-wide.primary { background: rgba(255, 255, 255, 0.9); color: #0a0a0a; border-color: transparent; font-weight: 600; }
+.btn-wide.ghost { background: transparent; }
+.btn-wide.danger { background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.3); color: #fda4af; }
 
-.scroll-viewport::-webkit-scrollbar {
-    width: 0px;
+/* Кружки дедлайна: белый — нет даты, оранжевый — ≥3 дней, красный — <3 дней */
+.dot { flex: 0 0 auto; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.dot-calm, .dl-calm .dot { background: var(--warm); box-shadow: 0 0 6px var(--warm); }
+.dot-hot, .dl-hot .dot { background: var(--hot); box-shadow: 0 0 6px var(--hot); }
+.dl { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.dl-calm { color: var(--warm); }
+.dl-hot { color: var(--hot); }
+
+/* ================= ЛЕНТА ================= */
+.day-sep { display: flex; justify-content: center; margin: 14px 0 10px; }
+.day-sep span { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.45); color: var(--text-2); backdrop-filter: var(--blur); }
+.post {
+    position: relative; padding: 14px 16px 8px; margin-bottom: 8px; word-break: break-word;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 22px 22px 22px 8px;
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
+.post-title { margin: 0 24px 6px 0; font-size: 15px; font-weight: 600; }
+.post-text { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, 0.88); white-space: pre-wrap; padding-right: 8px; }
+.post-tags { margin-top: 6px; }
+.post-meta { font-size: 10px; color: var(--muted); text-align: right; margin-top: 4px; }
+.post-menu { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 8px; }
+.post-menu:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.hashtag { background: none; border: none; padding: 0; color: var(--accent); cursor: pointer; font-size: inherit; }
+.hashtag:hover { text-decoration: underline; }
+mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
 
-.content-wrapper {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 0 16px;
+/* ================= BACKLOG: КАРТОЧКИ С ПЕРЕВОРОТОМ ================= */
+.card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.flip { height: 150px; perspective: 900px; cursor: pointer; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); transform-style: preserve-3d; }
+.flip.is-flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; padding: 12px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
 }
+.flip-back { transform: rotateY(180deg); justify-content: flex-start; background: rgba(20, 20, 20, 0.75); }
+.flip.is-complete .flip-face:first-child { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.pill { font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 99px; color: #ccc; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card-foot { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 5px; }
+.card-back-title { font-size: 10px; font-weight: 600; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-top .icon-btn { font-size: 12px; padding: 0 4px; }
+.subs { flex: 1; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; scrollbar-width: none; }
+.subs::-webkit-scrollbar { display: none; }
+.sub { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 4px; border-radius: 6px; background: rgba(0, 0, 0, 0.25); }
+.sub-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub.is-done .sub-text { text-decoration: line-through; opacity: 0.5; }
+.to-sprint { flex: 0 0 auto; font-size: 10px; padding: 0 5px; border-radius: 5px; cursor: pointer; background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); color: var(--accent); }
+.sub-add { background: none; border: none; color: var(--accent); font-size: 10px; cursor: pointer; padding: 2px 0 0; text-align: left; }
 
-/* Карточки */
-.note-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 12px;
-    backdrop-filter: blur(10px);
-    word-break: break-word;
+/* ================= DUMP ================= */
+.segmented { display: flex; gap: 4px; padding: 4px; background: var(--glass); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 12px; }
+.segmented button { flex: 1; display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 8px; border: none; border-radius: 12px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.segmented button.is-active { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.composer { text-align: left; padding: 12px; }
+.composer textarea {
+    width: 100%; resize: vertical; min-height: 90px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px; color: #fff; font: inherit; font-size: 14px; line-height: 1.45; outline: none;
 }
+.dump-note { padding: 12px 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
+.dump-text { font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--text-2); }
+.dump-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.dump-actions .small { flex: 1; }
 
-.note-card p {
-    margin: 0 0 8px 0;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 14px;
-    white-space: pre-wrap;
-}
-
-/* Футер закреплен внизу справа */
+/* ================= ПЛАВАЮЩИЕ КНОПКИ ================= */
 .app-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 150;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 150; pointer-events: none;
     padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-    background: linear-gradient(to top, rgba(18,18,18,0.95), rgba(18,18,18,0));
-    backdrop-filter: blur(5px);
-    pointer-events: none;
 }
-
-.footer-container {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    justify-content: flex-end;
-    max-width: 600px;
-    margin: 0 auto;
-    pointer-events: auto;
-}
-
+.footer-container { display: flex; gap: 12px; flex-direction: column; align-items: flex-end; max-width: 440px; margin: 0 auto; }
 .action-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(30, 30, 30, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 18px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    transition: transform 0.15s ease;
+    pointer-events: auto; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s ease, background 0.2s ease;
 }
+.action-btn.add-btn { font-size: 26px; font-weight: 300; }
+.action-btn:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.25); }
 
-.action-btn.add-btn {
-    font-size: 24px;
-    font-weight: 300;
-}
-
-.action-btn:active {
-    transform: scale(0.92);
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* Модальные окна */
+/* ================= МОДАЛКИ И ФОРМЫ ================= */
 .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-    padding: 16px;
+    display: none; position: fixed; inset: 0; z-index: 1000; justify-content: center; align-items: center; padding: 16px;
+    background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
-
-.modal.active {
-    display: flex;
-}
-
+.modal.active { display: flex; }
 .modal-content {
-    background: #1e1e1e;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 440px;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 20px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    width: 100%; max-width: 420px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; padding: 20px;
+    background: rgba(25, 25, 25, 0.92); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    animation: pop 0.18s ease-out;
 }
+@keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.close-btn { background: none; border: none; color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer; padding: 0 4px; }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+.field { display: block; margin-bottom: 12px; }
+.field-label { display: block; font-size: 11px; color: var(--muted); margin: 0 0 5px 2px; }
+.field input:not([type=checkbox]), .field textarea, .field select {
+    width: 100%; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); padding: 11px 12px;
+    border-radius: 14px; color: #fff; font: inherit; font-size: 16px; outline: none; color-scheme: dark;
 }
+.field textarea { resize: vertical; line-height: 1.45; }
+.field input:focus, .field textarea:focus, .field select:focus { border-color: rgba(255, 255, 255, 0.35); }
+.field-check { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
+.field-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.form-actions .btn-wide { margin-top: 0; }
 
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #fff;
-}
+.settings-section { padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.settings-section:first-of-type { border-top: none; padding-top: 4px; }
+.settings-section .item { margin-bottom: 6px; }
+.settings-section .chips-wrap .chip { cursor: default; }
 
-.close-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 22px;
-    cursor: pointer;
+.toast {
+    position: fixed; bottom: calc(100px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 2000;
+    padding: 8px 16px; border-radius: 9999px; font-size: 12px; font-weight: 500; white-space: nowrap;
+    background: rgba(16, 185, 129, 0.92); color: #fff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    animation: toast 2.2s ease forwards;
 }
-
-.modal-input, .modal-textarea {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 12px;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
-    margin-bottom: 12px;
-}
-
-.modal-textarea {
-    height: 100px;
-    resize: none;
-}
-
-#bgLayer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    background-size: cover;
-    background-position: center;
-}
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, 8px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }

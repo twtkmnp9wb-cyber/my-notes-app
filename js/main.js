@@ -1,242 +1,666 @@
-import { AppState } from './state.js';
-import { StorageService } from './storage.js';
-import { UIRenderer } from './ui.js';
-import { CloudStorage } from './supabase.js';
+import { store, uid, normalize, seasonName, SEASON_KINDS } from './store.js';
+import {
+    view, esc, feedCounts,
+    renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
+    renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
+} from './ui.js';
 import { WallpaperService } from './wallpaper.js';
 
-let currentEditingId = null;
+const $ = (sel) => document.querySelector(sel);
 
-document.addEventListener('DOMContentLoaded', async () => {
-    WallpaperService.init();
+// Что показываем: живое состояние или снимок архивного сезона (тогда всё только для чтения)
+const S = () => (view.archive ? view.archive.state : store.state);
+const RO = () => !!view.archive;
 
-    let initialNotes = StorageService.load();
-    initialNotes = StorageService.runMidnightCheck(initialNotes);
-    AppState.init(initialNotes);
+let currentForm = null;
 
-    const container = document.querySelector('.main-container');
+// ================= РЕНДЕР =================
+function render({ scrollToEnd = false, keepScroll = true } = {}) {
+    const s = S();
+    const ro = RO();
+    const viewport = $('#scrollViewport');
+    const prevScroll = viewport.scrollTop;
 
-    const refresh = () => {
-        StorageService.save(AppState.notes);
-        UIRenderer.renderList(container, AppState.getFilteredNotes(), {
-            onDelete: async (id) => {
-                AppState.deleteNote(id);
-                refresh();
-                try {
-                    await CloudStorage.deleteNote(id);
-                } catch (e) {
-                    console.log('Удалено локально');
-                }
-            },
-            onToggleTodo: async (id, idx) => {
-                const entry = AppState.notes.find(n => n.id === id);
-                if (entry && entry.todos[idx]) {
-                    entry.todos[idx].done = !entry.todos[idx].done;
-                    entry.completed = entry.todos.every(t => t.done);
-                    refresh();
-                    try {
-                        await CloudStorage.saveNote(entry);
-                    } catch (e) {
-                        console.log('Изменения сохранены локально');
-                    }
-                }
-            },
-            onOpenLightbox: (id, imgIdx) => {
-                const entry = AppState.notes.find(n => n.id === id);
-                if (entry && entry.media && entry.media[imgIdx]) {
-                    window.openLightbox(entry.media[imgIdx]);
-                }
-            },
-            onEditNote: (note) => {
-                openEditModal(note);
-            }
-        });
-    };
+    document.body.dataset.season = s.season.kind;
+    document.querySelectorAll('.menu-btn[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === view.tab));
 
-    window.renderCurrentTab = refresh;
-    refresh();
-
-    try {
-        const cloudNotes = await CloudStorage.fetchNotes();
-        if (cloudNotes && cloudNotes.length > 0) {
-            AppState.init(cloudNotes);
-            StorageService.save(cloudNotes);
-            refresh();
-        }
-    } catch (e) {
-        console.log('Работаем в офлайн-режиме');
+    const banner = $('#archiveBanner');
+    banner.hidden = !ro;
+    if (ro) {
+        banner.innerHTML = `<span>📦 Архив · ${esc(s.season.name)}</span><button data-act="exit-archive">Выйти</button>`;
     }
 
-    initModalsAndCreation(refresh);
-    initLightbox();
-    initEditModalLogic(refresh);
-    initLiveDumpLogic();
+    $('#feedStickyHeader').classList.toggle('hidden', view.tab !== 'feed');
+    $('#backlogStickyHeader').classList.toggle('hidden', view.tab !== 'backlog');
+    if (view.tab === 'feed') $('#feedStickyHeader .page-sticky-header-inner').innerHTML = renderFeedHeader(s, ro);
+    if (view.tab === 'backlog') $('#backlogChipsSlot').innerHTML = renderBacklogChips(s, ro);
+
+    renderContent();
+
+    $('#searchToggleBtn').hidden = view.tab !== 'feed';
+    $('#addNoteBtn').hidden = ro || view.tab === 'dump';
+
+    syncLayout();
+    updateSearchCounter();
+
+    if (scrollToEnd) viewport.scrollTop = viewport.scrollHeight;
+    else if (keepScroll) viewport.scrollTop = prevScroll;
+    else viewport.scrollTop = 0;
+}
+
+function renderContent() {
+    const s = S();
+    const ro = RO();
+    const renderers = { feed: renderFeed, roadmap: renderRoadmap, sprint: renderSprint, backlog: renderBacklog, dump: renderDump };
+    $('.main-container').innerHTML = renderers[view.tab](s, ro);
+}
+
+// Подшапки fixed: ставим им top под верхним меню и отодвигаем контент на их высоту
+function syncLayout() {
+    const topH = $('.fixed-top-bar').offsetHeight;
+    const active = view.tab === 'feed' ? $('#feedStickyHeader') : view.tab === 'backlog' ? $('#backlogStickyHeader') : null;
+    document.querySelectorAll('.page-sticky-header').forEach((h) => { h.style.top = `${topH}px`; });
+    $('#scrollViewport').style.paddingTop = `${topH + (active ? active.offsetHeight : 0) + 8}px`;
+}
+
+function updateSearchCounter() {
+    const el = $('#searchCounter');
+    if (!el) return;
+    const { shown, total } = feedCounts(S());
+    el.textContent = view.search.trim() ? `${shown} из ${total}` : '';
+}
+
+function commit(opts) {
+    store.save();
+    render(opts);
+}
+
+function toast(message) {
+    $('#appToast')?.remove();
+    const el = document.createElement('div');
+    el.id = 'appToast';
+    el.className = 'toast';
+    el.textContent = message;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2200);
+}
+
+// ================= МОДАЛКИ =================
+function openModal(id) {
+    $(id).classList.add('active');
+}
+
+function closeModals() {
+    document.querySelectorAll('.modal.active').forEach((m) => m.classList.remove('active'));
+    currentForm = null;
+}
+
+function openForm(cfg) {
+    closeModals();
+    currentForm = cfg;
+    $('#formModal .modal-content').innerHTML = renderForm(cfg);
+    openModal('#formModal');
+    const first = $('#formModal').querySelector('input:not([type=checkbox]), textarea');
+    if (first && !matchMedia('(pointer: coarse)').matches) first.focus();
+}
+
+function readForm() {
+    const form = $('#formEl');
+    const values = {};
+    for (const f of currentForm.fields) {
+        if (f.type === 'chips') {
+            values[f.name] = [...form.querySelectorAll(`[data-chips="${f.name}"] .chip.is-active`)].map((c) => c.dataset.value);
+        } else if (f.type === 'checkbox') {
+            values[f.name] = form.elements[f.name].checked;
+        } else {
+            values[f.name] = form.elements[f.name].value.trim();
+        }
+    }
+    return values;
+}
+
+function openSettings() {
+    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has());
+    openModal('#settingsModal');
+}
+
+const lines = (text) => text.split('\n').map((l) => l.trim()).filter(Boolean);
+const cleanTag = (t) => t.replace(/^#/, '').trim().toLowerCase();
+const categoryOptions = (s) => [{ value: '', label: 'Без категории' }, ...s.categories.map((c) => ({ value: c, label: c }))];
+const defaultCategory = (s) => (view.backlogFilter !== 'all' ? view.backlogFilter : s.categories[0] || '');
+
+// ================= ФОРМЫ СУЩНОСТЕЙ =================
+function postForm(post) {
+    const s = store.state;
+    openForm({
+        title: post ? 'Редактировать пост' : 'Новый пост',
+        fields: [
+            { type: 'text', name: 'title', label: 'Заголовок', value: post?.title, placeholder: 'необязательно' },
+            { type: 'textarea', name: 'text', label: 'Текст', value: post?.text, rows: 7, placeholder: 'Что происходит? #теги прямо в тексте тоже работают' },
+            { type: 'chips', name: 'tags', label: 'Теги', options: s.tags, value: post?.tags },
+        ],
+        submitLabel: post ? 'Сохранить' : 'Опубликовать',
+        onDelete: post && (() => {
+            if (!confirm('Удалить пост?')) return false;
+            s.posts = s.posts.filter((p) => p.id !== post.id);
+        }),
+        onSubmit: (v) => {
+            if (!v.title && !v.text) { toast('Пост пустой'); return false; }
+            if (post) {
+                Object.assign(post, { title: v.title, text: v.text, tags: v.tags, editedAt: new Date().toISOString() });
+            } else {
+                s.posts.push({ id: uid(), title: v.title, text: v.text, tags: v.tags, createdAt: new Date().toISOString() });
+                return { scrollToEnd: true };
+            }
+        },
+    });
+}
+
+function goalForm(goal) {
+    const s = store.state;
+    openForm({
+        title: goal ? 'Цель сезона' : 'Новая цель сезона',
+        note: goal ? '' : 'Формулируй так, чтобы в конце сезона можно было ответить «да» или «нет».',
+        fields: [{ type: 'text', name: 'text', label: 'Цель', value: goal?.text, placeholder: 'Подтягиваться 15 раз' }],
+        onDelete: goal && (() => { s.goals = s.goals.filter((g) => g.id !== goal.id); }),
+        onSubmit: (v) => {
+            if (!v.text) return false;
+            if (goal) goal.text = v.text;
+            else s.goals.push({ id: uid(), text: v.text, done: false });
+        },
+    });
+}
+
+function taskForm(task) {
+    const s = store.state;
+    openForm({
+        title: task ? 'Задача спринта' : 'Задача на сегодня',
+        fields: [{ type: 'text', name: 'text', label: 'Что сделать', value: task?.text }],
+        onDelete: task && (() => { s.sprint = s.sprint.filter((t) => t.id !== task.id); }),
+        onSubmit: (v) => {
+            if (!v.text) return false;
+            if (task) task.text = v.text;
+            else s.sprint.push({ id: uid(), text: v.text, done: false, strikes: 0, source: null });
+        },
+    });
+}
+
+function backlogNewForm(kind = 'card') {
+    const s = store.state;
+    openForm({
+        title: 'Добавить в Backlog',
+        fields: [
+            { type: 'select', name: 'kind', label: 'Тип', value: kind, options: [
+                { value: 'card', label: 'Карточка — крупная задача с подпунктами' },
+                { value: 'row', label: 'Строчка — простая задача' },
+            ] },
+            { type: 'text', name: 'title', label: 'Название' },
+            { type: 'select', name: 'category', label: 'Категория', value: defaultCategory(s), options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Дедлайн (можно пусто)' },
+            { type: 'textarea', name: 'subs', label: 'Подпункты — только для карточки, по одному на строку', rows: 4 },
+        ],
+        submitLabel: 'Добавить',
+        onSubmit: (v) => {
+            if (!v.title) { toast('Нужно название'); return false; }
+            if (v.kind === 'row') {
+                s.rows.push({ id: uid(), title: v.title, category: v.category, due: v.due });
+            } else {
+                s.cards.push({
+                    id: uid(), title: v.title, category: v.category, due: v.due,
+                    subtasks: lines(v.subs).map((text) => ({ id: uid(), text, done: false })),
+                });
+            }
+        },
+    });
+}
+
+function cardForm(card) {
+    const s = store.state;
+    openForm({
+        title: 'Карточка',
+        note: 'Подпункты — по одному на строку. Отметки «выполнено» сохраняются у строк с тем же текстом.',
+        fields: [
+            { type: 'text', name: 'title', label: 'Название', value: card.title },
+            { type: 'select', name: 'category', label: 'Категория', value: card.category, options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Дедлайн', value: card.due },
+            { type: 'textarea', name: 'subs', label: 'Подпункты', value: card.subtasks.map((st) => st.text).join('\n'), rows: 6 },
+        ],
+        deleteLabel: 'Удалить карточку',
+        onDelete: () => {
+            if (!confirm(`Удалить карточку «${card.title}»?`)) return false;
+            s.cards = s.cards.filter((c) => c.id !== card.id);
+            s.sprint.forEach((t) => { if (t.source?.cardId === card.id) t.source = null; });
+            view.flipped.delete(card.id);
+        },
+        onSubmit: (v) => {
+            if (!v.title) return false;
+            const old = card.subtasks;
+            const kept = new Set();
+            card.subtasks = lines(v.subs).map((text) => {
+                const prev = old.find((st) => st.text === text && !kept.has(st.id));
+                if (prev) { kept.add(prev.id); return prev; }
+                return { id: uid(), text, done: false };
+            });
+            s.sprint.forEach((t) => {
+                if (t.source?.kind === 'sub' && t.source.cardId === card.id && !kept.has(t.source.id)) t.source = null;
+            });
+            Object.assign(card, { title: v.title, category: v.category, due: v.due });
+        },
+    });
+}
+
+function rowForm(row) {
+    const s = store.state;
+    openForm({
+        title: 'Строчка',
+        fields: [
+            { type: 'text', name: 'title', label: 'Задача', value: row.title },
+            { type: 'select', name: 'category', label: 'Категория', value: row.category, options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Дедлайн', value: row.due },
+        ],
+        onDelete: () => {
+            s.rows = s.rows.filter((r) => r.id !== row.id);
+            s.sprint.forEach((t) => { if (t.source?.kind === 'row' && t.source.id === row.id) t.source = null; });
+        },
+        onSubmit: (v) => {
+            if (!v.title) return false;
+            Object.assign(row, { title: v.title, category: v.category, due: v.due });
+            s.sprint.forEach((t) => { if (t.source?.kind === 'row' && t.source.id === row.id && !t.done) t.text = v.title; });
+        },
+    });
+}
+
+function categoriesForm() {
+    const s = store.state;
+    openForm({
+        title: 'Категории',
+        note: 'Очисти поле, чтобы удалить категорию. Её задачи останутся во вкладке «Все».',
+        fields: s.categories.map((c, i) => ({ type: 'text', name: `c${i}`, value: c })),
+        onSubmit: (v) => {
+            const next = [];
+            s.categories.forEach((old, i) => {
+                const name = v[`c${i}`];
+                [...s.cards, ...s.rows].forEach((x) => { if (x.category === old) x.category = name; });
+                if (view.backlogFilter === old) view.backlogFilter = name || 'all';
+                if (name && !next.includes(name)) next.push(name);
+            });
+            s.categories = next;
+        },
+    });
+}
+
+function seasonForm() {
+    const s = store.state;
+    openForm({
+        title: 'Текущий сезон',
+        fields: [
+            { type: 'text', name: 'name', label: 'Название', value: s.season.name },
+            { type: 'select', name: 'kind', label: 'Тип сезона', value: s.season.kind,
+                options: Object.entries(SEASON_KINDS).map(([value, label]) => ({ value, label })) },
+        ],
+        onSubmit: (v) => {
+            s.season.kind = Number(v.kind);
+            s.season.name = v.name || seasonName(s.season.kind);
+            return { reopenSettings: true };
+        },
+    });
+}
+
+function closeSeasonForm() {
+    const s = store.state;
+    const nextKind = (s.season.kind % 4) + 1;
+    openForm({
+        title: 'Закрыть сезон',
+        note: `«${s.season.name}» целиком уйдёт в архив — его можно будет открыть и полистать. Лента, цели, спринт и Dump начнутся с чистого листа.`,
+        fields: [
+            { type: 'text', name: 'name', label: 'Новый сезон', value: seasonName(nextKind) },
+            { type: 'select', name: 'kind', label: 'Тип', value: nextKind,
+                options: Object.entries(SEASON_KINDS).map(([value, label]) => ({ value, label })) },
+            { type: 'checkbox', name: 'carry', label: 'Перенести незакрытые задачи Backlog', value: true },
+        ],
+        submitLabel: 'Закрыть и начать новый',
+        onSubmit: (v) => {
+            if (!confirm('Точно закрыть сезон?')) return false;
+            const kind = Number(v.kind);
+            if (!store.closeSeason({ name: v.name || seasonName(kind), kind, carryBacklog: v.carry })) return false;
+            view.tab = 'feed';
+            view.archive = null;
+            toast('Сезон в архиве. Новый старт ✨');
+        },
+    });
+}
+
+// ================= ДЕЙСТВИЯ =================
+// Все клики идут через data-act. В архиве разрешены только действия из READONLY_OK.
+const READONLY_OK = new Set([
+    'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'filter', 'flip', 'dump-sub',
+    'exit-archive', 'close-modal', 'form-chip', 'form-delete',
+    'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
+]);
+
+const find = (list, id) => list.find((x) => x.id === id);
+
+const actions = {
+    tab({ tab }) {
+        if (tab === 'settings') return openSettings();
+        const was = view.tab;
+        view.tab = tab;
+        if (tab !== 'feed') { view.searchOpen = false; view.search = ''; }
+        render({ scrollToEnd: tab === 'feed', keepScroll: tab === was });
+    },
+    settings: () => openSettings(),
+
+    add() {
+        const t = view.tab;
+        if (t === 'feed') postForm();
+        else if (t === 'roadmap') goalForm();
+        else if (t === 'sprint') taskForm();
+        else if (t === 'backlog') backlogNewForm();
+    },
+
+    // --- лента
+    'search-toggle'() {
+        view.searchOpen = !view.searchOpen;
+        if (!view.searchOpen) view.search = '';
+        render();
+        if (view.searchOpen) $('#searchInput')?.focus();
+    },
+    'search-close'() {
+        view.searchOpen = false;
+        view.search = '';
+        render({ scrollToEnd: true });
+    },
+    'search-tag'({ tag }) {
+        const q = `#${tag}`;
+        view.tab = 'feed';
+        view.searchOpen = true;
+        view.search = view.search === q ? '' : q;
+        render({ keepScroll: false });
+    },
+    'edit-post'({ id }) { const p = find(S().posts, id); if (p) postForm(p); },
+    'edit-manifest'() {
+        const s = store.state;
+        openForm({
+            title: 'Манифест сезона',
+            note: 'Направления, которые не превратишь в задачу, но важно держать перед глазами. По одному на строку.',
+            fields: [{ type: 'textarea', name: 'words', value: s.manifest.join('\n'), rows: 5, placeholder: 'красота\nосанка\nфокус' }],
+            onSubmit: (v) => { s.manifest = lines(v.words).map(cleanTag); },
+        });
+    },
+
+    // --- roadmap
+    'toggle-goal'({ id }) { const g = find(S().goals, id); if (g) { g.done = !g.done; commit(); } },
+    'edit-goal'({ id }) { const g = find(S().goals, id); if (g) goalForm(g); },
+
+    // --- sprint
+    'toggle-task'({ id }) {
+        const s = S();
+        const t = find(s.sprint, id);
+        if (!t) return;
+        t.done = !t.done;
+        if (t.source?.kind === 'sub') {
+            const sub = find(find(s.cards, t.source.cardId)?.subtasks || [], t.source.id);
+            if (sub) sub.done = t.done;
+        }
+        commit();
+    },
+    'edit-task'({ id }) { const t = find(S().sprint, id); if (t) taskForm(t); },
+
+    // --- backlog
+    filter({ cat }) { view.backlogFilter = cat; render({ keepScroll: false }); },
+    flip({ id }) {
+        if (view.flipped.has(id)) view.flipped.delete(id); else view.flipped.add(id);
+        $(`.flip[data-id="${id}"]`)?.classList.toggle('is-flipped');
+    },
+    'toggle-sub'({ card, id }) {
+        const s = S();
+        const sub = find(find(s.cards, card)?.subtasks || [], id);
+        if (!sub) return;
+        sub.done = !sub.done;
+        s.sprint.forEach((t) => { if (t.source?.kind === 'sub' && t.source.id === id) t.done = sub.done; });
+        commit();
+    },
+    'sub-to-sprint'({ card, id }) {
+        const s = S();
+        const sub = find(find(s.cards, card)?.subtasks || [], id);
+        if (!sub) return;
+        s.sprint.push({ id: uid(), text: sub.text, done: false, strikes: 0, source: { kind: 'sub', cardId: card, id } });
+        toast('🚀 Подпункт отправлен в спринт');
+        commit();
+    },
+    'row-to-sprint'({ id }) {
+        const s = S();
+        const r = find(s.rows, id);
+        if (!r) return;
+        s.sprint.push({ id: uid(), text: r.title, done: false, strikes: 0, source: { kind: 'row', id } });
+        toast('🚀 Задача отправлена в спринт');
+        commit();
+    },
+    'add-sub'({ id }) {
+        const card = find(S().cards, id);
+        if (!card) return;
+        openForm({
+            title: `Подпункт · ${card.title}`,
+            fields: [{ type: 'text', name: 'text', label: 'Что сделать' }],
+            submitLabel: 'Добавить',
+            onSubmit: (v) => {
+                if (!v.text) return false;
+                card.subtasks.push({ id: uid(), text: v.text, done: false });
+            },
+        });
+    },
+    'edit-card'({ id }) { const c = find(S().cards, id); if (c) cardForm(c); },
+    'add-row'() { backlogNewForm('row'); },
+    'edit-row'({ id }) { const r = find(S().rows, id); if (r) rowForm(r); },
+    'add-category'() {
+        const s = store.state;
+        openForm({
+            title: 'Новая категория',
+            fields: [{ type: 'text', name: 'name', label: 'Название', placeholder: 'Музыка' }],
+            submitLabel: 'Добавить',
+            onSubmit: (v) => {
+                if (!v.name) return false;
+                if (!s.categories.includes(v.name)) s.categories.push(v.name);
+                view.backlogFilter = v.name;
+            },
+        });
+    },
+    'manage-categories': () => categoriesForm(),
+
+    // --- dump
+    'dump-sub'({ sub }) { view.dumpSub = sub; render({ keepScroll: false }); },
+    'dump-save'() {
+        const text = $('#dumpInput')?.value.trim();
+        if (!text) return;
+        S().dump.push({ id: uid(), text, createdAt: new Date().toISOString() });
+        view.dumpDraft = '';
+        toast('Выгружено. Можно спать 🌙');
+        commit({ keepScroll: false });
+    },
+    'dump-to-feed'({ id }) {
+        const s = S();
+        const d = find(s.dump, id);
+        if (!d) return;
+        // Пост встаёт в ленту с исходным временем мысли — так видно, что думал в тот момент
+        s.posts.push({ id: uid(), title: '', text: d.text, tags: [], createdAt: d.createdAt });
+        s.dump = s.dump.filter((x) => x.id !== id);
+        toast('✨ Сохранено в ленту');
+        commit();
+    },
+    'dump-delete'({ id }) { S().dump = S().dump.filter((x) => x.id !== id); commit(); },
+    'failed-to-backlog'({ id }) {
+        const s = S();
+        const f = find(s.failed, id);
+        if (!f) return;
+        const src = f.source;
+        const stillThere = (src?.kind === 'row' && find(s.rows, src.id))
+            || (src?.kind === 'sub' && find(find(s.cards, src.cardId)?.subtasks || [], src.id));
+        if (!stillThere) s.rows.push({ id: uid(), title: f.text, category: s.categories[0] || '', due: '' });
+        s.failed = s.failed.filter((x) => x.id !== id);
+        toast('Вернул в бэклог');
+        commit();
+    },
+    'failed-delete'({ id }) { S().failed = S().failed.filter((x) => x.id !== id); commit(); },
+    'failed-clear'() {
+        if (!confirm('Выбросить все невыполненные задачи?')) return;
+        S().failed = [];
+        commit();
+    },
+
+    // --- настройки / сезоны / архив
+    'reset-wallpaper'() { WallpaperService.reset(); openSettings(); },
+    'edit-season': () => seasonForm(),
+    'close-season': () => closeSeasonForm(),
+    'open-archive'({ id }) {
+        const entry = store.loadArchive().find((a) => a.id === id);
+        if (!entry) return;
+        view.archive = { entry, state: normalize(entry.state) };
+        view.tab = 'feed';
+        view.search = '';
+        view.searchOpen = false;
+        closeModals();
+        render({ scrollToEnd: true });
+    },
+    'exit-archive'() {
+        view.archive = null;
+        view.search = '';
+        view.searchOpen = false;
+        render({ scrollToEnd: view.tab === 'feed' });
+    },
+    'delete-archive'({ id }) {
+        const list = store.loadArchive();
+        const entry = list.find((a) => a.id === id);
+        if (!entry || !confirm(`Удалить архив «${entry.state.season?.name}» навсегда?`)) return;
+        store.saveArchive(list.filter((a) => a.id !== id));
+        if (view.archive?.entry.id === id) view.archive = null;
+        openSettings();
+        render();
+    },
+    'manage-tags'() {
+        const s = store.state;
+        openForm({
+            title: 'Теги ленты',
+            note: 'Регламент тегов: по одному на строку. Эти теги предлагаются при создании поста.',
+            fields: [{ type: 'textarea', name: 'tags', value: s.tags.join('\n'), rows: 8 }],
+            onSubmit: (v) => {
+                s.tags = [...new Set(lines(v.tags).map(cleanTag).filter(Boolean))];
+                return { reopenSettings: true };
+            },
+        });
+    },
+    export() {
+        const data = { app: 'monitor-dushi', exportedAt: new Date().toISOString(), state: store.state, archive: store.loadArchive() };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `monitor-dushi-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    },
+
+    // --- формы
+    'close-modal': () => closeModals(),
+    'form-chip'(_, el) { el.classList.toggle('is-active'); },
+    'form-delete'() {
+        if (!currentForm?.onDelete) return;
+        if (currentForm.onDelete() === false) return;
+        closeModals();
+        commit();
+    },
+};
+
+async function submitCurrentForm() {
+    if (!currentForm) return;
+    const result = currentForm.onSubmit(readForm());
+    if (result === false) return;
+    closeModals();
+    commit(result || {});
+    if (result?.reopenSettings) openSettings();
+}
+
+// ================= ИНИЦИАЛИЗАЦИЯ =================
+document.addEventListener('DOMContentLoaded', () => {
+    store.load();
+    WallpaperService.apply();
+
+    document.addEventListener('click', (e) => {
+        const modal = e.target.closest('.modal');
+        if (modal && e.target === modal) { closeModals(); return; }
+
+        const el = e.target.closest('[data-act]');
+        if (!el || el.disabled) return;
+        const fn = actions[el.dataset.act];
+        if (!fn) return;
+        if (RO() && !READONLY_OK.has(el.dataset.act) && !el.closest('#settingsModal')) {
+            toast('Это архив — только просмотр');
+            return;
+        }
+        fn(el.dataset, el, e);
+    });
+
+    document.addEventListener('submit', (e) => {
+        if (e.target.id !== 'formEl') return;
+        e.preventDefault();
+        submitCurrentForm();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModals();
+        // Cmd/Ctrl+Enter — отправить форму или выгрузить Dump
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            if (currentForm) submitCurrentForm();
+            else if (e.target.id === 'dumpInput') actions['dump-save']();
+        }
+    });
+
+    document.addEventListener('input', (e) => {
+        if (e.target.id === 'searchInput') {
+            view.search = e.target.value;
+            renderContent();
+            updateSearchCounter();
+        } else if (e.target.id === 'dumpInput') {
+            view.dumpDraft = e.target.value;
+        }
+    });
+
+    document.addEventListener('change', async (e) => {
+        if (e.target.id === 'bgFileInput' && e.target.files[0]) {
+            try {
+                await WallpaperService.setFromFile(e.target.files[0]);
+                toast('Обои обновлены');
+                openSettings();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+        if (e.target.id === 'importInput' && e.target.files[0]) {
+            try {
+                const data = JSON.parse(await e.target.files[0].text());
+                if (!data.state) throw new Error('bad file');
+                if (!confirm('Заменить текущие данные данными из файла?')) return;
+                store.replace(data.state);
+                if (Array.isArray(data.archive)) store.saveArchive(data.archive);
+                view.archive = null;
+                closeModals();
+                render({ scrollToEnd: true });
+                toast('Данные восстановлены');
+            } catch {
+                alert('Не получилось прочитать файл резервной копии');
+            }
+        }
+    });
+
+    window.addEventListener('resize', syncLayout);
+
+    // Пересменка дня может случиться, пока вкладка открыта или висит в фоне
+    const checkRollover = () => {
+        if (store.rollover()) { store.save(); if (!RO()) render(); }
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkRollover(); });
+    setInterval(checkRollover, 60000);
+
+    render({ scrollToEnd: true });
+    // Шрифты догружаются и меняют высоту шапки — пересчитываем отступы
+    document.fonts?.ready.then(syncLayout);
 });
 
-function openEditModal(note) {
-    currentEditingId = note.id;
-    const titleInput = document.getElementById('editModalTitle');
-    const textInput = document.getElementById('editModalText');
-    const modal = document.getElementById('editModal');
-
-    if (titleInput) titleInput.value = note.title || '';
-    if (textInput) textInput.value = note.text || '';
-    if (modal) modal.style.display = 'flex';
-}
-
-function initEditModalLogic(refreshCallback) {
-    const modal = document.getElementById('editModal');
-    const cancelBtn = document.getElementById('editModalCancel');
-    const saveBtn = document.getElementById('editModalSave');
-
-    if (cancelBtn) {
-        cancelBtn.onclick = () => {
-            if (modal) modal.style.display = 'none';
-            currentEditingId = null;
-        };
-    }
-
-    if (saveBtn) {
-        saveBtn.onclick = async () => {
-            if (!currentEditingId) return;
-            const note = AppState.notes.find(n => n.id === currentEditingId);
-            if (note) {
-                const titleInput = document.getElementById('editModalTitle');
-                const textInput = document.getElementById('editModalText');
-
-                if (titleInput) note.title = titleInput.value;
-                if (textInput) note.text = textInput.value;
-
-                await AppState.updateNote(note);
-                refreshCallback();
-            }
-            if (modal) modal.style.display = 'none';
-            currentEditingId = null;
-        };
-    }
-}
-
-function initModalsAndCreation(refreshCallback) {
-    const noteModal = document.getElementById('noteModal');
-    const settingsModal = document.getElementById('settingsModal');
-
-    document.getElementById('addNoteBtn')?.addEventListener('click', () => noteModal.classList.add('active'));
-    document.getElementById('closeModalBtn')?.addEventListener('click', () => noteModal.classList.remove('active'));
-
-    let currentType = 'feed';
-    document.getElementById('typeFeedBtn')?.addEventListener('click', (e) => {
-        currentType = 'feed';
-        e.target.classList.add('active');
-        document.getElementById('typeTaskBtn').classList.remove('active');
-        document.getElementById('feedFieldsBlock').style.display = 'block';
-        document.getElementById('taskFieldsBlock').style.display = 'none';
-    });
-
-    document.getElementById('typeTaskBtn')?.addEventListener('click', (e) => {
-        currentType = 'task';
-        e.target.classList.add('active');
-        document.getElementById('typeFeedBtn').classList.remove('active');
-        document.getElementById('feedFieldsBlock').style.display = 'none';
-        document.getElementById('taskFieldsBlock').style.display = 'block';
-    });
-
-    document.querySelectorAll('.tag-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            const hashtagInput = document.getElementById('noteHashtagInput');
-            if (hashtagInput) {
-                hashtagInput.value = chip.textContent;
-            }
-        });
-    });
-
-    document.getElementById('saveNoteBtn')?.addEventListener('click', async () => {
-        const title = document.getElementById('noteTitleInput').value.trim();
-        const text = document.getElementById('noteTextInput').value.trim();
-
-        if (!title && !text && currentType === 'feed') return;
-
-        let newEntry = {
-            id: Date.now(),
-            type: currentType,
-            title: title,
-            text: text,
-            createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        if (currentType === 'feed') {
-            const tag = document.getElementById('noteHashtagInput').value.trim();
-            newEntry.hashtag = tag ? (tag.startsWith('#') ? tag : `#${tag}`) : '';
-            newEntry.media = [];
-        } else {
-            newEntry.folder = document.getElementById('taskTargetFolder').value;
-            newEntry.deadline = document.getElementById('taskDeadlineInput')?.value || '';
-            newEntry.todos = [];
-            newEntry.completed = false;
-            newEntry.media = [];
-        }
-
-        AppState.addNote(newEntry);
-        refreshCallback();
-        resetForm();
-        noteModal.classList.remove('active');
-
-        try {
-            await CloudStorage.saveNote(newEntry);
-        } catch (err) {
-            console.log('Сохранено локально');
-        }
-    });
-
-    // УНИВЕРСАЛЬНОЕ ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (Roadmap, Sprint, Backlog, Dump, Feed работают одинаково)
-    document.querySelectorAll('.menu-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const tab = e.target.dataset.tab;
-            if (tab === 'settings') {
-                settingsModal?.classList.add('active');
-                return;
-            }
-
-            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            
-            // Устанавливаем вкладку в AppState, чтобы UIRenderer её отрисовал
-            AppState.currentTab = tab; 
-            refreshCallback();
-        });
-    });
-
-    document.getElementById('closeSettingsBtn')?.addEventListener('click', () => settingsModal.classList.remove('active'));
-}
-
-function initLiveDumpLogic() {
-    const dumpArea = document.getElementById('liveDumpArea');
-    if (!dumpArea) return;
-    const DUMP_KEY = 'app_live_dump_content';
-    dumpArea.value = localStorage.getItem(DUMP_KEY) || '';
-    dumpArea.addEventListener('input', (e) => {
-        localStorage.setItem(DUMP_KEY, e.target.value);
-    });
-}
-
-function resetForm() {
-    document.getElementById('noteTitleInput').value = '';
-    document.getElementById('noteTextInput').value = '';
-    document.getElementById('noteHashtagInput').value = '';
-    document.getElementById('noteMediaInput').value = '';
-}
-
-function initLightbox() {
-    const lightbox = document.getElementById('lightboxModal');
-    const img = document.getElementById('lightboxImg');
-    const closeBtn = document.getElementById('lightboxCloseBtn');
-
-    window.openLightbox = (url) => {
-        if (lightbox && img) {
-            img.src = url;
-            lightbox.style.display = 'flex';
-        }
-    };
-
-    closeBtn?.addEventListener('click', () => {
-        if (lightbox) lightbox.style.display = 'none';
-    });
-}

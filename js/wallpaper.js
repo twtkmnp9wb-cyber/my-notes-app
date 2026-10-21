@@ -1,42 +1,48 @@
+const KEY = 'app_custom_bg';
+
+// Фото с телефона весит 3–10 МБ, а localStorage ~5 МБ на всё приложение,
+// поэтому перед сохранением ужимаем картинку до 1600px в JPEG.
+function downscale(file, max = 1600, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const k = Math.min(1, max / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * k);
+            canvas.height = Math.round(img.height * k);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось прочитать картинку')); };
+        img.src = url;
+    });
+}
+
 export const WallpaperService = {
-    init() {
-        const bgLayer = document.getElementById('bgLayer');
-        const scaleRange = document.getElementById('bgScaleRange');
-        const scaleText = document.getElementById('scaleValueText');
-        const fileInput = document.getElementById('bgFileInput');
+    apply() {
+        const layer = document.getElementById('bgLayer');
+        const bg = localStorage.getItem(KEY);
+        if (layer) layer.style.backgroundImage = bg ? `url("${bg}")` : '';
+    },
 
-        const savedBg = localStorage.getItem('app_custom_bg');
-        const savedScale = localStorage.getItem('app_bg_scale') || '100';
+    has() {
+        return !!localStorage.getItem(KEY);
+    },
 
-        if (savedBg && bgLayer) {
-            bgLayer.style.backgroundImage = `url(${savedBg})`;
+    async setFromFile(file) {
+        const dataUrl = await downscale(file);
+        try {
+            localStorage.setItem(KEY, dataUrl);
+        } catch {
+            throw new Error('Картинка не поместилась в память браузера');
         }
-        if (scaleRange && bgLayer) {
-            scaleRange.value = savedScale;
-            bgLayer.style.transform = `scale(${savedScale / 100})`;
-            if (scaleText) scaleText.innerText = `${savedScale}%`;
-        }
+        this.apply();
+    },
 
-        scaleRange?.addEventListener('input', (e) => {
-            const val = e.target.value;
-            if (bgLayer) bgLayer.style.transform = `scale(${val / 100})`;
-            if (scaleText) scaleText.innerText = `${val}%`;
-            localStorage.setItem('app_bg_scale', val);
-        });
-
-        fileInput?.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const base64Image = event.target.result;
-                if (bgLayer) {
-                    bgLayer.style.backgroundImage = `url(${base64Image})`;
-                }
-                localStorage.setItem('app_custom_bg', base64Image);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+    reset() {
+        localStorage.removeItem(KEY);
+        this.apply();
+    },
 };
