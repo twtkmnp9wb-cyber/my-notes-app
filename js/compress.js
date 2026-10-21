@@ -37,7 +37,8 @@ export async function compressImage(file) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', PHOTO_QUALITY));
-        if (!blob || blob.size >= file.size) return file;
+        // Пустой blob бывает, если iOS не потянул холст такого размера — тогда оставляем оригинал
+        if (!blob?.size || blob.size >= file.size) return file;
         return new File([blob], rename(file.name, 'jpg'), { type: 'image/jpeg' });
     } catch (e) {
         console.warn('Фото не сжалось, оставляю оригинал', e);   // например, HEIC в Chrome

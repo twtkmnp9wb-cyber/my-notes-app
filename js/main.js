@@ -174,7 +174,7 @@ function postForm(post) {
                 for (const a of fresh) await media.put(a.id, a.file);
             } catch (e) {
                 console.error(e);
-                alert('Не удалось сохранить файл: в браузере не хватает места.');
+                alert(`Не удалось сохранить файл: ${/quota/i.test(e.name + e.message) ? 'в браузере не хватает места' : e.message}`);
                 return false;
             }
             list.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });

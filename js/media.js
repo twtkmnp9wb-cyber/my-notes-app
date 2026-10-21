@@ -70,7 +70,12 @@ export function measure(file) {
 
 export const media = {
     async put(id, blob) {
-        await tx('readwrite', (s) => s.put(blob, id));
+        // Кладём в базу копию байтов, а не сам File: в Safari File из <input> может ссылаться на временный файл,
+        // который система потом удаляет, и в базе остаётся пустышка
+        const bytes = await blob.arrayBuffer();
+        if (!bytes.byteLength) throw new Error('Файл пустой — попробуй прикрепить его ещё раз');
+        const copy = new Blob([bytes], { type: blob.type });
+        await tx('readwrite', (s) => s.put(copy, id));
         // Просим браузер не вычищать хранилище при нехватке места (особенно актуально для Safari)
         navigator.storage?.persist?.().catch(() => {});
     },

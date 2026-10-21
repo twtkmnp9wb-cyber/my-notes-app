@@ -118,7 +118,15 @@ async function syncMedia(doc) {
         if (!ids.has(id) || uploaded.has(id)) continue;
         const blob = await media.get(id);
         if (!blob) continue;
-        const { error } = await sb.storage.from(BUCKET).upload(`${user.id}/${id}`, blob, {
+        // Safari отдаёт Blob из IndexedDB так, что при отправке он может уйти пустым («No content provided»).
+        // Поэтому сначала читаем байты в память и отправляем их — так работает в любом браузере.
+        let bytes;
+        try { bytes = await blob.arrayBuffer(); } catch { bytes = null; }
+        if (!bytes?.byteLength) {
+            failed.push({ id, blob, error: { message: 'файл на этом устройстве повреждён (пустой) — прикрепи его заново' } });
+            continue;
+        }
+        const { error } = await sb.storage.from(BUCKET).upload(`${user.id}/${id}`, bytes, {
             upsert: true, contentType: blob.type || 'application/octet-stream',
         });
         if (error) { failed.push({ id, blob, error }); continue; }
