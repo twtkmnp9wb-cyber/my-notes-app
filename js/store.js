@@ -129,6 +129,7 @@ function migrateLegacy() {
 
 export const store = {
     state: null,
+    onSave: null,   // ставит sync.js: после каждого сохранения запланировать отправку в облако
 
     load() {
         let s = null;
@@ -141,6 +142,7 @@ export const store = {
     save() {
         try {
             localStorage.setItem(STATE_KEY, JSON.stringify(this.state));
+            this.onSave?.();
             return true;
         } catch (e) {
             console.error(e);
@@ -195,6 +197,7 @@ export const store = {
     saveArchive(list) {
         try {
             localStorage.setItem(ARCHIVE_KEY, JSON.stringify(list));
+            this.onSave?.();
             return true;
         } catch (e) {
             console.error(e);

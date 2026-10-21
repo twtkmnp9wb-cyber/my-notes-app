@@ -412,9 +412,48 @@ export function renderDump(s, ro) {
 }
 
 // ================= НАСТРОЙКИ =================
-export function renderSettings(s, archive, hasWallpaper) {
+// Блок синхронизации рендерится отдельно: его статус меняется в фоне, а остальные настройки — нет
+export function renderSyncSection(st) {
+    const time = st.lastSync ? st.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+    let body;
+    if (st.state === 'off') {
+        body = '<p class="muted small">Не настроена: нужны ключи Supabase в js/config.js.</p>';
+    } else if (st.state === 'signed-out') {
+        body = `
+            <p class="muted small">Войди по почте — и лента, задачи, архив и файлы будут одинаковыми на телефоне и ноутбуке.</p>
+            <label class="field"><input type="email" id="syncEmail" placeholder="почта@example.com" autocomplete="email"></label>
+            <button class="btn-wide primary" data-act="sync-login">Прислать письмо для входа</button>`;
+    } else if (st.state === 'code-sent') {
+        body = `
+            <p class="muted small">Письмо ушло на ${esc(st.pendingEmail)}. Нажми «Sign in» в письме — или, если приложение открыто с экрана «Домой», зажми ссылку, скопируй и вставь сюда.</p>
+            <label class="field"><input type="text" id="syncCode" autocomplete="one-time-code" placeholder="Ссылка из письма"></label>
+            <button class="btn-wide primary" data-act="sync-verify">Войти</button>
+            <button class="btn-wide ghost" data-act="sync-cancel">Другая почта</button>`;
+    } else {
+        const line = {
+            syncing: '<span class="sync-dot is-busy"></span>Синхронизация…',
+            ok: `<span class="sync-dot is-ok"></span>Синхронизировано${time ? ` в ${time}` : ''}`,
+            error: `<span class="sync-dot is-error"></span>Ошибка: ${esc(st.error)}`,
+        }[st.state] || '';
+        body = `
+            <div class="item">
+                <div class="item-main">
+                    <span class="item-text">${esc(st.email)}</span>
+                    <span class="item-meta sync-line">${line}</span>
+                </div>
+                <button class="btn-mini" data-act="sync-now">Сейчас</button>
+            </div>
+            ${st.warning ? `<p class="muted small hot">${esc(st.warning)}</p>` : ''}
+            <button class="btn-wide ghost" data-act="sync-logout">Выйти из аккаунта</button>`;
+    }
+    return `<span class="kicker">Синхронизация</span>${body}`;
+}
+
+export function renderSettings(s, archive, hasWallpaper, syncSt) {
     return `
         <div class="modal-header"><h3>Настройки</h3><button class="close-btn" data-act="close-modal">×</button></div>
+
+        <div class="settings-section" id="syncSection">${renderSyncSection(syncSt)}</div>
 
         <div class="settings-section">
             <span class="kicker">Обои</span>
@@ -455,7 +494,7 @@ export function renderSettings(s, archive, hasWallpaper) {
 
         <div class="settings-section">
             <span class="kicker">Данные</span>
-            <p class="muted small">Всё хранится только в этом браузере. Периодически делай резервную копию. Фото, видео и файлы в копию пока не входят — только тексты и задачи.</p>
+            <p class="muted small">Резервная копия в файл: тексты, задачи и архив. Фото, видео и файлы в неё не входят — их сохраняет синхронизация.</p>
             <button class="btn-wide ghost" data-act="export">Скачать резервную копию</button>
             <label class="btn-wide ghost">Восстановить из файла<input type="file" id="importInput" accept="application/json,.json" hidden></label>
         </div>`;

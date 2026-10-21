@@ -3,8 +3,9 @@ import {
     view, esc, feedCounts,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
-    renderAttList, renderViewer, visualOf,
+    renderAttList, renderViewer, visualOf, renderSyncSection,
 } from './ui.js';
+import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn } from './sync.js';
 import { media, kindOf, measure } from './media.js';
 import { WallpaperService } from './wallpaper.js';
 
@@ -132,7 +133,7 @@ function readForm() {
 }
 
 function openSettings() {
-    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has());
+    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus);
     openModal('#settingsModal');
 }
 
@@ -599,6 +600,24 @@ const actions = {
     },
 
     // --- настройки / сезоны / архив
+    // --- синхронизация
+    async 'sync-login'() {
+        const email = $('#syncEmail')?.value.trim();
+        if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Введи почту'); return; }
+        try { await signIn(email); } catch (e) { alert(`Не получилось отправить письмо: ${e.message}`); }
+    },
+    async 'sync-verify'() {
+        const code = $('#syncCode')?.value.trim();
+        if (!code) return;
+        try { await verifyCode(code); toast('Вход выполнен'); } catch (e) { alert(`Не получилось войти: ${e.message}`); }
+    },
+    'sync-cancel': () => cancelSignIn(),
+    'sync-now': () => syncNow(),
+    async 'sync-logout'() {
+        if (!confirm('Выйти? Данные останутся на этом устройстве, но перестанут синхронизироваться.')) return;
+        await signOut();
+    },
+
     'reset-wallpaper'() { WallpaperService.reset(); openSettings(); },
     'edit-season': () => seasonForm(),
     'close-season': () => closeSeasonForm(),
@@ -800,5 +819,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkRollover, 60000);
 
     render({ scrollToEnd: true });
+
+    initSync({
+        // Перерисовываем только блок синхронизации и сохраняем то, что уже введено в его поля
+        onStatus: () => {
+            const el = $('#syncSection');
+            if (!el) return;
+            const typed = [...el.querySelectorAll('input')].map((i) => [i.id, i.value]);
+            el.innerHTML = renderSyncSection(syncStatus);
+            typed.forEach(([id, v]) => { const i = document.getElementById(id); if (i) i.value = v; });
+        },
+        onRemoteChange: () => render(),
+    });
 });
 

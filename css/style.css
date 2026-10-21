@@ -402,3 +402,12 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 
 /* Кнопка «⋯» поверх фото должна читаться на любой картинке */
 .post:has(> .album:nth-child(2)) .post-menu { z-index: 1; top: 12px; right: 12px; color: #fff; background: rgba(0, 0, 0, 0.45); }
+
+/* Статус синхронизации в настройках */
+.sync-line { display: inline-flex; align-items: center; gap: 6px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.sync-dot.is-ok { background: var(--accent); }
+.sync-dot.is-error { background: var(--hot); }
+.sync-dot.is-busy { background: var(--warm); animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+#syncSection .field { margin: 8px 0 0; }

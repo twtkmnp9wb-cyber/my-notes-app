@@ -75,9 +75,24 @@ export const media = {
         navigator.storage?.persist?.().catch(() => {});
     },
 
+    // Загрузчик из облака (ставит sync.js): если файла нет на этом устройстве — скачиваем и кладём в базу
+    remote: null,
+
+    get(id) {
+        return tx('readonly', (s) => s.get(id));
+    },
+
+    async keys() {
+        return tx('readonly', (s) => s.getAllKeys());
+    },
+
     async url(id) {
         if (urlCache.has(id)) return urlCache.get(id);
-        const blob = await tx('readonly', (s) => s.get(id));
+        let blob = await this.get(id);
+        if (!blob && this.remote) {
+            blob = await this.remote(id).catch(() => null);
+            if (blob) await tx('readwrite', (s) => s.put(blob, id));
+        }
         if (!blob) return null;
         const url = URL.createObjectURL(blob);
         urlCache.set(id, url);
@@ -91,7 +106,7 @@ export const media = {
 
     // Удаляем файлы, на которые больше не ссылается ни живой сезон, ни архив
     async gc(referenced) {
-        const keys = await tx('readonly', (s) => s.getAllKeys());
+        const keys = await this.keys();
         await Promise.all(keys.filter((k) => !referenced.has(k)).map((k) => this.remove(k)));
     },
 
