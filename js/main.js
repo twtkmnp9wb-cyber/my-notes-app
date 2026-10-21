@@ -20,8 +20,13 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     const ro = RO();
     const viewport = $('#scrollViewport');
     const prevScroll = viewport.scrollTop;
+    // Во всех вкладках, кроме ленты, прокручиваются отдельные области [data-scroll] —
+    // запоминаем их положение, чтобы отметка задачи не сбрасывала список наверх
+    const prevInner = {};
+    document.querySelectorAll('[data-scroll]').forEach((el) => { prevInner[el.dataset.scroll] = el.scrollTop; });
 
     document.body.dataset.season = s.season.kind;
+    document.body.dataset.tab = view.tab;
     document.querySelectorAll('.menu-btn[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === view.tab));
 
     const banner = $('#archiveBanner');
@@ -40,12 +45,14 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     $('#searchToggleBtn').hidden = view.tab !== 'feed';
     $('#addNoteBtn').hidden = ro || view.tab === 'dump';
 
-    syncLayout();
     updateSearchCounter();
 
     if (scrollToEnd) viewport.scrollTop = viewport.scrollHeight;
     else if (keepScroll) viewport.scrollTop = prevScroll;
     else viewport.scrollTop = 0;
+    if (keepScroll) {
+        document.querySelectorAll('[data-scroll]').forEach((el) => { el.scrollTop = prevInner[el.dataset.scroll] || 0; });
+    }
 }
 
 function renderContent() {
@@ -53,14 +60,6 @@ function renderContent() {
     const ro = RO();
     const renderers = { feed: renderFeed, roadmap: renderRoadmap, sprint: renderSprint, backlog: renderBacklog, dump: renderDump };
     $('.main-container').innerHTML = renderers[view.tab](s, ro);
-}
-
-// Подшапки fixed: ставим им top под верхним меню и отодвигаем контент на их высоту
-function syncLayout() {
-    const topH = $('.fixed-top-bar').offsetHeight;
-    const active = view.tab === 'feed' ? $('#feedStickyHeader') : view.tab === 'backlog' ? $('#backlogStickyHeader') : null;
-    document.querySelectorAll('.page-sticky-header').forEach((h) => { h.style.top = `${topH}px`; });
-    $('#scrollViewport').style.paddingTop = `${topH + (active ? active.offsetHeight : 0) + 8}px`;
 }
 
 function updateSearchCounter() {
@@ -650,8 +649,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.addEventListener('resize', syncLayout);
-
     // Пересменка дня может случиться, пока вкладка открыта или висит в фоне
     const checkRollover = () => {
         if (store.rollover()) { store.save(); if (!RO()) render(); }
@@ -660,7 +657,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkRollover, 60000);
 
     render({ scrollToEnd: true });
-    // Шрифты догружаются и меняют высоту шапки — пересчитываем отступы
-    document.fonts?.ready.then(syncLayout);
 });
 

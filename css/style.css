@@ -14,6 +14,7 @@
     --hot: #f43f5e;
     --warm: #fb923c;
     --radius: 20px;
+    --col: 408px;   /* ширина колонки: меню, подшапки и контент выровнены по ней */
     --blur: blur(16px);
 }
 body[data-season="2"] { --accent: #7dd3fc; --accent-bg: rgba(125, 211, 252, 0.15); }
@@ -40,28 +41,26 @@ button { font: inherit; color: inherit; }
 #bgLayer::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
 
 /* ================= ВЕРХНЕЕ МЕНЮ =================
-   mask-image плавно гасит blur к низу — иначе backdrop-filter обрывается жёсткой полосой поверх фото. */
+   Шапка стоит в потоке над областью прокрутки, а не висит поверх неё: контент под неё не заезжает,
+   поэтому не нужны полупрозрачные полосы с blur (в Safari они обрезались жёстким прямоугольником).
+   Меню, подшапки и контент — одна колонка шириной var(--col). */
 .fixed-top-bar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 150;
-    padding: max(12px, env(safe-area-inset-top)) 12px 8px;
-    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.9) 70%, rgba(10, 10, 10, 0));
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%);
+    flex: 0 0 auto; position: relative; z-index: 150;
+    padding: max(12px, env(safe-area-inset-top)) 16px 8px;
     display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
 .menu-list {
-    display: flex; gap: 4px; padding: 4px; max-width: 100%;
+    display: flex; gap: 2px; padding: 4px; width: 100%; max-width: var(--col);
     background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--line); border-radius: 9999px; overflow-x: auto; scrollbar-width: none;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 .menu-list::-webkit-scrollbar { display: none; }
 .menu-btn {
-    background: transparent; border: none; color: rgba(255, 255, 255, 0.6); padding: 6px 12px;
+    flex: 1 0 auto; background: transparent; border: none; color: rgba(255, 255, 255, 0.6); padding: 6px 10px;
     border-radius: 9999px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
 }
-@media (max-width: 400px) { .menu-btn { padding: 6px 9px; font-size: 11.5px; } }
+@media (max-width: 400px) { .menu-btn { padding: 6px 7px; font-size: 11.5px; } }
 .menu-btn.active { background: rgba(255, 255, 255, 0.22); color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
 
 .archive-banner {
@@ -71,17 +70,10 @@ button { font: inherit; color: inherit; }
 .archive-banner button { background: rgba(255, 255, 255, 0.15); border: none; border-radius: 9999px; padding: 4px 10px; cursor: pointer; font-size: 11px; }
 
 /* ================= ПОДШАПКИ ВКЛАДОК =================
-   position: fixed, как верхнее меню. top и отступ контента выставляет main.js (syncLayout). */
-.page-sticky-header {
-    position: fixed; left: 0; right: 0; z-index: 140; display: flex; justify-content: center;
-    padding: 8px 16px 14px;
-    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.92) 55%, rgba(10, 10, 10, 0) 100%);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
-}
+   Тоже в потоке: манифест/поиск у ленты, чипсы у Backlog. Не двигаются, потому что прокручивается только область ниже. */
+.page-sticky-header { flex: 0 0 auto; display: flex; justify-content: center; padding: 2px 16px 4px; }
 .page-sticky-header.hidden { display: none !important; }
-.page-sticky-header-inner { width: 100%; max-width: 440px; }
+.page-sticky-header-inner { width: 100%; max-width: var(--col); min-width: 0; }
 
 .manifest {
     display: block; width: 100%; padding: 10px; text-align: center; cursor: pointer;
@@ -90,7 +82,7 @@ button { font: inherit; color: inherit; }
 .manifest:disabled { cursor: default; }
 .manifest-words { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; font-weight: 500; font-style: italic; color: var(--accent); }
 .manifest-words .muted { font-style: normal; font-weight: 400; }
-.born { margin: 10px 0 0; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; font-size: 1.3rem; color: #e5e5e5; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+.born { margin: 10px 0 2px; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 400; font-size: 1.3rem; color: #e5e5e5; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
 
 .kicker { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 3px; }
 
@@ -105,8 +97,14 @@ button { font: inherit; color: inherit; }
 .search-counter { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .search-tags { margin-top: 6px; }
 
-/* ================= ЧИПСЫ ================= */
-.chips-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+/* ================= ЧИПСЫ =================
+   Ряд вылезает на 14px за колонку с каждой стороны и там плавно гаснет — чипсы не рубятся резко,
+   а в покое первый чипс ровно по краю колонки. */
+.chips-scroll {
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 14px; margin: 0 -14px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
 .chips-scroll::-webkit-scrollbar { display: none; }
 .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
@@ -118,9 +116,33 @@ button { font: inherit; color: inherit; }
 .badge { display: inline-block; min-width: 16px; padding: 0 5px; border-radius: 9px; background: var(--hot); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; }
 
 /* ================= ОБЛАСТЬ КОНТЕНТА ================= */
-.scroll-viewport { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 120px; }
+/* Лента прокручивается целиком, а у верхнего края контент плавно растворяется под шапкой */
+.scroll-viewport {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 0 120px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
+    mask-image: linear-gradient(to bottom, transparent, #000 20px);
+}
 .scroll-viewport::-webkit-scrollbar { width: 0; }
-.content-wrapper { max-width: 440px; margin: 0 auto; padding: 0 16px; }
+.content-wrapper { max-width: calc(var(--col) + 32px); margin: 0 auto; padding: 0 16px; }
+
+/* Остальные вкладки: страница неподвижна, крутятся только области .scroll-area внутри .pane */
+body:not([data-tab="feed"]) .scroll-viewport { overflow: hidden; padding: 4px 0 0; -webkit-mask-image: none; mask-image: none; }
+body:not([data-tab="feed"]) .main-container { height: 100%; }
+.pane { height: 100%; display: flex; flex-direction: column; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.pane > * { flex: 0 0 auto; }
+.pane > .scroll-area {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+    padding: 10px 4px 16px; margin: -10px -4px 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 16px), transparent);
+}
+.pane > .scroll-area::-webkit-scrollbar { display: none; }
+/* Backlog: обе области делят высоту пропорционально содержимому, но не схлопываются меньше одного ряда */
+.pane > .scroll-cards { flex: 0 1 auto; }
+.pane > .scroll-cards:has(.card-grid) { min-height: 176px; }
+.pane > .scroll-rows { flex: 0 1 auto; min-height: 130px; }
+.pane > .section-head:first-child { margin-top: 4px; }
 
 .empty { text-align: center; color: var(--muted); padding: 32px 12px; font-size: 13px; line-height: 1.5; }
 .hint { color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; margin: 14px 8px; }

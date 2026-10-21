@@ -116,13 +116,16 @@ export function renderRoadmap(s, ro) {
             <span class="item-text">${esc(g.text)}</span>
             ${ro ? '' : editBtn('edit-goal', `data-id="${g.id}"`)}
         </div>`).join('');
-    return `
+    return `<div class="pane">
         <section class="panel">
             <span class="kicker">Цели на сезон</span>
             <h2 class="panel-title">${esc(s.season.name)}</h2>
             ${s.goals.length ? `${bar(Math.round((done / s.goals.length) * 100))}<div class="panel-sub">${done} из ${s.goals.length}</div>` : ''}
         </section>
-        <div class="list">${items || empty('Целей пока нет. Хорошая цель — та, про которую в конце сезона можно честно сказать «да» или «нет».')}</div>`;
+        <div class="scroll-area" data-scroll="goals">
+            <div class="list">${items || empty('Целей пока нет. Хорошая цель — та, про которую в конце сезона можно честно сказать «да» или «нет».')}</div>
+        </div>
+    </div>`;
 }
 
 // ================= SPRINT =================
@@ -151,14 +154,17 @@ export function renderSprint(s, ro) {
                 ${ro ? '' : editBtn('edit-task', `data-id="${t.id}"`)}
             </div>`;
     }).join('');
-    return `
+    return `<div class="pane">
         <section class="panel panel-sprint">
             <span class="kicker">Спринт</span>
             <h2 class="panel-title">${esc(today)}</h2>
             ${s.sprint.length ? `${bar(Math.round((done / s.sprint.length) * 100))}<div class="panel-sub">${done} из ${s.sprint.length}</div>` : ''}
         </section>
-        <div class="list">${items || empty('На сегодня пусто. Добавь задачу через + или отправь её из Backlog.')}</div>
-        ${ro ? '' : `<p class="hint">Выполненное уберётся ночью (в 04:00). Задача, которая ${STRIKE_LIMIT} дня подряд остаётся невыполненной, уезжает в Dump → Невыполненное.</p>`}`;
+        <div class="scroll-area" data-scroll="sprint">
+            <div class="list">${items || empty('На сегодня пусто. Добавь задачу через + или отправь её из Backlog.')}</div>
+            ${ro ? '' : `<p class="hint">Выполненное уберётся ночью (в 04:00). Задача, которая ${STRIKE_LIMIT} дня подряд остаётся невыполненной, уезжает в Dump → Невыполненное.</p>`}
+        </div>
+    </div>`;
 }
 
 // ================= BACKLOG =================
@@ -250,15 +256,21 @@ export function renderBacklog(s, ro) {
     const cards = s.cards.filter(inCat).sort((a, b) => (isCardDone(a) - isCardDone(b)) || byDue(a, b));
     const rows = s.rows.filter(inCat).sort(byDue);
 
-    return `
-        <div class="section-head"><span class="kicker">Карточки</span></div>
-        ${cards.length ? `<div class="card-grid">${cards.map((c) => cardHtml(s, c, ro)).join('')}</div>`
-            : empty('Крупных задач нет. Карточка — то, что закрывается через подпункты.')}
+    // Карточки и строчки крутятся каждые в своём контейнере, страница остаётся на месте
+    return `<div class="pane">
+        <div class="section-head"><span class="kicker">Карточки · ${cards.length}</span></div>
+        <div class="scroll-area scroll-cards" data-scroll="cards">
+            ${cards.length ? `<div class="card-grid">${cards.map((c) => cardHtml(s, c, ro)).join('')}</div>`
+                : empty('Крупных задач нет. Карточка — то, что закрывается через подпункты.')}
+        </div>
         <div class="section-head">
-            <span class="kicker">Строчки</span>
+            <span class="kicker">Строчки · ${rows.length}</span>
             ${ro ? '' : '<button class="btn-mini" data-act="add-row">＋ Строчка</button>'}
         </div>
-        <div class="list">${rows.map((r) => rowHtml(s, r, ro)).join('') || empty('Простых задач нет.')}</div>`;
+        <div class="scroll-area scroll-rows" data-scroll="rows">
+            <div class="list">${rows.map((r) => rowHtml(s, r, ro)).join('') || empty('Простых задач нет.')}</div>
+        </div>
+    </div>`;
 }
 
 // ================= DUMP =================
@@ -280,10 +292,13 @@ export function renderDump(s, ro) {
                 ${ro ? '' : `<button class="btn-mini" data-act="failed-to-backlog" data-id="${f.id}">В бэклог</button>
                              <button class="icon-btn danger" data-act="failed-delete" data-id="${f.id}" title="Выбросить">✕</button>`}
             </div>`).join('');
-        return `${tabs}
+        return `<div class="pane">${tabs}
             <p class="hint">Если задача ${STRIKE_LIMIT} дня подряд не сдвинулась — скорее всего, это мусор. Либо честно верни её в бэклог, либо выброси.</p>
-            <div class="list">${items || empty('Пусто — все задачи доходят до конца 👌')}</div>
-            ${s.failed.length && !ro ? '<button class="btn-wide danger" data-act="failed-clear">Очистить всё</button>' : ''}`;
+            <div class="scroll-area" data-scroll="failed">
+                <div class="list">${items || empty('Пусто — все задачи доходят до конца 👌')}</div>
+            </div>
+            ${s.failed.length && !ro ? '<button class="btn-wide danger" data-act="failed-clear">Очистить всё</button>' : ''}
+        </div>`;
     }
 
     const today = logicalDayKey();
@@ -312,13 +327,16 @@ export function renderDump(s, ro) {
             </div>`;
     }).join('');
 
-    return `${tabs}
+    return `<div class="pane">${tabs}
         ${ro ? '' : `
             <div class="panel composer">
                 <textarea id="dumpInput" rows="4" placeholder="Всё, что крутится в голове. Без фильтра и без оформления.">${esc(view.dumpDraft)}</textarea>
                 <button class="btn-wide" data-act="dump-save">Выгрузить</button>
             </div>`}
-        ${groupsHtml || empty(`Голова чистая. Записи хранятся ${DUMP_TTL_DAYS} дня, потом исчезают — ценное успей отправить в ленту.`)}`;
+        <div class="scroll-area" data-scroll="dump">
+            ${groupsHtml || empty(`Голова чистая. Записи хранятся ${DUMP_TTL_DAYS} дня, потом исчезают — ценное успей отправить в ленту.`)}
+        </div>
+    </div>`;
 }
 
 // ================= НАСТРОЙКИ =================
