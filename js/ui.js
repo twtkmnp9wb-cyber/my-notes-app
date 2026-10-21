@@ -81,9 +81,19 @@ export function renderAttList(list) {
     return list.map((a) => {
         let thumb = `<span class="file-icon">${a.kind === 'audio' ? '♪' : a.kind === 'video' ? '▶' : esc(ext(a.name))}</span>`;
         if (a.kind === 'image') thumb = a.preview ? `<img src="${a.preview}" alt="">` : `<img data-att="${a.id}" alt="">`;
-        return `<div class="att-chip">
+        let meta = formatSize(a.size);
+        if (a.busy) {
+            meta = a.kind === 'video' ? `сжимаю… ${Math.round((a.progress || 0) * 100)}%` : 'сжимаю…';
+        } else if (a.originalSize && a.originalSize > a.size) {
+            meta = `${formatSize(a.originalSize)} → ${formatSize(a.size)}`;
+        }
+        return `<div class="att-chip ${a.busy ? 'is-busy' : ''}">
             ${thumb}
-            <span class="file-meta"><span class="file-name">${esc(a.name)}</span><span class="file-size">${formatSize(a.size)}</span></span>
+            <span class="file-meta">
+                <span class="file-name">${esc(a.name)}</span>
+                <span class="file-size">${meta}</span>
+                ${a.busy && a.kind === 'video' ? `<span class="bar"><i style="width:${Math.round((a.progress || 0) * 100)}%"></i></span>` : ''}
+            </span>
             <button type="button" class="icon-btn danger" data-act="att-remove" data-id="${a.id}" title="Убрать">✕</button>
         </div>`;
     }).join('');
@@ -413,7 +423,18 @@ export function renderDump(s, ro) {
 
 // ================= НАСТРОЙКИ =================
 // Блок синхронизации рендерится отдельно: его статус меняется в фоне, а остальные настройки — нет
-export function renderSyncSection(st) {
+const CLOUD_LIMIT = 1024 ** 3;   // бесплатный тариф Supabase — 1 ГБ хранилища
+
+// usage — суммарный вес фото/видео/файлов во всех постах (текущий сезон + архив)
+function usageHtml(usage) {
+    const pct = Math.min(100, Math.round((usage / CLOUD_LIMIT) * 100));
+    return `<div class="usage">
+        <div class="usage-line"><span>Фото, видео и файлы</span><span>${formatSize(usage)} из 1 ГБ</span></div>
+        <div class="bar ${pct >= 85 ? 'is-full' : ''}"><i style="width:${Math.max(pct, usage ? 1 : 0)}%"></i></div>
+    </div>`;
+}
+
+export function renderSyncSection(st, usage = 0) {
     const time = st.lastSync ? st.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
     let body;
     if (st.state === 'off') {
@@ -443,17 +464,18 @@ export function renderSyncSection(st) {
                 </div>
                 <button class="btn-mini" data-act="sync-now">Сейчас</button>
             </div>
+            ${usageHtml(usage)}
             ${st.warning ? `<p class="muted small hot">${esc(st.warning)}</p>` : ''}
             <button class="btn-wide ghost" data-act="sync-logout">Выйти из аккаунта</button>`;
     }
     return `<span class="kicker">Синхронизация</span>${body}`;
 }
 
-export function renderSettings(s, archive, hasWallpaper, syncSt) {
+export function renderSettings(s, archive, hasWallpaper, syncSt, usage) {
     return `
         <div class="modal-header"><h3>Настройки</h3><button class="close-btn" data-act="close-modal">×</button></div>
 
-        <div class="settings-section" id="syncSection">${renderSyncSection(syncSt)}</div>
+        <div class="settings-section" id="syncSection">${renderSyncSection(syncSt, usage)}</div>
 
         <div class="settings-section">
             <span class="kicker">Обои</span>

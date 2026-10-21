@@ -411,3 +411,10 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .sync-dot.is-busy { background: var(--warm); animation: blink 1s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: 0.3; } }
 #syncSection .field { margin: 8px 0 0; }
+.att-chip.is-busy .file-size { color: var(--warm); }
+.att-chip .bar { margin-top: 4px; height: 3px; }
+
+/* Занятое место в облаке */
+.usage { margin: 10px 2px 4px; }
+.usage-line { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.usage .bar.is-full i { background: var(--hot); }

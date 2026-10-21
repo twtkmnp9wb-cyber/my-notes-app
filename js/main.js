@@ -7,6 +7,7 @@ import {
 } from './ui.js';
 import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn } from './sync.js';
 import { media, kindOf, measure } from './media.js';
+import { compressImage, compressVideo } from './compress.js';
 import { WallpaperService } from './wallpaper.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -103,6 +104,7 @@ function openModal(id) {
 }
 
 function closeModals() {
+    currentForm?.atts?.forEach((a) => { if (a.busy) a.abort?.abort(); });
     document.querySelectorAll('.modal.active').forEach((m) => m.classList.remove('active'));
     currentForm = null;
 }
@@ -133,7 +135,7 @@ function readForm() {
 }
 
 function openSettings() {
-    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus);
+    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus, mediaUsage());
     openModal('#settingsModal');
 }
 
@@ -165,6 +167,7 @@ function postForm(post) {
         onSubmit: async (v) => {
             const list = currentForm.atts;
             if (!v.title && !v.text && !list.length) { toast('Пост пустой'); return false; }
+            if (list.some((a) => a.busy)) { toast('Подожди, ещё сжимаю файлы…'); return false; }
             const fresh = list.filter((a) => a.file);
             if (fresh.length) toast(`Сохраняю ${fresh.length > 1 ? 'файлы' : 'файл'}…`);
             try {
@@ -187,17 +190,46 @@ function postForm(post) {
     });
 }
 
+// Файлы сразу появляются в форме, а сжатие идёт по очереди в фоне с прогрессом.
+// Пока что-то сжимается, опубликовать пост нельзя (см. onSubmit в postForm).
 async function addFormFiles(files) {
-    if (!currentForm?.atts) return;
-    for (const file of files) {
+    const form = currentForm;
+    if (!form?.atts) return;
+    const added = files.map((file) => {
         const kind = kindOf(file.type);
-        const size = await measure(file);
-        currentForm.atts.push({
-            id: uid(), name: file.name || 'файл', type: file.type, size: file.size, kind, ...size, file,
+        const a = {
+            id: uid(), name: file.name || 'файл', type: file.type, size: file.size, kind, file,
             preview: kind === 'image' ? URL.createObjectURL(file) : null,
-        });
-    }
+            busy: kind === 'image' || kind === 'video', progress: 0, originalSize: file.size,
+            abort: new AbortController(),
+        };
+        form.atts.push(a);
+        return a;
+    });
     refreshAttList();
+
+    for (const a of added) {
+        if (a.abort.signal.aborted) continue;
+        let file = a.file;
+        if (a.kind === 'image') {
+            file = await compressImage(a.file);
+        } else if (a.kind === 'video') {
+            file = await compressVideo(a.file, {
+                signal: a.abort.signal,
+                onProgress: (p) => { a.progress = p; refreshAttListSoon(form); },
+            });
+        }
+        if (a.abort.signal.aborted) continue;
+        Object.assign(a, { file, name: file.name || a.name, type: file.type, size: file.size, busy: false });
+        Object.assign(a, await measure(file));
+        if (form === currentForm) refreshAttList();
+    }
+}
+
+let attListTimer = null;
+function refreshAttListSoon(form) {
+    if (attListTimer || form !== currentForm) return;
+    attListTimer = setTimeout(() => { attListTimer = null; if (form === currentForm) refreshAttList(); }, 250);
 }
 
 function refreshAttList() {
@@ -205,6 +237,15 @@ function refreshAttList() {
     if (!el) return;
     el.innerHTML = renderAttList(currentForm.atts);
     media.hydrate(el);
+}
+
+// Сколько весят все вложения (текущий сезон + архив) — для индикатора места в облаке
+function mediaUsage() {
+    const sizes = new Map();
+    const collect = (state) => (state?.posts || []).forEach((p) => (p.attachments || []).forEach((a) => sizes.set(a.id, a.size || 0)));
+    collect(store.state);
+    store.loadArchive().forEach((a) => collect(a.state));
+    return [...sizes.values()].reduce((sum, n) => sum + n, 0);
 }
 
 // Файлы, на которые не ссылается ни один пост ни в текущем сезоне, ни в архиве, удаляются из IndexedDB
@@ -675,6 +716,7 @@ const actions = {
     'att-remove'({ id }) {
         const a = currentForm?.atts?.find((x) => x.id === id);
         if (!a) return;
+        a.abort?.abort();   // если файл ещё сжимается — останавливаем
         if (a.preview) URL.revokeObjectURL(a.preview);
         currentForm.atts = currentForm.atts.filter((x) => x.id !== id);
         refreshAttList();
@@ -826,7 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = $('#syncSection');
             if (!el) return;
             const typed = [...el.querySelectorAll('input')].map((i) => [i.id, i.value]);
-            el.innerHTML = renderSyncSection(syncStatus);
+            el.innerHTML = renderSyncSection(syncStatus, mediaUsage());
             typed.forEach(([id, v]) => { const i = document.getElementById(id); if (i) i.value = v; });
         },
         onRemoteChange: () => render(),
