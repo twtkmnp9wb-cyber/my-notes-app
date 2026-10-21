@@ -46,6 +46,7 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     $('#addNoteBtn').hidden = ro || view.tab === 'dump';
 
     updateSearchCounter();
+    updateChipFades();
 
     if (scrollToEnd) viewport.scrollTop = viewport.scrollHeight;
     else if (keepScroll) viewport.scrollTop = prevScroll;
@@ -60,6 +61,14 @@ function renderContent() {
     const ro = RO();
     const renderers = { feed: renderFeed, roadmap: renderRoadmap, sprint: renderSprint, backlog: renderBacklog, dump: renderDump };
     $('.main-container').innerHTML = renderers[view.tab](s, ro);
+}
+
+// Затухание края ряда чипсов — только там, куда ещё можно прокрутить
+function updateChipFades(root = document) {
+    root.querySelectorAll('.chips-scroll').forEach((el) => {
+        el.classList.toggle('fade-l', el.scrollLeft > 2);
+        el.classList.toggle('fade-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+    });
 }
 
 function updateSearchCounter() {
@@ -611,6 +620,12 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (e.target.id === 'dumpInput') actions['dump-save']();
         }
     });
+
+    // scroll не всплывает, поэтому ловим на фазе перехвата
+    document.addEventListener('scroll', (e) => {
+        if (e.target.classList?.contains('chips-scroll')) updateChipFades(e.target.parentElement);
+    }, true);
+    window.addEventListener('resize', () => updateChipFades());
 
     document.addEventListener('input', (e) => {
         if (e.target.id === 'searchInput') {

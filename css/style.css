@@ -98,13 +98,16 @@ button { font: inherit; color: inherit; }
 .search-tags { margin-top: 6px; }
 
 /* ================= ЧИПСЫ =================
-   Ряд вылезает на 14px за колонку с каждой стороны и там плавно гаснет — чипсы не рубятся резко,
-   а в покое первый чипс ровно по краю колонки. */
+   Ряд ровно по ширине колонки. Край гаснет только с той стороны, где есть ещё чипсы
+   (классы fade-l / fade-r ставит main.js по положению прокрутки). */
 .chips-scroll {
-    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 14px; margin: 0 -14px;
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-    mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    --fl: 0px; --fr: 0px;
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
 }
+.chips-scroll.fade-l { --fl: 28px; }
+.chips-scroll.fade-r { --fr: 28px; }
 .chips-scroll::-webkit-scrollbar { display: none; }
 .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
@@ -322,3 +325,21 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
     animation: toast 2.2s ease forwards;
 }
 @keyframes toast { 0% { opacity: 0; transform: translate(-50%, 8px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+
+/* ================= РАЗМЫТИЕ У КРАЁВ ПРОКРУТКИ (как в Telegram) =================
+   Элемент, уходящий под неподвижную часть интерфейса, плавно размывается и растворяется.
+   Делается через scroll-driven анимацию на самих элементах, а не через backdrop-filter с маской:
+   такую маску Safari игнорирует, и получалась жёсткая полоса. Тонкое затухание маской по самому краю
+   области (правила выше) остаётся — оно сглаживает линию обреза. */
+@supports (animation-timeline: view()) {
+    @keyframes edge-blur {
+        entry 0%   { filter: blur(6px); opacity: 0.15; }
+        entry 60%  { filter: none; opacity: 1; }
+        exit 40%   { filter: none; opacity: 1; }
+        exit 100%  { filter: blur(10px); opacity: 0; }
+    }
+    .post, .day-sep, .item, .flip, .dump-note, .pane > .scroll-area .section-head, .pane > .scroll-area .hint {
+        animation: edge-blur linear both;
+        animation-timeline: view();
+    }
+}
