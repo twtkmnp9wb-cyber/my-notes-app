@@ -101,10 +101,18 @@ async function syncDoc() {
     throw new Error('Не получилось записать данные: другое устройство синхронизируется одновременно');
 }
 
+function attachmentNames(doc) {
+    const names = new Map();
+    const collect = (state) => (state?.posts || []).forEach((p) => (p.attachments || []).forEach((a) => names.set(a.id, a.name)));
+    collect(doc.state);
+    (doc.archive || []).forEach((a) => collect(a.state));
+    return names;
+}
+
 async function syncMedia(doc) {
     const ids = referencedIds(doc);
     const uploaded = new Set(readJSON(UPLOADED_KEY, []).filter((id) => ids.has(id)));
-    const tooBig = [];
+    const failed = [];
 
     for (const id of await media.keys()) {
         if (!ids.has(id) || uploaded.has(id)) continue;
@@ -113,12 +121,21 @@ async function syncMedia(doc) {
         const { error } = await sb.storage.from(BUCKET).upload(`${user.id}/${id}`, blob, {
             upsert: true, contentType: blob.type || 'application/octet-stream',
         });
-        if (error) { tooBig.push(id); continue; }
+        if (error) { failed.push({ id, blob, error }); continue; }
         uploaded.add(id);
         writeJSON(UPLOADED_KEY, [...uploaded]);
     }
     writeJSON(UPLOADED_KEY, [...uploaded]);
-    setStatus({ warning: tooBig.length ? `${tooBig.length} файл(а) не загрузились в облако — скорее всего, больше 50 МБ. Они есть только на этом устройстве.` : '' });
+
+    // Пишем, какой именно файл не загрузился и почему — по ответу Supabase, а не наугад
+    const names = attachmentNames(doc);
+    const reasons = failed.map(({ id, blob, error }) => {
+        const tooBig = blob.size > 50 * 1024 ** 2 || /size|large|413/i.test(`${error.message} ${error.statusCode}`);
+        const why = tooBig ? `больше 50 МБ (${(blob.size / 1024 ** 2).toFixed(0)} МБ)` : error.message;
+        return `«${names.get(id) || 'файл'}» — ${why}`;
+    });
+    if (failed.length) console.warn('Не загрузились в облако:', failed);
+    setStatus({ warning: reasons.length ? `Не загрузилось в облако и есть только на этом устройстве: ${reasons.join('; ')}.` : '' });
 
     // Чистим облако от файлов, на которые больше никто не ссылается. Свежие (моложе 10 минут) не трогаем:
     // их могло только что загрузить другое устройство, чьё состояние мы ещё не видели.
