@@ -418,3 +418,10 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .usage { margin: 10px 2px 4px; }
 .usage-line { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .usage .bar.is-full i { background: var(--hot); }
+
+/* Safari на iOS (во вкладке браузера, не с экрана «Домой») рисует своё «стеклянное» размытие
+   у верхнего края под статус-баром, и оно задевало кнопки меню. Опускаем меню из этой зоны.
+   -webkit-touch-callout есть только в iOS Safari — на маке и в других браузерах правило не срабатывает. */
+@supports (-webkit-touch-callout: none) {
+    html:not(.is-standalone) .fixed-top-bar { padding-top: calc(max(12px, env(safe-area-inset-top)) + 16px); }
+}

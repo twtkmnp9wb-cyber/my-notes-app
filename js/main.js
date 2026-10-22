@@ -783,6 +783,10 @@ async function submitCurrentForm() {
 
 // ================= ИНИЦИАЛИЗАЦИЯ =================
 document.addEventListener('DOMContentLoaded', () => {
+    // Открыто как приложение с экрана «Домой» — у Safari нет своих панелей и размытия сверху
+    const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    document.documentElement.classList.toggle('is-standalone', standalone);
+
     store.load();
     WallpaperService.apply();
 
