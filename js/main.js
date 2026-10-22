@@ -783,6 +783,10 @@ async function submitCurrentForm() {
 
 // ================= ИНИЦИАЛИЗАЦИЯ =================
 document.addEventListener('DOMContentLoaded', () => {
+    // Приложение с экрана «Домой» и вкладка Safari по-разному размывают верх экрана — см. .is-standalone в CSS
+    const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    document.documentElement.classList.toggle('is-standalone', standalone);
+
     store.load();
     WallpaperService.apply();
 

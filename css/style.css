@@ -27,9 +27,12 @@ body {
     overflow: hidden; height: 100vh; height: 100dvh; font-size: 14px; position: relative;
 }
 /* Страница целиком никогда не прокручивается (крутятся внутренние области), поэтому полноэкранные слои
-   (обои, модалки, просмотрщик, кнопки) позиционируем absolute от body, а не fixed. Safari 26 во вкладке
-   браузера по fixed-элементам у края экрана подкрашивает и обрабатывает свои панели — из-за этого
-   мылились меню и верх окон. */
+   (обои, модалки, просмотрщик, кнопки) можно позиционировать как absolute от body, так и fixed — внешне одинаково.
+   Но iOS 26 по-разному размывает верх экрана, и проверено на айфоне:
+   - во вкладке Safari fixed-слои вызывали мыло на меню и верхе окон → там absolute;
+   - в приложении с экрана «Домой» наоборот: без fixed-слоя обоев мылится меню под статус-баром → там fixed. */
+html.is-standalone #bgLayer, html.is-standalone .modal, html.is-standalone .viewer,
+html.is-standalone .app-footer, html.is-standalone .toast { position: fixed; }
 button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
