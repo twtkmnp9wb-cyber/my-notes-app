@@ -8,6 +8,7 @@ import {
 import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn, signInWithPassword, setPassword, setLoginMode } from './sync.js';
 import { media, kindOf, measure } from './media.js';
 import { compressImage, compressVideo } from './compress.js';
+import { openScreenDebug } from './screen-debug.js';
 import { WallpaperService } from './wallpaper.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -685,6 +686,7 @@ const actions = {
         await signOut();
     },
 
+    'screen-debug'() { closeModals(); openScreenDebug(); },
     'reset-wallpaper'() { WallpaperService.reset(); openSettings(); },
     'edit-season': () => seasonForm(),
     'close-season': () => closeSeasonForm(),
@@ -783,7 +785,7 @@ async function submitCurrentForm() {
 
 // ================= ИНИЦИАЛИЗАЦИЯ =================
 document.addEventListener('DOMContentLoaded', () => {
-    // Приложение с экрана «Домой» и вкладка Safari по-разному размывают верх экрана — см. .is-standalone в CSS
+    // Приложение с экрана «Домой»: у него свои отступы от статус-бара — см. .is-standalone в CSS
     const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
     document.documentElement.classList.toggle('is-standalone', standalone);
 

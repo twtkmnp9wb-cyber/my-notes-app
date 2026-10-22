@@ -527,6 +527,7 @@ export function renderSettings(s, archive, hasWallpaper, syncSt, usage) {
             <p class="muted small">Резервная копия в файл: тексты, задачи и архив. Фото, видео и файлы в неё не входят — их сохраняет синхронизация.</p>
             <button class="btn-wide ghost" data-act="export">Скачать резервную копию</button>
             <label class="btn-wide ghost">Восстановить из файла<input type="file" id="importInput" accept="application/json,.json" hidden></label>
+            <button class="btn-wide ghost" data-act="screen-debug">Диагностика экрана</button>
         </div>`;
 }
 

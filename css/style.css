@@ -27,12 +27,19 @@ body {
     overflow: hidden; height: 100vh; height: 100dvh; font-size: 14px; position: relative;
 }
 /* Страница целиком никогда не прокручивается (крутятся внутренние области), поэтому полноэкранные слои
-   (обои, модалки, просмотрщик, кнопки) можно позиционировать как absolute от body, так и fixed — внешне одинаково.
-   Но iOS 26 по-разному размывает верх экрана, и проверено на айфоне:
-   - во вкладке Safari fixed-слои вызывали мыло на меню и верхе окон → там absolute;
-   - в приложении с экрана «Домой» наоборот: без fixed-слоя обоев мылится меню под статус-баром → там fixed. */
-html.is-standalone #bgLayer, html.is-standalone .modal, html.is-standalone .viewer,
-html.is-standalone .app-footer, html.is-standalone .toast { position: fixed; }
+   (обои, модалки, просмотрщик, кнопки) позиционируем absolute от body — внешне то же самое, что fixed. */
+
+/* Приложение с экрана «Домой» (iOS 26): страница заходит под статус-бар, и система размывает полосу
+   под часами и батареей — всё, что туда попадает, мылится. Опускаем меню, окна и просмотрщик ниже неё.
+   Во вкладке Safari страница начинается под статус-баром, там этого нет (проверено на айфоне). */
+html.is-standalone { --status-gap: 20px; }
+html.is-standalone .fixed-top-bar { padding-top: calc(env(safe-area-inset-top) + var(--status-gap)); }
+html.is-standalone .modal {
+    padding-top: calc(env(safe-area-inset-top) + var(--status-gap));
+    padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+}
+html.is-standalone .modal-content { max-height: 100%; }
+html.is-standalone .viewer-top { padding-top: calc(env(safe-area-inset-top) + var(--status-gap)); }
 button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
