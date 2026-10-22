@@ -440,10 +440,17 @@ export function renderSyncSection(st, usage = 0) {
     if (st.state === 'off') {
         body = '<p class="muted small">Не настроена: нужны ключи Supabase в js/config.js.</p>';
     } else if (st.state === 'signed-out') {
+        const byPassword = st.loginMode === 'password';
         body = `
-            <p class="muted small">Войди по почте — и лента, задачи, архив и файлы будут одинаковыми на телефоне и ноутбуке.</p>
-            <label class="field"><input type="email" id="syncEmail" placeholder="почта@example.com" autocomplete="email"></label>
-            <button class="btn-wide primary" data-act="sync-login">Прислать письмо для входа</button>`;
+            <p class="muted small">Войди — и лента, задачи, архив и файлы будут одинаковыми на телефоне и ноутбуке.</p>
+            <label class="field"><input type="email" id="syncEmail" placeholder="почта@example.com" autocomplete="username email"></label>
+            ${byPassword ? `
+                <label class="field"><input type="password" id="syncPassword" placeholder="Пароль" autocomplete="current-password"></label>
+                <button class="btn-wide primary" data-act="sync-login-password">Войти</button>
+                <button class="btn-wide ghost" data-act="sync-mode" data-mode="link">Пароля нет — войти по ссылке из письма</button>`
+            : `
+                <button class="btn-wide primary" data-act="sync-login">Прислать письмо для входа</button>
+                <button class="btn-wide ghost" data-act="sync-mode" data-mode="password">Войти по паролю</button>`}`;
     } else if (st.state === 'code-sent') {
         body = `
             <p class="muted small">Письмо ушло на ${esc(st.pendingEmail)}. Нажми «Sign in» в письме — или, если приложение открыто с экрана «Домой», зажми ссылку, скопируй и вставь сюда.</p>
@@ -466,6 +473,7 @@ export function renderSyncSection(st, usage = 0) {
             </div>
             ${usageHtml(usage)}
             ${st.warning ? `<p class="muted small hot">${esc(st.warning)}</p>` : ''}
+            <button class="btn-wide ghost" data-act="sync-set-password">Задать или сменить пароль</button>
             <button class="btn-wide ghost" data-act="sync-logout">Выйти из аккаунта</button>`;
     }
     return `<span class="kicker">Синхронизация</span>${body}`;

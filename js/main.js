@@ -5,7 +5,7 @@ import {
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
     renderAttList, renderViewer, visualOf, renderSyncSection,
 } from './ui.js';
-import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn } from './sync.js';
+import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn, signInWithPassword, setPassword, setLoginMode } from './sync.js';
 import { media, kindOf, measure } from './media.js';
 import { compressImage, compressVideo } from './compress.js';
 import { WallpaperService } from './wallpaper.js';
@@ -128,7 +128,9 @@ function readForm() {
         } else if (f.type === 'checkbox') {
             values[f.name] = form.elements[f.name].checked;
         } else {
-            values[f.name] = form.elements[f.name].value.trim();
+            // Пароль не обрезаем: пробелы по краям — тоже его часть
+            const raw = form.elements[f.name].value;
+            values[f.name] = f.type === 'password' ? raw : raw.trim();
         }
     }
     return values;
@@ -651,6 +653,30 @@ const actions = {
         const code = $('#syncCode')?.value.trim();
         if (!code) return;
         try { await verifyCode(code); toast('Вход выполнен'); } catch (e) { alert(`Не получилось войти: ${e.message}`); }
+    },
+    async 'sync-login-password'() {
+        const email = $('#syncEmail')?.value.trim();
+        const password = $('#syncPassword')?.value;
+        if (!email || !password) { toast('Введи почту и пароль'); return; }
+        try { await signInWithPassword(email, password); toast('Вход выполнен'); } catch (e) { alert(`Не получилось войти: ${e.message}`); }
+    },
+    'sync-mode'({ mode }) { setLoginMode(mode); },
+    'sync-set-password'() {
+        openForm({
+            title: 'Пароль для входа',
+            note: 'С ним можно войти на новом устройстве или в приложении с экрана «Домой» без письма. Минимум 6 символов.',
+            fields: [
+                { type: 'password', name: 'p1', label: 'Новый пароль' },
+                { type: 'password', name: 'p2', label: 'Ещё раз' },
+            ],
+            onSubmit: async (v) => {
+                if (v.p1.length < 6) { toast('Минимум 6 символов'); return false; }
+                if (v.p1 !== v.p2) { toast('Пароли не совпадают'); return false; }
+                try { await setPassword(v.p1); } catch (e) { alert(`Не получилось задать пароль: ${e.message}`); return false; }
+                toast('Пароль задан 🔑');
+                return { reopenSettings: true };
+            },
+        });
     },
     'sync-cancel': () => cancelSignIn(),
     'sync-now': () => syncNow(),

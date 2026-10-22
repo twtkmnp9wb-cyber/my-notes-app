@@ -17,6 +17,7 @@ export const syncConfigured = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 export const syncStatus = {
     state: syncConfigured ? 'signed-out' : 'off',   // off | signed-out | code-sent | syncing | ok | error
+    loginMode: 'password',                           // password | link — как входить на новом устройстве
     email: '',
     pendingEmail: '',
     lastSync: null,
@@ -198,6 +199,25 @@ export async function verifyCode(input) {
         ? await sb.auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
         : await sb.auth.verifyOtp({ email: syncStatus.pendingEmail, token: value.replace(/\s/g, ''), type: 'email' });
     if (error) throw error;
+}
+
+// Вход по паролю — без писем: у встроенной почты Supabase лимит ~2 письма в час на весь проект
+export async function signInWithPassword(email, password) {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+        throw new Error(/invalid login/i.test(error.message)
+            ? 'неверная почта или пароль. Если пароль ещё не задан — войди по ссылке из письма и задай его в настройках'
+            : error.message);
+    }
+}
+
+export async function setPassword(password) {
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) throw error;
+}
+
+export function setLoginMode(mode) {
+    setStatus({ loginMode: mode });
 }
 
 export async function signOut() {
