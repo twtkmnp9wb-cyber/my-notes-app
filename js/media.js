@@ -121,10 +121,25 @@ export const media = {
         await Promise.all(els.map(async (el) => {
             el.dataset.hydrated = '1';
             const url = await this.url(el.dataset.att).catch(() => null);
-            if (!url) { el.closest('.att')?.classList.add('is-missing'); return; }
+            if (!url) {
+                el.dataset.missing = '1';
+                el.closest('.att')?.classList.add('is-missing');
+                return;
+            }
+            delete el.dataset.missing;
+            el.closest('.att')?.classList.remove('is-missing');
             if (el.tagName === 'A') el.href = url;
             // #t=0.1 — чтобы Safari на iPhone показал первый кадр видео вместо чёрного квадрата
             else el.src = el.tagName === 'VIDEO' && el.dataset.poster ? `${url}#t=0.1` : url;
         }));
+    },
+
+    // Файл мог ещё не долететь в облако с другого устройства, когда мы пытались его скачать.
+    // После каждой синхронизации пробуем такие места ещё раз.
+    retryMissing(root = document) {
+        const els = root.querySelectorAll('[data-att][data-missing]');
+        if (!els.length) return;
+        els.forEach((el) => { delete el.dataset.hydrated; });
+        this.hydrate(root);
     },
 };

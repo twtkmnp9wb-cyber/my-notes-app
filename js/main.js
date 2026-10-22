@@ -865,6 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSync({
         // Перерисовываем только блок синхронизации и сохраняем то, что уже введено в его поля
         onStatus: () => {
+            if (syncStatus.state === 'ok') media.retryMissing();
             const el = $('#syncSection');
             if (!el) return;
             const typed = [...el.querySelectorAll('input')].map((i) => [i.id, i.value]);
