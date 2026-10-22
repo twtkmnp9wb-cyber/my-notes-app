@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Линейка экрана</title>
+    <!-- Служебная страница: показывает, где Safari размывает край экрана и сколько места занимают его панели.
+         Те же meta, что и в index.html, чтобы условия совпадали. В меню приложения не ведёт. -->
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; background: #0a0a0a; color: #fff; font: 13px/1.3 -apple-system, system-ui, sans-serif; }
+        #probe { position: fixed; left: 0; top: 0; width: 1px; visibility: hidden;
+                 padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        #dvh { position: fixed; left: 0; top: 0; width: 1px; height: 100dvh; visibility: hidden; }
+        #lvh { position: fixed; left: 0; top: 0; width: 1px; height: 100lvh; visibility: hidden; }
+        #svh { position: fixed; left: 0; top: 0; width: 1px; height: 100svh; visibility: hidden; }
+        .ruler { position: absolute; left: 0; right: 0; top: 0; }
+        .tick { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid rgba(255,255,255,0.25); }
+        .tick span { position: absolute; left: 8px; top: -9px; font-size: 13px; font-weight: 600; background: #0a0a0a; padding: 0 4px; }
+        .tick.major { border-top-color: #34d399; }
+        .tick.major span { color: #34d399; }
+        .info { position: absolute; left: 70px; right: 10px; top: 140px; background: #1d1d1d; border: 1px solid #333; border-radius: 14px; padding: 12px; font-size: 14px; }
+        .info b { color: #34d399; }
+        .bottom-mark { position: fixed; left: 0; right: 0; bottom: 0; height: 6px; background: #f43f5e; }
+        .dvh-mark { position: absolute; left: 0; right: 0; height: 6px; background: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div id="probe"></div><div id="dvh"></div><div id="lvh"></div><div id="svh"></div>
+    <div class="ruler" id="ruler"></div>
+    <div class="info" id="info"></div>
+    <div class="bottom-mark"></div>
+    <div class="dvh-mark" id="dvhMark"></div>
+    <script>
+        const probe = getComputedStyle(document.getElementById('probe'));
+        const h = (id) => Math.round(document.getElementById(id).getBoundingClientRect().height);
+        const dvh = h('dvh');
+        const rows = [
+            ['Режим', navigator.standalone ? 'с экрана «Домой»' : 'вкладка браузера'],
+            ['safe-area сверху', probe.paddingTop],
+            ['safe-area снизу', probe.paddingBottom],
+            ['innerHeight', innerHeight + 'px'],
+            ['100dvh / 100svh / 100lvh', `${dvh} / ${h('svh')} / ${h('lvh')} px`],
+            ['visualViewport', visualViewport ? Math.round(visualViewport.height) + 'px' : '—'],
+            ['screen', `${screen.width}×${screen.height}`],
+        ];
+        document.getElementById('info').innerHTML =
+            rows.map(([k, v]) => `${k}: <b>${v}</b>`).join('<br>') +
+            '<br><br>Зелёные линии — каждые 50px, белые — каждые 10px. Жёлтая полоса — низ 100dvh, красная — самый низ видимой области.';
+        document.getElementById('dvhMark').style.top = (dvh - 6) + 'px';
+        const ruler = document.getElementById('ruler');
+        for (let y = 0; y <= Math.max(innerHeight, dvh) + 100; y += 10) {
+            const t = document.createElement('div');
+            t.className = 'tick' + (y % 50 === 0 ? ' major' : '');
+            t.style.top = y + 'px';
+            if (y % 20 === 0) t.innerHTML = `<span>${y}</span>`;
+            ruler.appendChild(t);
+        }
+        ruler.style.height = (Math.max(innerHeight, dvh) + 100) + 'px';
+    </script>
+</body>
+</html>
