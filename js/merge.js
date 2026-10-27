@@ -46,7 +46,7 @@ function mergeList(b = [], l = [], r = []) {
     return out;
 }
 
-const LIST_KEYS = new Set(['posts', 'goals', 'sprint', 'cards', 'rows', 'dump', 'failed']);
+const LIST_KEYS = new Set(['posts', 'goals', 'sprint', 'cards', 'rows', 'dump', 'failed', 'doneLog']);
 
 function mergeState(b, l, r) {
     b = b || {};

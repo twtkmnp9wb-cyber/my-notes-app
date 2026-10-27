@@ -1,5 +1,5 @@
 import { deadlineInfo, formatTime, dayLabel, calendarDayKey, logicalDayKey, daysBetween } from './dates.js';
-import { DUMP_TTL_DAYS, STRIKE_LIMIT, SEASON_KINDS, cardProgress, isCardDone } from './store.js';
+import { DUMP_TTL_DAYS, STRIKE_LIMIT, SEASON_KINDS, cardProgress, isCardDone, doneCount } from './store.js';
 import { formatSize } from './media.js';
 
 // Состояние интерфейса, которое не нужно сохранять (открытый поиск, перевёрнутые карточки и т.п.)
@@ -192,10 +192,14 @@ export function renderFeed(s, ro) {
 // ================= ROADMAP =================
 export function renderRoadmap(s, ro) {
     const done = s.goals.filter((g) => g.done).length;
+    // Если у цели выбрана тема — под ней счётчик выполненных за сезон задач этой категории
     const items = s.goals.map((g) => `
         <div class="item ${g.done ? 'is-done' : ''}">
             <button class="check" data-act="toggle-goal" data-id="${g.id}" aria-label="Отметить"></button>
-            <span class="item-text">${esc(g.text)}</span>
+            <div class="item-main">
+                <span class="item-text">${esc(g.text)}</span>
+                ${g.category ? `<span class="item-meta goal-count">${esc(g.category)} · <b>сделано ${doneCount(s, g.category)}</b></span>` : ''}
+            </div>
             ${ro ? '' : editBtn('edit-goal', `data-id="${g.id}"`)}
         </div>`).join('');
     return `<div class="pane">

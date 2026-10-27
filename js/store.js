@@ -54,6 +54,16 @@ export function cardProgress(card) {
 
 export const isCardDone = (card) => card.subtasks.length > 0 && card.subtasks.every((s) => s.done);
 
+// Счётчики целей Roadmap: каждое выполненное дело пишется в журнал с категорией, отмена — убирает запись.
+// Ключ — id того, что выполнено (строчки, подпункта, задачи спринта, «card:<id>» за закрытую карточку),
+// поэтому одно и то же дело не посчитается дважды, с какой бы вкладки его ни отметили.
+export function logDone(s, id, category, done) {
+    s.doneLog = s.doneLog.filter((e) => e.id !== id);
+    if (done && category) s.doneLog.push({ id, category, at: logicalDayKey() });
+}
+
+export const doneCount = (s, category) => s.doneLog.filter((e) => e.category === category).length;
+
 function emptyState(season = makeSeason()) {
     return {
         version: 1,
@@ -68,6 +78,7 @@ function emptyState(season = makeSeason()) {
         rows: [],       // { id, title, category, due }
         dump: [],       // { id, text, createdAt }
         failed: [],     // задачи, провисевшие в спринте STRIKE_LIMIT дней: { id, text, source, failedOn }
+        doneLog: [],    // журнал выполненного за сезон для счётчиков Roadmap: { id, category, at }
         lastRollover: logicalDayKey(),
     };
 }
@@ -79,6 +90,16 @@ export function normalize(s) {
         if (Array.isArray(base[k]) && !Array.isArray(out[k])) out[k] = base[k];
     }
     out.cards.forEach((c) => { if (!Array.isArray(c.subtasks)) c.subtasks = []; });
+    // Журнала не было до появления счётчиков — засеваем его тем, что уже отмечено в карточках
+    if (!Array.isArray(s?.doneLog)) {
+        const at = logicalDayKey();
+        out.doneLog = [];
+        for (const c of out.cards) {
+            if (!c.category) continue;
+            c.subtasks.filter((st) => st.done).forEach((st) => out.doneLog.push({ id: st.id, category: c.category, at }));
+            if (isCardDone(c)) out.doneLog.push({ id: `card:${c.id}`, category: c.category, at });
+        }
+    }
     out.posts.forEach((p) => {
         if (!Array.isArray(p.tags)) p.tags = [];
         if (!Array.isArray(p.attachments)) p.attachments = [];

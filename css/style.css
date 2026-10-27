@@ -435,3 +435,6 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .usage-line { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .usage .bar.is-full i { background: var(--hot); }
 
+
+/* Счётчик выполненного под целью Roadmap */
+.goal-count b { color: var(--accent); font-weight: 600; }

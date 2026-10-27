@@ -1,4 +1,4 @@
-import { store, uid, normalize, seasonName, SEASON_KINDS, sprintDayFor } from './store.js';
+import { store, uid, normalize, seasonName, SEASON_KINDS, sprintDayFor, logDone, isCardDone } from './store.js';
 import {
     view, esc, feedCounts,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
@@ -297,28 +297,54 @@ function goalForm(goal) {
     openForm({
         title: goal ? 'Цель сезона' : 'Новая цель сезона',
         note: goal ? '' : 'Формулируй так, чтобы в конце сезона можно было ответить «да» или «нет».',
-        fields: [{ type: 'text', name: 'text', label: 'Цель', value: goal?.text, placeholder: 'Подтягиваться 15 раз' }],
+        fields: [
+            { type: 'text', name: 'text', label: 'Цель', value: goal?.text, placeholder: 'Подтягиваться 15 раз' },
+            { type: 'select', name: 'category', label: 'Тема — под целью будет счётчик выполненных задач этой категории',
+                value: goal?.category || '', options: [{ value: '', label: 'Без счётчика' }, ...s.categories.map((c) => ({ value: c, label: c }))] },
+        ],
         onDelete: goal && (() => { s.goals = s.goals.filter((g) => g.id !== goal.id); }),
         onSubmit: (v) => {
             if (!v.text) return false;
-            if (goal) goal.text = v.text;
-            else s.goals.push({ id: uid(), text: v.text, done: false });
+            if (goal) Object.assign(goal, { text: v.text, category: v.category });
+            else s.goals.push({ id: uid(), text: v.text, category: v.category, done: false });
         },
     });
 }
 
 function taskForm(task) {
     const s = store.state;
+    // У задачи из Backlog категория берётся из строчки/карточки, у своей — выбирается здесь (для счётчиков Roadmap)
+    const own = !task?.source;
     openForm({
         title: task ? 'Задача спринта' : 'Задача на сегодня',
-        fields: [{ type: 'text', name: 'text', label: 'Что сделать', value: task?.text }],
+        fields: [
+            { type: 'text', name: 'text', label: 'Что сделать', value: task?.text },
+            ...(own ? [{ type: 'select', name: 'category', label: 'Категория', value: task?.category || '', options: categoryOptions(s) }] : []),
+        ],
         onDelete: task && (() => { s.sprint = s.sprint.filter((t) => t.id !== task.id); }),
         onSubmit: (v) => {
             if (!v.text) return false;
-            if (task) task.text = v.text;
-            else s.sprint.push({ id: uid(), text: v.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: null });
+            if (task) {
+                task.text = v.text;
+                if (own) { task.category = v.category; logTaskDone(s, task); }
+            } else {
+                s.sprint.push({ id: uid(), text: v.text, category: v.category, done: false, plannedFor: sprintDayFor(), strikes: 0, source: null });
+            }
         },
     });
+}
+
+// Записать/снять отметку задачи спринта в журнале выполненного (счётчики целей Roadmap)
+function logTaskDone(s, t) {
+    if (t.source?.kind === 'row') {
+        logDone(s, t.source.id, find(s.rows, t.source.id)?.category || t.category, t.done);
+    } else if (t.source?.kind === 'sub') {
+        const card = find(s.cards, t.source.cardId);
+        logDone(s, t.source.id, card?.category, t.done);
+        if (card) logDone(s, `card:${card.id}`, card.category, isCardDone(card));
+    } else {
+        logDone(s, t.id, t.category, t.done);
+    }
 }
 
 function backlogNewForm(kind = 'card') {
@@ -380,6 +406,9 @@ function cardForm(card) {
             s.sprint.forEach((t) => {
                 if (t.source?.kind === 'sub' && t.source.cardId === card.id && !kept.has(t.source.id)) t.source = null;
             });
+            // Сделанное по карточке переезжает в счётчик новой категории
+            const ids = new Set([`card:${card.id}`, ...card.subtasks.map((st) => st.id)]);
+            s.doneLog.forEach((e) => { if (ids.has(e.id)) e.category = v.category; });
             Object.assign(card, { title: v.title, category: v.category, due: v.due });
         },
     });
@@ -400,6 +429,7 @@ function rowForm(row) {
         },
         onSubmit: (v) => {
             if (!v.title) return false;
+            s.doneLog.forEach((e) => { if (e.id === row.id) e.category = v.category; });
             Object.assign(row, { title: v.title, category: v.category, due: v.due });
             s.sprint.forEach((t) => { if (t.source?.kind === 'row' && t.source.id === row.id && !t.done) t.text = v.title; });
         },
@@ -416,7 +446,7 @@ function categoriesForm() {
             const next = [];
             s.categories.forEach((old, i) => {
                 const name = v[`c${i}`];
-                [...s.cards, ...s.rows].forEach((x) => { if (x.category === old) x.category = name; });
+                [...s.cards, ...s.rows, ...s.sprint, ...s.goals, ...s.doneLog].forEach((x) => { if (x.category === old) x.category = name; });
                 if (view.backlogFilter === old) view.backlogFilter = name || 'all';
                 if (name && !next.includes(name)) next.push(name);
             });
@@ -538,6 +568,7 @@ const actions = {
             const sub = find(find(s.cards, t.source.cardId)?.subtasks || [], t.source.id);
             if (sub) sub.done = t.done;
         }
+        logTaskDone(s, t);
         commit();
     },
     'edit-task'({ id }) { const t = find(S().sprint, id); if (t) taskForm(t); },
@@ -554,6 +585,9 @@ const actions = {
         if (!sub) return;
         sub.done = !sub.done;
         s.sprint.forEach((t) => { if (t.source?.kind === 'sub' && t.source.id === id) t.done = sub.done; });
+        const c = find(s.cards, card);
+        logDone(s, id, c.category, sub.done);
+        logDone(s, `card:${c.id}`, c.category, isCardDone(c));
         commit();
     },
     'sub-to-sprint'({ card, id }) {
