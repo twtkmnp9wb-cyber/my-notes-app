@@ -55,7 +55,10 @@ export function dayLabel(dateOrKey, todayKey = calendarDayKey()) {
     return d.toLocaleDateString('ru-RU', opts);
 }
 
-// Цвет дедлайна по регламенту: нет даты — белый, ≥3 дней — оранжевый, <3 дней (и просрочка) — красный.
+// Цвет дедлайна: красный — меньше 3 дней (и просрочка), оранжевый — 3–14 дней,
+// белый — дедлайна нет или он дальше двух недель.
+export const DEADLINE_HOT_DAYS = 3;
+export const DEADLINE_CALM_DAYS = 14;
 export function deadlineInfo(due) {
     if (!isDateKey(due)) return { level: 'none', label: 'без дедлайна', sort: 1e9 };
     const days = daysBetween(logicalDayKey(), due);
@@ -64,5 +67,6 @@ export function deadlineInfo(due) {
     else if (days === 0) label = 'сегодня';
     else if (days === 1) label = 'завтра';
     else label = `${days} дн · ${shortDate(due)}`;
-    return { level: days < 3 ? 'hot' : 'calm', label, sort: days };
+    const level = days < DEADLINE_HOT_DAYS ? 'hot' : days <= DEADLINE_CALM_DAYS ? 'calm' : 'far';
+    return { level, label, sort: days };
 }

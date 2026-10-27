@@ -894,6 +894,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     render({ scrollToEnd: true });
 
+    // Офлайн-режим: файлы приложения кэшируются и открываются без интернета (sw.js)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('Офлайн-режим недоступен', e));
+    }
+
     initSync({
         // Перерисовываем только блок синхронизации и сохраняем то, что уже введено в его поля
         onStatus: () => {
