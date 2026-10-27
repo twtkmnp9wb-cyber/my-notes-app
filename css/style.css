@@ -50,26 +50,9 @@ button { font: inherit; color: inherit; }
 
 .app-container { display: flex; flex-direction: column; height: 100vh; height: 100dvh; position: relative; overflow: hidden; }
 
-/* Слой обоев + лёгкое затемнение, чтобы текст читался на любой картинке */
+/* Слой обоев + лёгкое затемнение поверх фото, чтобы текст читался на любой картинке */
 #bgLayer { position: absolute; inset: 0; z-index: -1; background-size: cover; background-position: center; }
-#bgLayer { overflow: hidden; }
-/* Затемнение, чтобы текст читался на любой фотографии; пресеты и так тёмные */
 #bgLayer.is-photo::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
-
-/* Каллиграфическая надпись на обоях — по диагонали снизу вверх, как на референсах «Lucky» / «God Did» */
-/* Плёночное зерно поверх пресета (и в плитке-превью) */
-#bgLayer.has-grain::before, .wall-tile.has-grain::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background-image: var(--grain); background-size: 240px 240px; opacity: 0.22; mix-blend-mode: overlay;
-}
-.wall-tile span { position: relative; }
-.bg-word {
-    position: absolute; left: 48%; top: 61%; transform: translate(-50%, -50%) rotate(-64deg);
-    font-family: 'Pinyon Script', cursive; font-size: 26vh; line-height: 1; white-space: nowrap;
-    color: #fff; opacity: 0.88; pointer-events: none; user-select: none;
-    text-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
-}
-
 
 /* ================= ВЕРХНЕЕ МЕНЮ =================
    Шапка стоит в потоке над областью прокрутки, а не висит поверх неё: контент под неё не заезжает,
@@ -456,12 +439,3 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 /* Счётчик выполненного под целью Roadmap */
 .goal-count b { color: var(--accent); font-weight: 600; }
 
-/* Выбор обоев в настройках */
-.wall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
-.wall-tile {
-    position: relative; height: 76px; border-radius: 16px; border: 1px solid var(--line); cursor: pointer;
-    display: flex; align-items: flex-end; padding: 8px 10px; overflow: hidden; text-align: left;
-}
-.wall-tile span { font-size: 12px; font-weight: 600; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7); }
-.wall-tile.is-active { border: 2px solid #fff; box-shadow: 0 0 16px rgba(255, 255, 255, 0.25); }
-.wall-text { margin-top: 12px; }
