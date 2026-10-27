@@ -1,4 +1,4 @@
-import { store, uid, normalize, seasonName, SEASON_KINDS } from './store.js';
+import { store, uid, normalize, seasonName, SEASON_KINDS, sprintDayFor } from './store.js';
 import {
     view, esc, feedCounts,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
@@ -316,7 +316,7 @@ function taskForm(task) {
         onSubmit: (v) => {
             if (!v.text) return false;
             if (task) task.text = v.text;
-            else s.sprint.push({ id: uid(), text: v.text, done: false, strikes: 0, source: null });
+            else s.sprint.push({ id: uid(), text: v.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: null });
         },
     });
 }
@@ -560,7 +560,7 @@ const actions = {
         const s = S();
         const sub = find(find(s.cards, card)?.subtasks || [], id);
         if (!sub) return;
-        s.sprint.push({ id: uid(), text: sub.text, done: false, strikes: 0, source: { kind: 'sub', cardId: card, id } });
+        s.sprint.push({ id: uid(), text: sub.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: { kind: 'sub', cardId: card, id } });
         toast('🚀 Подпункт отправлен в спринт');
         commit();
     },
@@ -568,7 +568,7 @@ const actions = {
         const s = S();
         const r = find(s.rows, id);
         if (!r) return;
-        s.sprint.push({ id: uid(), text: r.title, done: false, strikes: 0, source: { kind: 'row', id } });
+        s.sprint.push({ id: uid(), text: r.title, done: false, plannedFor: sprintDayFor(), strikes: 0, source: { kind: 'row', id } });
         toast('🚀 Задача отправлена в спринт');
         commit();
     },

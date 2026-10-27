@@ -1,4 +1,4 @@
-import { logicalDayKey, daysBetween } from './dates.js';
+import { logicalDayKey, daysBetween, addDays, DAY_START_HOUR } from './dates.js';
 
 // Всё состояние приложения — один объект под одним ключом. Архив сезонов лежит отдельно.
 const STATE_KEY = 'mdusha_state_v1';
@@ -6,6 +6,15 @@ const ARCHIVE_KEY = 'mdusha_archive_v1';
 
 export const DUMP_TTL_DAYS = 3;   // мысли из Dump живут 3 логических дня
 export const STRIKE_LIMIT = 3;    // столько ночей подряд задача может висеть в спринте невыполненной
+export const EVENING_HOUR = 18;   // с этого часа задачи в спринт планируются уже на завтра
+
+// На какой день задача попадает в спринт. Вечером (с 18:00 до утренней пересменки) — на завтра:
+// так спринт планируется перед сном, и ночная пересменка не считает эти задачи просроченными.
+export function sprintDayFor(date = new Date()) {
+    const h = date.getHours();
+    const today = logicalDayKey(date);
+    return h >= EVENING_HOUR || h < DAY_START_HOUR ? addDays(today, 1) : today;
+}
 
 export const SEASON_KINDS = {
     1: 'Семестр I',
@@ -53,7 +62,7 @@ function emptyState(season = makeSeason()) {
         manifest: [],   // тейки сезона: «красота», «осанка»...
         tags: ['мысли', 'учёба', 'спорт', 'музыка'],  // регламент тегов ленты
         goals: [],      // Roadmap: { id, text, done }
-        sprint: [],     // { id, text, done, strikes, source: {kind:'row', id} | {kind:'sub', cardId, id} | null }
+        sprint: [],     // { id, text, done, plannedFor, strikes, source: {kind:'row', id} | {kind:'sub', cardId, id} | null }
         categories: ['Учёба', 'Проекты', 'Быт'],
         cards: [],      // { id, title, category, due, subtasks: [{ id, text, done }] }
         rows: [],       // { id, title, category, due }
@@ -169,11 +178,16 @@ export const store = {
         if (passed > 0) {
             const keep = [];
             for (const t of s.sprint) {
+                // Старые задачи без дня: восстанавливаем его по числу уже прошедших ночей
+                if (!t.plannedFor) t.plannedFor = addDays(s.lastRollover || today, -(t.strikes || 0));
+                const overdue = daysBetween(t.plannedFor, today);
+                // Задача на сегодня или на будущее (запланирована вечером на завтра) — ночь её не касается
+                if (overdue <= 0) { t.strikes = 0; keep.push(t); continue; }
                 if (t.done) {
                     if (t.source?.kind === 'row') s.rows = s.rows.filter((r) => r.id !== t.source.id);
                     continue;
                 }
-                t.strikes = (t.strikes || 0) + passed;
+                t.strikes = overdue;
                 if (t.strikes >= STRIKE_LIMIT) {
                     s.failed.push({ id: t.id, text: t.text, source: t.source || null, failedOn: today });
                 } else {

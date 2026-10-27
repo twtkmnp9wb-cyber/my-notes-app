@@ -25,6 +25,12 @@ export function isDateKey(v) {
     return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 }
 
+export function addDays(key, n) {
+    const d = parseKey(key);
+    d.setDate(d.getDate() + n);
+    return keyOf(d);
+}
+
 export function daysBetween(fromKey, toKey) {
     return Math.round((parseKey(toKey) - parseKey(fromKey)) / MS_DAY);
 }
