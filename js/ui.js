@@ -1,6 +1,7 @@
 import { deadlineInfo, formatTime, dayLabel, calendarDayKey, logicalDayKey, daysBetween } from './dates.js';
 import { DUMP_TTL_DAYS, STRIKE_LIMIT, SEASON_KINDS, cardProgress, isCardDone, doneCount } from './store.js';
 import { formatSize } from './media.js';
+import { PRESETS, GRAIN_CSS } from './wallpaper.js';
 
 // Состояние интерфейса, которое не нужно сохранять (открытый поиск, перевёрнутые карточки и т.п.)
 export const view = {
@@ -483,16 +484,35 @@ export function renderSyncSection(st, usage = 0) {
     return `<span class="kicker">Синхронизация</span>${body}`;
 }
 
-export function renderSettings(s, archive, hasWallpaper, syncSt, usage) {
+// wall: { current, text, custom } — что выбрано на этом устройстве (обои не синхронизируются)
+function wallpaperSection(wall) {
+    const tile = (id, name, bg, grain = false) => `
+        <button class="wall-tile ${wall.current === id ? 'is-active' : ''} ${grain ? 'has-grain' : ''}" data-act="bg-preset" data-id="${id}"
+            style='background:${bg}; background-size:cover; background-position:center; --grain:${GRAIN_CSS}'>
+            <span>${esc(name)}</span>
+        </button>`;
+    return `
+        <span class="kicker">Обои</span>
+        <div class="wall-grid">
+            ${PRESETS.map((p) => tile(p.id, p.name, p.bg, p.grain)).join('')}
+            ${wall.custom ? tile('custom', 'Своя картинка', `url("${wall.custom}")`) : ''}
+        </div>
+        <label class="field wall-text">
+            <span class="field-label">Надпись на обоях — каллиграфией по диагонали (пусто — без надписи)</span>
+            <input type="text" id="bgTextInput" value="${esc(wall.text)}" placeholder="Lucky" maxlength="24" autocomplete="off">
+        </label>
+        <label class="btn-wide ghost">${wall.custom ? 'Заменить свою картинку' : 'Загрузить свою картинку'}<input type="file" id="bgFileInput" accept="image/*" hidden></label>
+        ${wall.custom ? '<button class="btn-wide ghost" data-act="reset-wallpaper">Удалить свою картинку</button>' : ''}`;
+}
+
+export function renderSettings(s, archive, wall, syncSt, usage) {
     return `
         <div class="modal-header"><h3>Настройки</h3><button class="close-btn" data-act="close-modal">×</button></div>
 
         <div class="settings-section" id="syncSection">${renderSyncSection(syncSt, usage)}</div>
 
         <div class="settings-section">
-            <span class="kicker">Обои</span>
-            <label class="btn-wide">Загрузить картинку<input type="file" id="bgFileInput" accept="image/*" hidden></label>
-            ${hasWallpaper ? '<button class="btn-wide ghost" data-act="reset-wallpaper">Убрать обои</button>' : ''}
+            ${wallpaperSection(wall)}
         </div>
 
         <div class="settings-section">

@@ -138,7 +138,11 @@ function readForm() {
 }
 
 function openSettings() {
-    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus, mediaUsage());
+    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), {
+        current: WallpaperService.current(),
+        text: WallpaperService.text(),
+        custom: WallpaperService.has() ? localStorage.getItem('app_custom_bg') : null,
+    }, syncStatus, mediaUsage());
     openModal('#settingsModal');
 }
 
@@ -313,23 +317,14 @@ function goalForm(goal) {
 
 function taskForm(task) {
     const s = store.state;
-    // У задачи из Backlog категория берётся из строчки/карточки, у своей — выбирается здесь (для счётчиков Roadmap)
-    const own = !task?.source;
     openForm({
         title: task ? 'Задача спринта' : 'Задача на сегодня',
-        fields: [
-            { type: 'text', name: 'text', label: 'Что сделать', value: task?.text },
-            ...(own ? [{ type: 'select', name: 'category', label: 'Категория', value: task?.category || '', options: categoryOptions(s) }] : []),
-        ],
+        fields: [{ type: 'text', name: 'text', label: 'Что сделать', value: task?.text }],
         onDelete: task && (() => { s.sprint = s.sprint.filter((t) => t.id !== task.id); }),
         onSubmit: (v) => {
             if (!v.text) return false;
-            if (task) {
-                task.text = v.text;
-                if (own) { task.category = v.category; logTaskDone(s, task); }
-            } else {
-                s.sprint.push({ id: uid(), text: v.text, category: v.category, done: false, plannedFor: sprintDayFor(), strikes: 0, source: null });
-            }
+            if (task) task.text = v.text;
+            else s.sprint.push({ id: uid(), text: v.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: null });
         },
     });
 }
@@ -721,6 +716,7 @@ const actions = {
     },
 
     'screen-debug'() { closeModals(); openScreenDebug(); },
+    'bg-preset'({ id }) { WallpaperService.setPreset(id); openSettings(); },
     'reset-wallpaper'() { WallpaperService.reset(); openSettings(); },
     'edit-season': () => seasonForm(),
     'close-season': () => closeSeasonForm(),
@@ -876,7 +872,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('scroll', (e) => {
         if (e.target.classList?.contains('chips-scroll')) updateChipFades(e.target.parentElement);
     }, true);
-    window.addEventListener('resize', () => updateChipFades());
+    window.addEventListener('resize', () => { updateChipFades(); WallpaperService.apply(); });
+    // Каллиграфический шрифт догружается позже — пересчитываем размер надписи, когда он готов
+    document.fonts?.load("40px 'Pinyon Script'").then(() => WallpaperService.apply()).catch(() => {});
 
     document.addEventListener('input', (e) => {
         if (e.target.id === 'searchInput') {
@@ -885,6 +883,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSearchCounter();
         } else if (e.target.id === 'dumpInput') {
             view.dumpDraft = e.target.value;
+        } else if (e.target.id === 'bgTextInput') {
+            WallpaperService.setText(e.target.value);   // надпись меняется на обоях сразу, пока печатаешь
         }
     });
 
