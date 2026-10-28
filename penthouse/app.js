@@ -360,6 +360,8 @@ $('auth-form').addEventListener('submit', async (ev) => {
     if (ev.submitter?.value === 'up') {
         const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.href.split('#')[0] } });
         if (error) msg.textContent = error.message;
+        // на уже занятую почту Supabase отвечает «успехом» без identities и письма не шлёт
+        else if (data.user && !data.user.identities?.length) msg.textContent = 'Эта почта уже зарегистрирована — нажми «Войти» со своим паролем.';
         else if (!data.session) msg.textContent = 'Письмо отправлено: подтверди почту по ссылке и войди.';
         else msg.textContent = '';
     } else {
