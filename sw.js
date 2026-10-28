@@ -69,6 +69,7 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     if (request.method !== 'GET') return;
     const url = new URL(request.url);
+    if (url.pathname.includes('/penthouse/')) return; // трекер общаги — отдельный сайт, не часть офлайн-режима
     if (url.origin === self.location.origin) {
         event.respondWith(networkFirst(request));
     } else if (IMMUTABLE_HOSTS.includes(url.hostname)) {

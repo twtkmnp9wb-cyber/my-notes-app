@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#14110e">
+    <title>Проект «Пентхаус»</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="top">
+        <div class="brand">🏙️ Проект «Пентхаус»</div>
+        <div class="who" id="who"></div>
+    </header>
+
+    <main id="app">
+        <section class="screen" id="screen-loading"><p class="muted center">Загрузка…</p></section>
+
+        <section class="screen hidden" id="screen-auth">
+            <div class="card narrow">
+                <h1>Из хрущёвки-засранки в пентхаус</h1>
+                <p class="muted">Трекер уборки кухни для комнат 70–74. Войди или зарегистрируйся по почте и паролю.</p>
+                <form id="auth-form" class="form">
+                    <label>Почта<input type="email" name="email" autocomplete="email" required></label>
+                    <label>Пароль<input type="password" name="password" autocomplete="current-password" minlength="6" required></label>
+                    <div class="row">
+                        <button type="submit" name="mode" value="in" class="btn primary">Войти</button>
+                        <button type="submit" name="mode" value="up" class="btn">Зарегистрироваться</button>
+                    </div>
+                    <p class="msg" id="auth-msg"></p>
+                </form>
+            </div>
+        </section>
+
+        <section class="screen hidden" id="screen-join">
+            <div class="card narrow">
+                <h1>Выбери свою комнату</h1>
+                <p class="muted">Выбираешь один раз, потом поменять нельзя. Код общаги спроси у старосты в чате.</p>
+                <form id="join-form" class="form">
+                    <label>Имя<input name="name" maxlength="40" placeholder="Как тебя звать на кухне" required></label>
+                    <label>Комната
+                        <select name="room" required>
+                            <option value="70">70</option><option value="71">71</option>
+                            <option value="72">72</option><option value="73">73</option>
+                            <option value="74">74</option>
+                        </select>
+                    </label>
+                    <label>Код общаги<input name="code" autocomplete="off" required></label>
+                    <button type="submit" class="btn primary">Заселиться</button>
+                    <p class="msg" id="join-msg"></p>
+                </form>
+            </div>
+        </section>
+
+        <section class="screen hidden" id="screen-main">
+            <div class="card week" id="week"></div>
+
+            <h2>Тир-лист</h2>
+            <div class="card tiers" id="tiers"></div>
+
+            <h2>Комнаты <span class="muted small">очки за 14 дней, цель 60</span></h2>
+            <div class="rooms" id="rooms"></div>
+
+            <h2>Ждут проверки</h2>
+            <div class="card" id="pending"></div>
+
+            <h2>Стройка пентхауса</h2>
+            <div class="card build" id="build"></div>
+
+            <h2>Идеи для кухни</h2>
+            <div class="card" id="ideas"></div>
+
+            <h2>Правила</h2>
+            <div class="card rules" id="rules"></div>
+
+            <h2>Лента</h2>
+            <div class="card" id="feed"></div>
+        </section>
+    </main>
+
+    <div class="toast hidden" id="toast"></div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
