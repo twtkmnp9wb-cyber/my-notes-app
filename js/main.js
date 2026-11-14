@@ -3,7 +3,7 @@ import {
     view, esc, feedCounts,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
-    renderAttList, renderViewer, visualOf, renderSyncSection,
+    renderAttList, renderViewer, visualOf, renderSyncSection, cardHtml, markerKey, isTodayTask,
 } from './ui.js';
 import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn, signInWithPassword, setPassword, setLoginMode } from './sync.js';
 import { media, kindOf, measure } from './media.js';
@@ -46,6 +46,7 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     if (view.tab === 'backlog') $('#backlogChipsSlot').innerHTML = renderBacklogChips(s, ro);
 
     renderContent();
+    autosizeDump();
 
     $('#searchToggleBtn').hidden = view.tab !== 'feed';
     $('#addNoteBtn').hidden = ro || view.tab === 'dump';
@@ -75,6 +76,14 @@ function updateChipFades(root = document) {
         el.classList.toggle('fade-l', el.scrollLeft > 2);
         el.classList.toggle('fade-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
     });
+}
+
+// Поле Dump растёт по мере набора (до ~5 строк), а в покое занимает одну строку
+function autosizeDump() {
+    const el = $('#dumpInput');
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
 }
 
 function updateSearchCounter() {
@@ -350,16 +359,17 @@ function backlogNewForm(kind = 'card') {
             { type: 'text', name: 'title', label: 'Название' },
             { type: 'select', name: 'category', label: 'Категория', value: defaultCategory(s), options: categoryOptions(s) },
             { type: 'date', name: 'due', label: 'Дедлайн (можно пусто)' },
+            { type: 'textarea', name: 'note', label: 'Комментарий (можно пусто) — пояснение, детали, мысль', rows: 3 },
             { type: 'textarea', name: 'subs', label: 'Подпункты — только для карточки, по одному на строку', rows: 4 },
         ],
         submitLabel: 'Добавить',
         onSubmit: (v) => {
             if (!v.title) { toast('Нужно название'); return false; }
             if (v.kind === 'row') {
-                s.rows.push({ id: uid(), title: v.title, category: v.category, due: v.due });
+                s.rows.push({ id: uid(), title: v.title, note: v.note, category: v.category, due: v.due });
             } else {
                 s.cards.push({
-                    id: uid(), title: v.title, category: v.category, due: v.due,
+                    id: uid(), title: v.title, note: v.note, category: v.category, due: v.due,
                     subtasks: lines(v.subs).map((text) => ({ id: uid(), text, done: false })),
                 });
             }
@@ -376,6 +386,7 @@ function cardForm(card) {
             { type: 'text', name: 'title', label: 'Название', value: card.title },
             { type: 'select', name: 'category', label: 'Категория', value: card.category, options: categoryOptions(s) },
             { type: 'date', name: 'due', label: 'Дедлайн', value: card.due },
+            { type: 'textarea', name: 'note', label: 'Комментарий — показывается на обороте карточки', value: card.note, rows: 3 },
             { type: 'textarea', name: 'subs', label: 'Подпункты', value: card.subtasks.map((st) => st.text).join('\n'), rows: 6 },
         ],
         deleteLabel: 'Удалить карточку',
@@ -400,7 +411,7 @@ function cardForm(card) {
             // Сделанное по карточке переезжает в счётчик новой категории
             const ids = new Set([`card:${card.id}`, ...card.subtasks.map((st) => st.id)]);
             s.doneLog.forEach((e) => { if (ids.has(e.id)) e.category = v.category; });
-            Object.assign(card, { title: v.title, category: v.category, due: v.due });
+            Object.assign(card, { title: v.title, note: v.note, category: v.category, due: v.due });
         },
     });
 }
@@ -413,6 +424,7 @@ function rowForm(row) {
             { type: 'text', name: 'title', label: 'Задача', value: row.title },
             { type: 'select', name: 'category', label: 'Категория', value: row.category, options: categoryOptions(s) },
             { type: 'date', name: 'due', label: 'Дедлайн', value: row.due },
+            { type: 'textarea', name: 'note', label: 'Комментарий', value: row.note, rows: 3 },
         ],
         onDelete: () => {
             s.rows = s.rows.filter((r) => r.id !== row.id);
@@ -421,7 +433,7 @@ function rowForm(row) {
         onSubmit: (v) => {
             if (!v.title) return false;
             s.doneLog.forEach((e) => { if (e.id === row.id) e.category = v.category; });
-            Object.assign(row, { title: v.title, category: v.category, due: v.due });
+            Object.assign(row, { title: v.title, note: v.note, category: v.category, due: v.due });
             s.sprint.forEach((t) => { if (t.source?.kind === 'row' && t.source.id === row.id && !t.done) t.text = v.title; });
         },
     });
@@ -431,17 +443,24 @@ function categoriesForm() {
     const s = store.state;
     openForm({
         title: 'Категории',
-        note: 'Очисти поле, чтобы удалить категорию. Её задачи останутся во вкладке «Все».',
-        fields: s.categories.map((c, i) => ({ type: 'text', name: `c${i}`, value: c })),
+        note: 'Очисти поле, чтобы удалить категорию. Её задачи останутся во вкладке «Все». Кружки под названием — цвет маркера.',
+        fields: s.categories.flatMap((c, i) => [
+            { type: 'text', name: `c${i}`, value: c },
+            { type: 'swatches', name: `k${i}`, value: markerKey(s, 'c', c) || 'none' },
+        ]),
         onSubmit: (v) => {
             const next = [];
+            const colors = {};
             s.categories.forEach((old, i) => {
                 const name = v[`c${i}`];
                 [...s.cards, ...s.rows, ...s.sprint, ...s.goals, ...s.doneLog].forEach((x) => { if (x.category === old) x.category = name; });
                 if (view.backlogFilter === old) view.backlogFilter = name || 'all';
-                if (name && !next.includes(name)) next.push(name);
+                if (name && !next.includes(name)) { next.push(name); colors[`c:${name}`] = v[`k${i}`]; }
             });
             s.categories = next;
+            // Цвета категорий пересобираем заново: переименованные и удалённые не оставляют мусора
+            Object.keys(s.colors).filter((k) => k.startsWith('c:')).forEach((k) => delete s.colors[k]);
+            Object.assign(s.colors, colors);
         },
     });
 }
@@ -491,11 +510,36 @@ function closeSeasonForm() {
 // Все клики идут через data-act. В архиве разрешены только действия из READONLY_OK.
 const READONLY_OK = new Set([
     'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'filter', 'flip', 'dump-sub',
-    'exit-archive', 'close-modal', 'form-chip', 'form-delete', 'open-media', 'media-nav', 'media-close',
+    'exit-archive', 'close-modal', 'form-chip', 'form-swatch', 'stash-toggle', 'form-delete', 'open-media', 'media-nav', 'media-close',
     'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
 ]);
 
 const find = (list, id) => list.find((x) => x.id === id);
+
+// Перерисовываем одну карточку на месте, а не весь Backlog: иначе список подпунктов на обороте
+// прыгал в начало после каждой отметки, а завершённая карточка тут же уезжала в конец сетки.
+function refreshCard(card) {
+    const old = $(`.flip[data-id="${card.id}"]`);
+    if (!old) { render(); return; }
+    const scrollTop = old.querySelector('.subs')?.scrollTop || 0;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = cardHtml(S(), card, RO()).trim();
+    const fresh = tmp.firstElementChild;
+    old.replaceWith(fresh);
+    const subs = fresh.querySelector('.subs');
+    if (subs) subs.scrollTop = scrollTop;
+}
+
+// Красные бейджи на чипсах считают «горящие» незакрытые карточки — обновляем, когда карточка закрылась или открылась
+function refreshBacklogChips() {
+    const slot = $('#backlogChipsSlot');
+    const scroller = slot.querySelector('.chips-scroll');
+    const left = scroller?.scrollLeft || 0;
+    slot.innerHTML = renderBacklogChips(S(), RO());
+    const next = slot.querySelector('.chips-scroll');
+    if (next) next.scrollLeft = left;
+    updateChipFades(slot);
+}
 
 const actions = {
     tab({ tab }) {
@@ -563,31 +607,60 @@ const actions = {
         commit();
     },
     'edit-task'({ id }) { const t = find(S().sprint, id); if (t) taskForm(t); },
+    // Вечером, когда записываешь планы на завтра: одной кнопкой убрать весь сегодняшний день.
+    // Задачи, добавленные вечером (они запланированы на завтра), не трогаем.
+    // Выполненные строчки уходят и из бэклога, как при ночной пересменке; невыполненные остаются в бэклоге.
+    'sprint-clear-today'() {
+        const s = S();
+        const today = s.sprint.filter(isTodayTask);
+        if (!today.length) return;
+        const open = today.filter((t) => !t.done).length;
+        if (open && !confirm(`Убрать все сегодняшние задачи (${today.length})? Из них невыполненных: ${open}.`)) return;
+        today.forEach((t) => {
+            if (t.done && t.source?.kind === 'row') s.rows = s.rows.filter((r) => r.id !== t.source.id);
+        });
+        s.sprint = s.sprint.filter((t) => !isTodayTask(t));
+        toast('Сегодняшний день очищен 🌙');
+        commit();
+    },
 
     // --- backlog
     filter({ cat }) { view.backlogFilter = cat; render({ keepScroll: false }); },
+    'stash-toggle'() { view.showStash = !view.showStash; render({ keepScroll: false }); },
     flip({ id }) {
         if (view.flipped.has(id)) view.flipped.delete(id); else view.flipped.add(id);
         $(`.flip[data-id="${id}"]`)?.classList.toggle('is-flipped');
     },
     'toggle-sub'({ card, id }) {
         const s = S();
-        const sub = find(find(s.cards, card)?.subtasks || [], id);
+        const c = find(s.cards, card);
+        const sub = find(c?.subtasks || [], id);
         if (!sub) return;
+        const wasComplete = isCardDone(c);
         sub.done = !sub.done;
         s.sprint.forEach((t) => { if (t.source?.kind === 'sub' && t.source.id === id) t.done = sub.done; });
-        const c = find(s.cards, card);
         logDone(s, id, c.category, sub.done);
         logDone(s, `card:${c.id}`, c.category, isCardDone(c));
-        commit();
+        store.save();
+        refreshCard(c);
+        if (wasComplete !== isCardDone(c)) refreshBacklogChips();
+        if (!wasComplete && isCardDone(c) && !view.showStash) {
+            // Секунду показываем закрытую карточку, чтобы было видно, что она закрылась, и увозим на склад
+            toast('Карточка закрыта 🎉 Уехала на склад');
+            setTimeout(() => {
+                if (view.tab === 'backlog' && !view.showStash && isCardDone(c)) render();
+            }, 1100);
+        }
     },
     'sub-to-sprint'({ card, id }) {
         const s = S();
-        const sub = find(find(s.cards, card)?.subtasks || [], id);
+        const c = find(s.cards, card);
+        const sub = find(c?.subtasks || [], id);
         if (!sub) return;
         s.sprint.push({ id: uid(), text: sub.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: { kind: 'sub', cardId: card, id } });
         toast('🚀 Подпункт отправлен в спринт');
-        commit();
+        store.save();
+        refreshCard(c);
     },
     'row-to-sprint'({ id }) {
         const s = S();
@@ -646,6 +719,20 @@ const actions = {
         s.posts.push({ id: uid(), title: '', text: d.text, tags: [], createdAt: d.createdAt });
         s.dump = s.dump.filter((x) => x.id !== id);
         toast('✨ Сохранено в ленту');
+        commit();
+    },
+    // Идея, которая не ложится в ленту: заголовок — первая строка, всё остальное уходит в комментарий строчки
+    'dump-to-backlog'({ id }) {
+        const s = S();
+        const d = find(s.dump, id);
+        if (!d) return;
+        const [first = '', ...rest] = d.text.split('\n');
+        let title = first.trim();
+        let note = rest.join('\n').trim();
+        if (title.length > 80) { note = d.text.trim(); title = `${title.slice(0, 79).trimEnd()}…`; }
+        s.rows.push({ id: uid(), title, note, category: '', due: '' });
+        s.dump = s.dump.filter((x) => x.id !== id);
+        toast('📥 Сохранено в Backlog');
         commit();
     },
     'dump-delete'({ id }) { S().dump = S().dump.filter((x) => x.id !== id); commit(); },
@@ -766,6 +853,19 @@ const actions = {
     // --- формы
     'close-modal': () => closeModals(),
     'form-chip'(_, el) { el.classList.toggle('is-active'); },
+    'form-swatch'({ value }, el) {
+        const wrap = el.closest('.swatches');
+        wrap.querySelectorAll('.swatch').forEach((b) => b.classList.toggle('is-active', b === el));
+        wrap.previousElementSibling.value = value;   // скрытое поле формы стоит прямо перед рядом кружков
+    },
+    'tag-color'({ tag }) {
+        const s = store.state;
+        openForm({
+            title: `Цвет · #${tag}`,
+            fields: [{ type: 'swatches', name: 'color', value: markerKey(s, 't', tag) || 'none' }],
+            onSubmit: (v) => { s.colors[`t:${tag}`] = v.color; return { reopenSettings: true }; },
+        });
+    },
     'att-remove'({ id }) {
         const a = currentForm?.atts?.find((x) => x.id === id);
         if (!a) return;
@@ -863,6 +963,62 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dx) > 50) navViewer(dx < 0 ? 1 : -1);
     });
 
+    // Порядок задач спринта: тянешь за «⠿». Остальные задачи плавно расступаются, порядок применяется при отпускании.
+    document.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle || RO()) return;
+        const item = handle.closest('.item');
+        const items = [...item.parentElement.children];
+        if (items.length < 2) return;
+        e.preventDefault();
+
+        const from = items.indexOf(item);
+        const rects = items.map((el) => el.getBoundingClientRect());
+        const shift = rects[from].height + (rects[1].top - rects[0].bottom);
+        const startY = e.clientY;
+        let to = from;
+
+        handle.setPointerCapture(e.pointerId);
+        item.classList.add('is-dragging');
+        items.forEach((el) => { if (el !== item) el.classList.add('is-shifting'); });
+
+        const move = (ev) => {
+            const dy = ev.clientY - startY;
+            item.style.transform = `translateY(${dy}px)`;
+            const center = rects[from].top + rects[from].height / 2 + dy;
+            to = from;
+            items.forEach((_, i) => {
+                if (i === from) return;
+                const mid = rects[i].top + rects[i].height / 2;
+                if (i < from && center < mid) to = Math.min(to, i);
+                if (i > from && center > mid) to = Math.max(to, i);
+            });
+            items.forEach((el, i) => {
+                if (i === from) return;
+                let y = 0;
+                if (to < from && i >= to && i < from) y = shift;
+                if (to > from && i > from && i <= to) y = -shift;
+                el.style.transform = y ? `translateY(${y}px)` : '';
+            });
+        };
+        const end = (ev) => {
+            handle.removeEventListener('pointermove', move);
+            handle.removeEventListener('pointerup', end);
+            handle.removeEventListener('pointercancel', end);
+            if (ev.type === 'pointerup' && to !== from) {
+                const list = S().sprint;
+                list.splice(to, 0, list.splice(from, 1)[0]);
+                commit();
+            } else {
+                item.classList.remove('is-dragging');
+                items.forEach((el) => { el.classList.remove('is-shifting'); el.style.transform = ''; });
+            }
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+    });
+
     // scroll не всплывает, поэтому ловим на фазе перехвата
     document.addEventListener('scroll', (e) => {
         if (e.target.classList?.contains('chips-scroll')) updateChipFades(e.target.parentElement);
@@ -876,6 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSearchCounter();
         } else if (e.target.id === 'dumpInput') {
             view.dumpDraft = e.target.value;
+            autosizeDump();
         }
     });
 
@@ -937,4 +1094,3 @@ document.addEventListener('DOMContentLoaded', () => {
         onRemoteChange: () => render(),
     });
 });
-

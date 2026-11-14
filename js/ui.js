@@ -12,6 +12,7 @@ export const view = {
     flipped: new Set(),
     dumpSub: 'thoughts',
     dumpDraft: '',
+    showStash: false,       // Backlog: показывать склад закрытых карточек вместо активных
 };
 
 // '&apos;' вместо '&#39;' — чтобы в экранированном тексте не появлялся лишний «#»,
@@ -28,6 +29,34 @@ export const postTags = (p) => [...new Set([...p.tags, ...extractTags(p.title), 
 const empty = (text) => `<div class="empty">${text}</div>`;
 const bar = (pct) => `<div class="bar"><i style="width:${pct}%"></i></div>`;
 const editBtn = (act, attrs) => `<button class="icon-btn" data-act="${act}" ${attrs} title="Редактировать">✎</button>`;
+
+// ================= ЦВЕТНЫЕ МАРКЕРЫ ЧИПСОВ =================
+// У каждой категории и тега есть цвет. Пока не выбран вручную (настройки / «✎» у категорий) —
+// берётся из палитры по названию, поэтому он всегда один и тот же. 'none' — без маркера.
+export const MARKER_COLORS = {
+    red: '#f43f5e', orange: '#fb923c', yellow: '#fbbf24', green: '#34d399',
+    cyan: '#22d3ee', blue: '#60a5fa', violet: '#a78bfa', pink: '#f472b6',
+};
+const MARKER_KEYS = Object.keys(MARKER_COLORS);
+
+// kind: 'c' — категория, 't' — тег
+export function markerKey(s, kind, name) {
+    if (!name) return '';
+    const saved = s.colors?.[`${kind}:${name}`];
+    if (saved === 'none') return '';
+    if (saved && MARKER_COLORS[saved]) return saved;
+    let h = 0;
+    for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return MARKER_KEYS[h % MARKER_KEYS.length];
+}
+const mk = (s, kind, name) => {
+    const k = markerKey(s, kind, name);
+    return k ? `<i class="mk" style="--mk:${MARKER_COLORS[k]}"></i>` : '';
+};
+const tagStyle = (s, tag) => {
+    const k = markerKey(s, 't', tag);
+    return k ? `style="--mk:${MARKER_COLORS[k]}"` : '';
+};
 
 // ================= ЛЕНТА =================
 function postMatches(p, q) {
@@ -57,8 +86,9 @@ function albumHtml(p) {
     if (!visual.length) return '';
     const shown = visual.slice(0, ALBUM_MAX);
     const more = visual.length - ALBUM_MAX;
-    const style = shown.length === 1 && shown[0].w
-        ? `style="aspect-ratio:${Math.min(1.9, Math.max(0.6, shown[0].w / shown[0].h))}"` : '';
+    // Одно фото — в точных пропорциях файла, без обрезки (раньше они зажимались в 0.6–1.9)
+    const style = shown.length === 1 && shown[0].w && shown[0].h
+        ? `style="aspect-ratio:${shown[0].w} / ${shown[0].h}"` : '';
     return `<div class="album album-${shown.length}" ${style}>${shown.map((a, i) =>
         tileHtml(p.id, a, more > 0 && i === ALBUM_MAX - 1 ? `<span class="more">+${more}</span>` : '')).join('')}</div>`;
 }
@@ -117,9 +147,9 @@ export function renderViewer(items, index) {
 }
 export { visualOf };
 
-function richText(text, q) {
+function richText(text, q, s) {
     let html = esc(text).replace(TAG_RE, (m, tag) =>
-        `<button class="hashtag" data-act="search-tag" data-tag="${tag.toLowerCase()}">${m}</button>`);
+        `<button class="hashtag" ${tagStyle(s, tag.toLowerCase())} data-act="search-tag" data-tag="${tag.toLowerCase()}">${m}</button>`);
     if (q && !q.startsWith('#')) {
         html = html.replace(new RegExp(`(${escRe(esc(q))})(?![^<]*>)`, 'gi'), '<mark>$1</mark>');
     }
@@ -150,7 +180,7 @@ export function renderFeedHeader(s, ro) {
                 <button class="icon-btn" data-act="search-close" title="Закрыть">✕</button>
             </div>
             ${allTags.length ? `<div class="chips-scroll search-tags">${allTags.map((t) =>
-                `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join('')}</div>` : ''}
+                `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">${mk(s, 't', t)}#${esc(t)}</button>`).join('')}</div>` : ''}
         ` : ''}
         <h2 class="born">Born to win.</h2>
     `;
@@ -178,11 +208,11 @@ export function renderFeed(s, ro) {
             <article class="post">
                 ${ro ? '' : `<button class="post-menu" data-act="edit-post" data-id="${p.id}" title="Редактировать">⋯</button>`}
                 ${albumHtml(p)}
-                ${p.title ? `<h3 class="post-title">${richText(p.title, q)}</h3>` : ''}
-                ${p.text ? `<div class="post-text">${richText(p.text, q)}</div>` : ''}
+                ${p.title ? `<h3 class="post-title">${richText(p.title, q, s)}</h3>` : ''}
+                ${p.text ? `<div class="post-text">${richText(p.text, q, s)}</div>` : ''}
                 ${otherAttsHtml(p)}
                 ${extra.length ? `<div class="post-tags">${extra.map((t) =>
-                    `<button class="hashtag" data-act="search-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join(' ')}</div>` : ''}
+                    `<button class="hashtag" ${tagStyle(s, t)} data-act="search-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join(' ')}</div>` : ''}
                 <div class="post-meta">${p.editedAt ? 'изм. ' : ''}${formatTime(p.createdAt)}</div>
             </article>`;
     }
@@ -224,19 +254,26 @@ function sourceLabel(s, t) {
     return '';
 }
 
+export const isTodayTask = (t) => !t.plannedFor || daysBetween(t.plannedFor, logicalDayKey()) >= 0;
+
 export function renderSprint(s, ro) {
     const done = s.sprint.filter((t) => t.done).length;
+    const todayCount = s.sprint.filter(isTodayTask).length;
     const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
     const items = s.sprint.map((t) => {
         const meta = [sourceLabel(s, t), t.strikes ? `<span class="hot">висит ${t.strikes + 1}-й день из ${STRIKE_LIMIT}</span>` : '']
             .filter(Boolean).join(' · ');
+        // Комментарий строчки бэклога виден и в спринте — не надо вспоминать, что имелось в виду
+        const note = t.source?.kind === 'row' ? s.rows.find((r) => r.id === t.source.id)?.note : '';
         return `
             <div class="item ${t.done ? 'is-done' : ''}">
                 <button class="check" data-act="toggle-task" data-id="${t.id}" aria-label="Отметить"></button>
                 <div class="item-main">
                     <span class="item-text">${esc(t.text)}</span>
+                    ${note ? `<span class="item-note">${esc(note)}</span>` : ''}
                     ${meta ? `<span class="item-meta">${meta}</span>` : ''}
                 </div>
+                ${ro ? '' : `<span class="drag-handle" title="Потяни, чтобы поменять порядок" aria-label="Перетащить">⠿</span>`}
                 ${ro ? '' : editBtn('edit-task', `data-id="${t.id}"`)}
             </div>`;
     }).join('');
@@ -248,7 +285,8 @@ export function renderSprint(s, ro) {
         </section>
         <div class="scroll-area" data-scroll="sprint">
             <div class="list">${items || empty('На сегодня пусто. Добавь задачу через + или отправь её из Backlog.')}</div>
-            ${ro ? '' : `<p class="hint">Задачи, добавленные вечером (после 18:00), ночью не сгорают — они на следующий день. Выполненное уберётся ночью (в 04:00). Задача, которая ${STRIKE_LIMIT} дня подряд остаётся невыполненной, уезжает в Dump → Невыполненное.</p>`}
+            ${ro || !todayCount ? '' : `<button class="btn-wide ghost" data-act="sprint-clear-today">Очистить сегодняшние (${todayCount})</button>`}
+            ${ro ? '' : `<p class="hint">Задачи, добавленные вечером (после 18:00), ночью не сгорают — они на следующий день. Выполненное уберётся ночью (в 04:00), а кнопкой выше можно очистить сегодняшний день сразу. Задача, которая ${STRIKE_LIMIT} дня подряд остаётся невыполненной, уезжает в Dump → Невыполненное.</p>`}
         </div>
     </div>`;
 }
@@ -268,16 +306,17 @@ export function renderBacklogChips(s, ro) {
         ${cats.map((c) => {
             const n = hotCount(s, c);
             return `<button class="chip ${view.backlogFilter === c ? 'is-active' : ''}" data-act="filter" data-cat="${esc(c)}">
-                ${c === 'all' ? 'Все' : esc(c)}${n ? `<span class="badge">${n}</span>` : ''}</button>`;
+                ${c === 'all' ? 'Все' : `${mk(s, 'c', c)}${esc(c)}`}${n ? `<span class="badge">${n}</span>` : ''}</button>`;
         }).join('')}
         ${ro ? '' : `<button class="chip chip-ghost" data-act="add-category" title="Новая категория">＋</button>
                      <button class="chip chip-ghost" data-act="manage-categories" title="Изменить категории">✎</button>`}
     </div>`;
 }
 
-function cardHtml(s, c, ro) {
+export function cardHtml(s, c, ro) {
     const dl = deadlineInfo(c.due);
     const { done, total, pct } = cardProgress(c);
+    const complete = isCardDone(c);
     const subs = c.subtasks.map((st) => {
         const queued = inSprint(s, (src) => src.kind === 'sub' && src.id === st.id);
         let tail = '';
@@ -293,17 +332,17 @@ function cardHtml(s, c, ro) {
     }).join('');
 
     return `
-        <div class="flip ${view.flipped.has(c.id) ? 'is-flipped' : ''} ${isCardDone(c) ? 'is-complete' : ''}" data-act="flip" data-id="${c.id}">
+        <div class="flip ${view.flipped.has(c.id) ? 'is-flipped' : ''} ${complete ? 'is-complete' : ''}" data-act="flip" data-id="${c.id}">
             <div class="flip-inner">
                 <div class="flip-face">
                     <div class="card-top">
-                        <span class="pill">${esc(c.category || '—')}</span>
+                        <span class="pill">${mk(s, 'c', c.category)}${esc(c.category || '—')}</span>
                         <span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>
                     </div>
                     <h4 class="card-title">${esc(c.title)}</h4>
                     <div>
                         ${bar(pct)}
-                        <div class="card-foot"><span>${total ? `${done}/${total} · ${pct}%` : 'нет подпунктов'}</span><span class="accent">↻</span></div>
+                        <div class="card-foot"><span>${complete ? '✓ выполнено' : total ? `${done}/${total} · ${pct}%` : 'нет подпунктов'}</span><span class="accent">↻</span></div>
                     </div>
                 </div>
                 <div class="flip-face flip-back">
@@ -311,6 +350,7 @@ function cardHtml(s, c, ro) {
                         <span class="card-back-title">${esc(c.title)}</span>
                         ${ro ? '' : editBtn('edit-card', `data-id="${c.id}"`)}
                     </div>
+                    ${c.note ? `<div class="card-note">${esc(c.note)}</div>` : ''}
                     <div class="subs">${subs || '<span class="muted small">Подпунктов нет</span>'}</div>
                     ${ro ? '' : `<button class="sub-add" data-act="add-sub" data-id="${c.id}">＋ подпункт</button>`}
                 </div>
@@ -321,12 +361,13 @@ function cardHtml(s, c, ro) {
 function rowHtml(s, r, ro) {
     const dl = deadlineInfo(r.due);
     const queued = inSprint(s, (src) => src.kind === 'row' && src.id === r.id);
-    const meta = [view.backlogFilter === 'all' && r.category ? esc(r.category) : '', esc(dl.label)].filter(Boolean).join(' · ');
+    const meta = [view.backlogFilter === 'all' && r.category ? `${mk(s, 'c', r.category)}${esc(r.category)}` : '', esc(dl.label)].filter(Boolean).join(' · ');
     return `
         <div class="item">
             <i class="dot dot-${dl.level}"></i>
             <div class="item-main">
                 <span class="item-text">${esc(r.title)}</span>
+                ${r.note ? `<span class="item-note">${esc(r.note)}</span>` : ''}
                 <span class="item-meta">${meta}</span>
             </div>
             ${queued ? '<span class="tag-sprint">в спринте</span>'
@@ -339,15 +380,23 @@ export function renderBacklog(s, ro) {
     const f = view.backlogFilter;
     const inCat = (x) => f === 'all' || x.category === f;
     const byDue = (a, b) => deadlineInfo(a.due).sort - deadlineInfo(b.due).sort;
-    const cards = s.cards.filter(inCat).sort((a, b) => (isCardDone(a) - isCardDone(b)) || byDue(a, b));
+    // Полностью закрытые карточки не висят среди планов, а уезжают на «склад» — отдельный список
+    const active = s.cards.filter((c) => inCat(c) && !isCardDone(c)).sort(byDue);
+    const stash = s.cards.filter((c) => inCat(c) && isCardDone(c)).sort(byDue);
+    const cards = view.showStash ? stash : active;
     const rows = s.rows.filter(inCat).sort(byDue);
+
+    const emptyText = view.showStash ? 'Склад пуст — сюда уезжают полностью закрытые карточки.'
+        : stash.length ? 'Все карточки закрыты 🎉 Они лежат на складе.'
+        : 'Крупных задач нет. Карточка — то, что закрывается через подпункты.';
+    const stashBtn = view.showStash ? '<button class="btn-mini" data-act="stash-toggle">← Карточки</button>'
+        : stash.length ? `<button class="btn-mini" data-act="stash-toggle">🗄 Склад · ${stash.length}</button>` : '';
 
     // Карточки и строчки крутятся каждые в своём контейнере, страница остаётся на месте
     return `<div class="pane">
-        <div class="section-head"><span class="kicker">Карточки · ${cards.length}</span></div>
+        <div class="section-head"><span class="kicker">${view.showStash ? 'Склад' : 'Карточки'} · ${cards.length}</span>${stashBtn}</div>
         <div class="scroll-area scroll-cards" data-scroll="cards">
-            ${cards.length ? `<div class="card-grid">${cards.map((c) => cardHtml(s, c, ro)).join('')}</div>`
-                : empty('Крупных задач нет. Карточка — то, что закрывается через подпункты.')}
+            ${cards.length ? `<div class="card-grid">${cards.map((c) => cardHtml(s, c, ro)).join('')}</div>` : empty(emptyText)}
         </div>
         <div class="section-head">
             <span class="kicker">Строчки · ${rows.length}</span>
@@ -406,22 +455,25 @@ export function renderDump(s, ro) {
                     <div class="dump-text">${esc(d.text)}</div>
                     <div class="dump-actions">
                         <span class="muted small">${formatTime(d.createdAt)}</span>
-                        ${ro ? '' : `<button class="btn-mini" data-act="dump-to-feed" data-id="${d.id}">В ленту ↗</button>
+                        ${ro ? '' : `<button class="btn-mini" data-act="dump-to-backlog" data-id="${d.id}">В бэклог</button>
+                                     <button class="btn-mini" data-act="dump-to-feed" data-id="${d.id}">В ленту ↗</button>
                                      <button class="icon-btn danger" data-act="dump-delete" data-id="${d.id}" title="Удалить">✕</button>`}
                     </div>
                 </div>`).join('')}
             </div>`;
     }).join('');
 
+    // Поле ввода — компактная строка внизу (как в мессенджере), растёт по мере набора.
+    // Раньше оно было большой панелью сверху и закрывало уже написанное.
     return `<div class="pane">${tabs}
-        ${ro ? '' : `
-            <div class="panel composer">
-                <textarea id="dumpInput" rows="4" placeholder="Всё, что крутится в голове. Без фильтра и без оформления.">${esc(view.dumpDraft)}</textarea>
-                <button class="btn-wide" data-act="dump-save">Выгрузить</button>
-            </div>`}
         <div class="scroll-area" data-scroll="dump">
-            ${groupsHtml || empty(`Голова чистая. Записи хранятся ${DUMP_TTL_DAYS} дня, потом исчезают — ценное успей отправить в ленту.`)}
+            ${groupsHtml || empty(`Голова чистая. Записи хранятся ${DUMP_TTL_DAYS} дня, потом исчезают — ценное успей отправить в ленту или в бэклог.`)}
         </div>
+        ${ro ? '' : `
+            <div class="composer-bar">
+                <textarea id="dumpInput" rows="1" placeholder="Выгрузить мысль…">${esc(view.dumpDraft)}</textarea>
+                <button class="send-btn" data-act="dump-save" aria-label="Выгрузить">↑</button>
+            </div>`}
     </div>`;
 }
 
@@ -522,7 +574,8 @@ export function renderSettings(s, archive, hasWallpaper, syncSt, usage) {
 
         <div class="settings-section">
             <span class="kicker">Теги ленты</span>
-            <div class="chips-wrap">${s.tags.map((t) => `<span class="chip">#${esc(t)}</span>`).join('') || '<span class="muted small">нет</span>'}</div>
+            <div class="chips-wrap">${s.tags.map((t) => `<button class="chip" data-act="tag-color" data-tag="${esc(t)}" title="Выбрать цвет">${mk(s, 't', t)}#${esc(t)}</button>`).join('') || '<span class="muted small">нет</span>'}</div>
+            ${s.tags.length ? '<p class="muted small">Нажми на тег, чтобы выбрать ему цвет.</p>' : ''}
             <button class="btn-wide ghost" data-act="manage-tags">Изменить список тегов</button>
         </div>
 
@@ -555,6 +608,10 @@ export function renderForm(cfg) {
                 <div id="attList" class="att-list">${renderAttList(f.value || [])}</div>
                 <label class="btn-wide ghost attach-btn">📎 Фото, видео, аудио или файл<input type="file" id="attInput" multiple hidden></label>
             </div>`;
+        case 'swatches':
+            return `<div class="field">${label}<input type="hidden" name="${f.name}" value="${esc(f.value || 'none')}">
+                <div class="swatches">${['none', ...MARKER_KEYS].map((k) =>
+                    `<button type="button" class="swatch ${k === (f.value || 'none') ? 'is-active' : ''}" data-act="form-swatch" data-value="${k}" style="--mk:${MARKER_COLORS[k] || 'transparent'}" aria-label="${k}">${k === 'none' ? '∅' : ''}</button>`).join('')}</div></div>`;
         case 'checkbox':
             return `<label class="field field-check"><input type="checkbox" name="${f.name}" ${f.value ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
         default:

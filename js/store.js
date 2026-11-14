@@ -79,6 +79,7 @@ function emptyState(season = makeSeason()) {
         dump: [],       // { id, text, createdAt }
         failed: [],     // задачи, провисевшие в спринте STRIKE_LIMIT дней: { id, text, source, failedOn }
         doneLog: [],    // журнал выполненного за сезон для счётчиков Roadmap: { id, category, at }
+        colors: {},     // цветные маркеры чипсов: { 'c:Учёба': 'blue', 't:мысли': 'none' } (c — категория, t — тег)
         lastRollover: logicalDayKey(),
     };
 }
@@ -90,6 +91,7 @@ export function normalize(s) {
         if (Array.isArray(base[k]) && !Array.isArray(out[k])) out[k] = base[k];
     }
     out.cards.forEach((c) => { if (!Array.isArray(c.subtasks)) c.subtasks = []; });
+    if (!out.colors || typeof out.colors !== 'object' || Array.isArray(out.colors)) out.colors = {};
     // Журнала не было до появления счётчиков — засеваем его тем, что уже отмечено в карточках
     if (!Array.isArray(s?.doneLog)) {
         const at = logicalDayKey();
@@ -252,6 +254,7 @@ export const store = {
         const next = emptyState(makeSeason(kind, name));
         next.tags = [...old.tags];
         next.categories = [...old.categories];
+        next.colors = { ...old.colors };
         if (carryBacklog) {
             next.cards = old.cards.filter((c) => !isCardDone(c));
             next.rows = [...old.rows];
