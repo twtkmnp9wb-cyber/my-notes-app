@@ -38,10 +38,10 @@ export function kindOf(type = '') {
 }
 
 export function formatSize(bytes) {
-    if (bytes < 1024) return `${bytes} Б`;
-    if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} КБ`;
-    if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} МБ`;
-    return `${(bytes / 1024 ** 3).toFixed(2)} ГБ`;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} KB`;
+    if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+    return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 }
 
 // Размер картинки/видео при загрузке — чтобы в ленте сразу зарезервировать место под пропорции

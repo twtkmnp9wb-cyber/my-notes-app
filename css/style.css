@@ -492,3 +492,39 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 }
 .item.is-dragging { position: relative; z-index: 5; transition: none; background: rgba(60, 60, 60, 0.92); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6); animation: none; }
 .item.is-shifting { transition: transform 0.15s ease; }
+
+/* ================= СТРОЧКИ BACKLOG: галочка, комментарий-стрелка, метки ================= */
+.item .item-note { display: none; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--text-2); opacity: 1; white-space: pre-wrap; word-break: break-word; }
+.item.is-open .item-note { display: block; }
+.item-line { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.item-line .item-text { min-width: 0; }
+.note-toggle { flex: 0 0 auto; width: 22px; height: 22px; padding: 0; border: none; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.note-toggle::before {
+    content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg); transition: transform 0.2s;
+}
+.item.is-open .note-toggle::before { transform: rotate(45deg); }
+.row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin-top: 3px; }
+.row-meta .meta-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.row-meta .dl { font-size: 11px; }
+.row-item { align-items: center; }
+
+/* ================= SPRINT: Clear в шапке ================= */
+.panel-sprint { position: relative; }
+.panel-action {
+    position: absolute; top: 12px; right: 12px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--line);
+    background: none; color: var(--text-2); font: inherit; font-size: 12px; cursor: pointer;
+}
+.panel-action:active { opacity: 0.6; }
+
+/* ================= НАСТРОЙКИ: фон и стекло ================= */
+.bg-presets { display: flex; flex-wrap: wrap; gap: 10px; }
+.bg-swatch { width: 44px; height: 44px; padding: 0; border-radius: 14px; border: 2px solid var(--line); cursor: pointer; }
+.bg-swatch.is-active { border-color: #fff; }
+.range-row { display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
+.range-row input[type=range] { width: 100%; accent-color: var(--accent); }
+.range-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.range-ends i { font-style: normal; }
+
+/* чип Done — приглушённый, в ряду категорий */
+.chip.chip-muted:not(.is-active) { color: var(--muted); }

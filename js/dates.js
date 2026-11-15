@@ -36,23 +36,23 @@ export function daysBetween(fromKey, toKey) {
 }
 
 export function shortDate(key) {
-    return parseKey(key).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    return parseKey(key).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 export function formatTime(iso) {
-    return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
 // Подпись разделителя дней, как в Telegram. Для Dump «сегодня» — логический день, поэтому todayKey передаётся.
 export function dayLabel(dateOrKey, todayKey = calendarDayKey()) {
     const key = isDateKey(dateOrKey) ? dateOrKey : calendarDayKey(dateOrKey);
     const diff = daysBetween(key, todayKey);
-    if (diff === 0) return 'Сегодня';
-    if (diff === 1) return 'Вчера';
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
     const d = parseKey(key);
     const opts = { day: 'numeric', month: 'long' };
     if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
-    return d.toLocaleDateString('ru-RU', opts);
+    return d.toLocaleDateString('en-GB', opts);
 }
 
 // Цвет дедлайна: красный — меньше 3 дней (и просрочка), оранжевый — 3–14 дней,
@@ -60,13 +60,13 @@ export function dayLabel(dateOrKey, todayKey = calendarDayKey()) {
 export const DEADLINE_HOT_DAYS = 3;
 export const DEADLINE_CALM_DAYS = 14;
 export function deadlineInfo(due) {
-    if (!isDateKey(due)) return { level: 'none', label: 'без дедлайна', sort: 1e9 };
+    if (!isDateKey(due)) return { level: 'none', label: '', sort: 1e9 };
     const days = daysBetween(logicalDayKey(), due);
     let label;
-    if (days < 0) label = `просрочено ${-days} дн`;
-    else if (days === 0) label = 'сегодня';
-    else if (days === 1) label = 'завтра';
-    else label = `${days} дн · ${shortDate(due)}`;
+    if (days < 0) label = `${-days}d overdue`;
+    else if (days === 0) label = 'Today';
+    else if (days === 1) label = 'Tomorrow';
+    else label = `${days}d · ${shortDate(due)}`;
     const level = days < DEADLINE_HOT_DAYS ? 'hot' : days <= DEADLINE_CALM_DAYS ? 'calm' : 'far';
     return { level, label, sort: days };
 }

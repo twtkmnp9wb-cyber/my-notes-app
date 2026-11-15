@@ -17,10 +17,10 @@ export function sprintDayFor(date = new Date()) {
 }
 
 export const SEASON_KINDS = {
-    1: 'Семестр I',
-    2: 'Зимние каникулы',
-    3: 'Семестр II',
-    4: 'Лето',
+    1: 'Semester I',
+    2: 'Winter break',
+    3: 'Semester II',
+    4: 'Summer',
 };
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -178,7 +178,7 @@ export const store = {
             return true;
         } catch (e) {
             console.error(e);
-            alert('Не удалось сохранить: память браузера переполнена. Сделай экспорт в настройках и удали лишнее (например, обои).');
+            alert('Could not save: browser storage is full. Export a backup in Settings and delete something (e.g. the wallpaper).');
             return false;
         }
     },
@@ -238,7 +238,7 @@ export const store = {
             return true;
         } catch (e) {
             console.error(e);
-            alert('Архив не поместился в память браузера. Сделай экспорт и удали старые сезоны.');
+            alert('The archive does not fit in browser storage. Export a backup and delete old seasons.');
             return false;
         }
     },
@@ -257,7 +257,7 @@ export const store = {
         next.colors = { ...old.colors };
         if (carryBacklog) {
             next.cards = old.cards.filter((c) => !isCardDone(c));
-            next.rows = [...old.rows];
+            next.rows = old.rows.filter((r) => !r.done);
         }
         this.state = next;
         this.save();

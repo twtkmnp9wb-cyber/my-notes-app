@@ -9,7 +9,7 @@ import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignI
 import { media, kindOf, measure } from './media.js';
 import { compressImage, compressVideo } from './compress.js';
 import { openScreenDebug } from './screen-debug.js';
-import { WallpaperService } from './wallpaper.js';
+import { WallpaperService, GlassService, PRESETS } from './wallpaper.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -37,7 +37,7 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     const banner = $('#archiveBanner');
     banner.hidden = !ro;
     if (ro) {
-        banner.innerHTML = `<span>📦 Архив · ${esc(s.season.name)}</span><button data-act="exit-archive">Выйти</button>`;
+        banner.innerHTML = `<span>Archive · ${esc(s.season.name)}</span><button data-act="exit-archive">Exit</button>`;
     }
 
     $('#feedStickyHeader').classList.toggle('hidden', view.tab !== 'feed');
@@ -90,7 +90,7 @@ function updateSearchCounter() {
     const el = $('#searchCounter');
     if (!el) return;
     const { shown, total } = feedCounts(S());
-    el.textContent = view.search.trim() ? `${shown} из ${total}` : '';
+    el.textContent = view.search.trim() ? `${shown} / ${total}` : '';
 }
 
 function commit(opts) {
@@ -147,13 +147,14 @@ function readForm() {
 }
 
 function openSettings() {
-    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus, mediaUsage());
+    $('#settingsModal .modal-content').innerHTML = renderSettings(store.state, store.loadArchive(), WallpaperService.has(), syncStatus, mediaUsage(),
+        { preset: WallpaperService.preset(), glass: GlassService.get(), learn: view.learn, presets: PRESETS });
     openModal('#settingsModal');
 }
 
 const lines = (text) => text.split('\n').map((l) => l.trim()).filter(Boolean);
 const cleanTag = (t) => t.replace(/^#/, '').trim().toLowerCase();
-const categoryOptions = (s) => [{ value: '', label: 'Без категории' }, ...s.categories.map((c) => ({ value: c, label: c }))];
+const categoryOptions = (s) => [{ value: '', label: 'No category' }, ...s.categories.map((c) => ({ value: c, label: c }))];
 const defaultCategory = (s) => (view.backlogFilter !== 'all' ? view.backlogFilter : s.categories[0] || '');
 
 // ================= ФОРМЫ СУЩНОСТЕЙ =================
@@ -162,31 +163,31 @@ function postForm(post) {
     // Рабочий список вложений формы: сохранённые + только что выбранные (у них есть file и preview)
     const atts = (post?.attachments || []).map((a) => ({ ...a }));
     openForm({
-        title: post ? 'Редактировать пост' : 'Новый пост',
+        title: post ? 'Edit post' : 'New post',
         atts,
         fields: [
-            { type: 'text', name: 'title', label: 'Заголовок', value: post?.title, placeholder: 'необязательно' },
-            { type: 'textarea', name: 'text', label: 'Текст', value: post?.text, rows: 7, placeholder: 'Что происходит? #теги прямо в тексте тоже работают' },
-            { type: 'attachments', name: 'atts', label: 'Вложения', value: atts },
-            { type: 'chips', name: 'tags', label: 'Теги', options: s.tags, value: post?.tags },
+            { type: 'text', name: 'title', label: 'Title', value: post?.title, placeholder: 'optional' },
+            { type: 'textarea', name: 'text', label: 'Text', value: post?.text, rows: 7, placeholder: 'Write something… #tags work inline' },
+            { type: 'attachments', name: 'atts', label: 'Attachments', value: atts },
+            { type: 'chips', name: 'tags', label: 'Tags', options: s.tags, value: post?.tags },
         ],
-        submitLabel: post ? 'Сохранить' : 'Опубликовать',
+        submitLabel: post ? 'Save' : 'Post',
         onDelete: post && (() => {
-            if (!confirm('Удалить пост?')) return false;
+            if (!confirm('Delete post?')) return false;
             s.posts = s.posts.filter((p) => p.id !== post.id);
             gcMedia();
         }),
         onSubmit: async (v) => {
             const list = currentForm.atts;
-            if (!v.title && !v.text && !list.length) { toast('Пост пустой'); return false; }
-            if (list.some((a) => a.busy)) { toast('Подожди, ещё сжимаю файлы…'); return false; }
+            if (!v.title && !v.text && !list.length) { toast('Empty post'); return false; }
+            if (list.some((a) => a.busy)) { toast('Still compressing files…'); return false; }
             const fresh = list.filter((a) => a.file);
-            if (fresh.length) toast(`Сохраняю ${fresh.length > 1 ? 'файлы' : 'файл'}…`);
+            if (fresh.length) toast('Saving files…');
             try {
                 for (const a of fresh) await media.put(a.id, a.file);
             } catch (e) {
                 console.error(e);
-                alert(`Не удалось сохранить файл: ${/quota/i.test(e.name + e.message) ? 'в браузере не хватает места' : e.message}`);
+                alert(`Couldn't save the file: ${/quota/i.test(e.name + e.message) ? 'not enough browser storage' : e.message}`);
                 return false;
             }
             list.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });
@@ -210,7 +211,7 @@ async function addFormFiles(files) {
     const added = files.map((file) => {
         const kind = kindOf(file.type);
         const a = {
-            id: uid(), name: file.name || 'файл', type: file.type, size: file.size, kind, file,
+            id: uid(), name: file.name || 'file', type: file.type, size: file.size, kind, file,
             preview: kind === 'image' ? URL.createObjectURL(file) : null,
             busy: kind === 'image' || kind === 'video', progress: 0, originalSize: file.size,
             abort: new AbortController(),
@@ -304,12 +305,12 @@ function closeViewer() {
 function goalForm(goal) {
     const s = store.state;
     openForm({
-        title: goal ? 'Цель сезона' : 'Новая цель сезона',
-        note: goal ? '' : 'Формулируй так, чтобы в конце сезона можно было ответить «да» или «нет».',
+        title: goal ? 'Goal' : 'New goal',
+        note: 'Phrase it so that at the end of the season the answer is a clear yes or no. Counter: shows how many tasks of the chosen category you completed this season.',
         fields: [
-            { type: 'text', name: 'text', label: 'Цель', value: goal?.text, placeholder: 'Подтягиваться 15 раз' },
-            { type: 'select', name: 'category', label: 'Тема — под целью будет счётчик выполненных задач этой категории',
-                value: goal?.category || '', options: [{ value: '', label: 'Без счётчика' }, ...s.categories.map((c) => ({ value: c, label: c }))] },
+            { type: 'text', name: 'text', label: 'Goal', value: goal?.text, placeholder: 'Do 15 pull-ups' },
+            { type: 'select', name: 'category', label: 'Counter',
+                value: goal?.category || '', options: [{ value: '', label: 'No counter' }, ...s.categories.map((c) => ({ value: c, label: c }))] },
         ],
         onDelete: goal && (() => { s.goals = s.goals.filter((g) => g.id !== goal.id); }),
         onSubmit: (v) => {
@@ -323,8 +324,8 @@ function goalForm(goal) {
 function taskForm(task) {
     const s = store.state;
     openForm({
-        title: task ? 'Задача спринта' : 'Задача на сегодня',
-        fields: [{ type: 'text', name: 'text', label: 'Что сделать', value: task?.text }],
+        title: task ? 'Sprint task' : 'New sprint task',
+        fields: [{ type: 'text', name: 'text', label: 'Task', value: task?.text }],
         onDelete: task && (() => { s.sprint = s.sprint.filter((t) => t.id !== task.id); }),
         onSubmit: (v) => {
             if (!v.text) return false;
@@ -350,26 +351,26 @@ function logTaskDone(s, t) {
 function backlogNewForm(kind = 'card') {
     const s = store.state;
     openForm({
-        title: 'Добавить в Backlog',
+        title: 'Add to Backlog',
         fields: [
-            { type: 'select', name: 'kind', label: 'Тип', value: kind, options: [
-                { value: 'card', label: 'Карточка — крупная задача с подпунктами' },
-                { value: 'row', label: 'Строчка — простая задача' },
+            { type: 'select', name: 'kind', label: 'Type', value: kind, options: [
+                { value: 'card', label: 'Card' },
+                { value: 'row', label: 'Task' },
             ] },
-            { type: 'text', name: 'title', label: 'Название' },
-            { type: 'select', name: 'category', label: 'Категория', value: defaultCategory(s), options: categoryOptions(s) },
-            { type: 'date', name: 'due', label: 'Дедлайн (можно пусто)' },
-            { type: 'textarea', name: 'note', label: 'Комментарий (можно пусто) — пояснение, детали, мысль', rows: 3 },
-            { type: 'textarea', name: 'subs', label: 'Подпункты — только для карточки, по одному на строку', rows: 4 },
+            { type: 'text', name: 'title', label: 'Title' },
+            { type: 'select', name: 'category', label: 'Category', value: defaultCategory(s), options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Deadline' },
+            { type: 'textarea', name: 'note', label: 'Comment (tasks only)', rows: 3 },
+            { type: 'textarea', name: 'subs', label: 'Subtasks (cards only, one per line)', rows: 4 },
         ],
-        submitLabel: 'Добавить',
+        submitLabel: 'Add',
         onSubmit: (v) => {
-            if (!v.title) { toast('Нужно название'); return false; }
+            if (!v.title) { toast('Title required'); return false; }
             if (v.kind === 'row') {
                 s.rows.push({ id: uid(), title: v.title, note: v.note, category: v.category, due: v.due });
             } else {
                 s.cards.push({
-                    id: uid(), title: v.title, note: v.note, category: v.category, due: v.due,
+                    id: uid(), title: v.title, category: v.category, due: v.due,
                     subtasks: lines(v.subs).map((text) => ({ id: uid(), text, done: false })),
                 });
             }
@@ -380,18 +381,17 @@ function backlogNewForm(kind = 'card') {
 function cardForm(card) {
     const s = store.state;
     openForm({
-        title: 'Карточка',
-        note: 'Подпункты — по одному на строку. Отметки «выполнено» сохраняются у строк с тем же текстом.',
+        title: 'Card',
+        note: 'Subtasks: one per line. Done marks are kept for lines with the same text.',
         fields: [
-            { type: 'text', name: 'title', label: 'Название', value: card.title },
-            { type: 'select', name: 'category', label: 'Категория', value: card.category, options: categoryOptions(s) },
-            { type: 'date', name: 'due', label: 'Дедлайн', value: card.due },
-            { type: 'textarea', name: 'note', label: 'Комментарий — показывается на обороте карточки', value: card.note, rows: 3 },
-            { type: 'textarea', name: 'subs', label: 'Подпункты', value: card.subtasks.map((st) => st.text).join('\n'), rows: 6 },
+            { type: 'text', name: 'title', label: 'Title', value: card.title },
+            { type: 'select', name: 'category', label: 'Category', value: card.category, options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Deadline', value: card.due },
+            { type: 'textarea', name: 'subs', label: 'Subtasks', value: card.subtasks.map((st) => st.text).join('\n'), rows: 6 },
         ],
-        deleteLabel: 'Удалить карточку',
+        deleteLabel: 'Delete card',
         onDelete: () => {
-            if (!confirm(`Удалить карточку «${card.title}»?`)) return false;
+            if (!confirm(`Delete card “${card.title}”?`)) return false;
             s.cards = s.cards.filter((c) => c.id !== card.id);
             s.sprint.forEach((t) => { if (t.source?.cardId === card.id) t.source = null; });
             view.flipped.delete(card.id);
@@ -411,7 +411,7 @@ function cardForm(card) {
             // Сделанное по карточке переезжает в счётчик новой категории
             const ids = new Set([`card:${card.id}`, ...card.subtasks.map((st) => st.id)]);
             s.doneLog.forEach((e) => { if (ids.has(e.id)) e.category = v.category; });
-            Object.assign(card, { title: v.title, note: v.note, category: v.category, due: v.due });
+            Object.assign(card, { title: v.title, category: v.category, due: v.due });
         },
     });
 }
@@ -419,12 +419,12 @@ function cardForm(card) {
 function rowForm(row) {
     const s = store.state;
     openForm({
-        title: 'Строчка',
+        title: 'Task',
         fields: [
-            { type: 'text', name: 'title', label: 'Задача', value: row.title },
-            { type: 'select', name: 'category', label: 'Категория', value: row.category, options: categoryOptions(s) },
-            { type: 'date', name: 'due', label: 'Дедлайн', value: row.due },
-            { type: 'textarea', name: 'note', label: 'Комментарий', value: row.note, rows: 3 },
+            { type: 'text', name: 'title', label: 'Task', value: row.title },
+            { type: 'select', name: 'category', label: 'Category', value: row.category, options: categoryOptions(s) },
+            { type: 'date', name: 'due', label: 'Deadline', value: row.due },
+            { type: 'textarea', name: 'note', label: 'Comment', value: row.note, rows: 3 },
         ],
         onDelete: () => {
             s.rows = s.rows.filter((r) => r.id !== row.id);
@@ -442,8 +442,8 @@ function rowForm(row) {
 function categoriesForm() {
     const s = store.state;
     openForm({
-        title: 'Категории',
-        note: 'Очисти поле, чтобы удалить категорию. Её задачи останутся во вкладке «Все». Кружки под названием — цвет маркера.',
+        title: 'Categories',
+        note: 'Clear a field to delete the category; its tasks stay under All. The circles below a name set its marker color.',
         fields: s.categories.flatMap((c, i) => [
             { type: 'text', name: `c${i}`, value: c },
             { type: 'swatches', name: `k${i}`, value: markerKey(s, 'c', c) || 'none' },
@@ -468,10 +468,10 @@ function categoriesForm() {
 function seasonForm() {
     const s = store.state;
     openForm({
-        title: 'Текущий сезон',
+        title: 'Season',
         fields: [
-            { type: 'text', name: 'name', label: 'Название', value: s.season.name },
-            { type: 'select', name: 'kind', label: 'Тип сезона', value: s.season.kind,
+            { type: 'text', name: 'name', label: 'Name', value: s.season.name },
+            { type: 'select', name: 'kind', label: 'Type', value: s.season.kind,
                 options: Object.entries(SEASON_KINDS).map(([value, label]) => ({ value, label })) },
         ],
         onSubmit: (v) => {
@@ -486,22 +486,22 @@ function closeSeasonForm() {
     const s = store.state;
     const nextKind = (s.season.kind % 4) + 1;
     openForm({
-        title: 'Закрыть сезон',
-        note: `«${s.season.name}» целиком уйдёт в архив — его можно будет открыть и полистать. Лента, цели, спринт и Dump начнутся с чистого листа.`,
+        title: 'Close season',
+        note: `“${s.season.name}” moves to the archive as a whole and can be opened later. Library, goals, sprint and dump start from scratch.`,
         fields: [
-            { type: 'text', name: 'name', label: 'Новый сезон', value: seasonName(nextKind) },
-            { type: 'select', name: 'kind', label: 'Тип', value: nextKind,
+            { type: 'text', name: 'name', label: 'Next season', value: seasonName(nextKind) },
+            { type: 'select', name: 'kind', label: 'Type', value: nextKind,
                 options: Object.entries(SEASON_KINDS).map(([value, label]) => ({ value, label })) },
-            { type: 'checkbox', name: 'carry', label: 'Перенести незакрытые задачи Backlog', value: true },
+            { type: 'checkbox', name: 'carry', label: 'Carry over open backlog', value: true },
         ],
-        submitLabel: 'Закрыть и начать новый',
+        submitLabel: 'Close & start new',
         onSubmit: (v) => {
-            if (!confirm('Точно закрыть сезон?')) return false;
+            if (!confirm('Close the season?')) return false;
             const kind = Number(v.kind);
             if (!store.closeSeason({ name: v.name || seasonName(kind), kind, carryBacklog: v.carry })) return false;
             view.tab = 'feed';
             view.archive = null;
-            toast('Сезон в архиве. Новый старт ✨');
+            toast('Season archived');
         },
     });
 }
@@ -512,6 +512,7 @@ const READONLY_OK = new Set([
     'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'filter', 'flip', 'dump-sub',
     'exit-archive', 'close-modal', 'form-chip', 'form-swatch', 'stash-toggle', 'form-delete', 'open-media', 'media-nav', 'media-close',
     'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
+    'toggle-note', 'toggle-learn', 'bg-preset',
 ]);
 
 const find = (list, id) => list.find((x) => x.id === id);
@@ -582,9 +583,9 @@ const actions = {
     'edit-manifest'() {
         const s = store.state;
         openForm({
-            title: 'Манифест сезона',
-            note: 'Направления, которые не превратишь в задачу, но важно держать перед глазами. По одному на строку.',
-            fields: [{ type: 'textarea', name: 'words', value: s.manifest.join('\n'), rows: 5, placeholder: 'красота\nосанка\nфокус' }],
+            title: 'Manifest',
+            note: 'Directions that cannot become a task but matter to keep in sight. One per line.',
+            fields: [{ type: 'textarea', name: 'words', value: s.manifest.join('\n'), rows: 5, placeholder: 'focus\nposture\nstyle' }],
             onSubmit: (v) => { s.manifest = lines(v.words).map(cleanTag); },
         });
     },
@@ -615,18 +616,41 @@ const actions = {
         const today = s.sprint.filter(isTodayTask);
         if (!today.length) return;
         const open = today.filter((t) => !t.done).length;
-        if (open && !confirm(`Убрать все сегодняшние задачи (${today.length})? Из них невыполненных: ${open}.`)) return;
+        if (open && !confirm(`Clear today's tasks (${today.length})? Unfinished: ${open}.`)) return;
         today.forEach((t) => {
             if (t.done && t.source?.kind === 'row') s.rows = s.rows.filter((r) => r.id !== t.source.id);
         });
         s.sprint = s.sprint.filter((t) => !isTodayTask(t));
-        toast('Сегодняшний день очищен 🌙');
+        toast('Cleared');
         commit();
     },
 
     // --- backlog
-    filter({ cat }) { view.backlogFilter = cat; render({ keepScroll: false }); },
-    'stash-toggle'() { view.showStash = !view.showStash; render({ keepScroll: false }); },
+    filter({ cat }) { view.backlogFilter = cat; view.showStash = false; render({ keepScroll: false }); },
+    'stash-toggle'() { view.showStash = !view.showStash; render({ keepScroll: false }); },   // чип Done в ряду категорий
+    // Выполненная строчка уходит в Stash (и из спринта, если была там); повторное нажатие в Stash возвращает её
+    'toggle-row'({ id }, el) {
+        const s = S();
+        const r = find(s.rows, id);
+        if (!r) return;
+        r.done = !r.done;
+        logDone(s, r.id, r.category, r.done);
+        if (r.done) s.sprint = s.sprint.filter((t) => !(t.source?.kind === 'row' && t.source.id === id));
+        el.closest('.item')?.classList.toggle('is-done', r.done);
+        store.save();
+        setTimeout(() => render(), 320);
+    },
+    'toggle-note'({ id }, el) {
+        const open = el.closest('.item').classList.toggle('is-open');
+        if (open) view.openNotes.add(id); else view.openNotes.delete(id);
+    },
+    'toggle-learn'() {
+        view.learn = !view.learn;
+        try { localStorage.setItem('app_learn', view.learn ? '1' : '0'); } catch { /* приватный режим */ }
+        render();
+        openSettings();
+    },
+    'bg-preset'({ id }) { WallpaperService.setPreset(id); openSettings(); },
     flip({ id }) {
         if (view.flipped.has(id)) view.flipped.delete(id); else view.flipped.add(id);
         $(`.flip[data-id="${id}"]`)?.classList.toggle('is-flipped');
@@ -645,11 +669,10 @@ const actions = {
         refreshCard(c);
         if (wasComplete !== isCardDone(c)) refreshBacklogChips();
         if (!wasComplete && isCardDone(c) && !view.showStash) {
-            // Секунду показываем закрытую карточку, чтобы было видно, что она закрылась, и увозим на склад
-            toast('Карточка закрыта 🎉 Уехала на склад');
+            // Закрытая карточка на мгновение остаётся на месте, потом уезжает в Stash
             setTimeout(() => {
                 if (view.tab === 'backlog' && !view.showStash && isCardDone(c)) render();
-            }, 1100);
+            }, 450);
         }
     },
     'sub-to-sprint'({ card, id }) {
@@ -658,7 +681,7 @@ const actions = {
         const sub = find(c?.subtasks || [], id);
         if (!sub) return;
         s.sprint.push({ id: uid(), text: sub.text, done: false, plannedFor: sprintDayFor(), strikes: 0, source: { kind: 'sub', cardId: card, id } });
-        toast('🚀 Подпункт отправлен в спринт');
+        toast('Added to sprint');
         store.save();
         refreshCard(c);
     },
@@ -667,16 +690,16 @@ const actions = {
         const r = find(s.rows, id);
         if (!r) return;
         s.sprint.push({ id: uid(), text: r.title, done: false, plannedFor: sprintDayFor(), strikes: 0, source: { kind: 'row', id } });
-        toast('🚀 Задача отправлена в спринт');
+        toast('Added to sprint');
         commit();
     },
     'add-sub'({ id }) {
         const card = find(S().cards, id);
         if (!card) return;
         openForm({
-            title: `Подпункт · ${card.title}`,
-            fields: [{ type: 'text', name: 'text', label: 'Что сделать' }],
-            submitLabel: 'Добавить',
+            title: `Subtask · ${card.title}`,
+            fields: [{ type: 'text', name: 'text', label: 'Task' }],
+            submitLabel: 'Add',
             onSubmit: (v) => {
                 if (!v.text) return false;
                 card.subtasks.push({ id: uid(), text: v.text, done: false });
@@ -689,9 +712,9 @@ const actions = {
     'add-category'() {
         const s = store.state;
         openForm({
-            title: 'Новая категория',
-            fields: [{ type: 'text', name: 'name', label: 'Название', placeholder: 'Музыка' }],
-            submitLabel: 'Добавить',
+            title: 'New category',
+            fields: [{ type: 'text', name: 'name', label: 'Name', placeholder: 'Music' }],
+            submitLabel: 'Add',
             onSubmit: (v) => {
                 if (!v.name) return false;
                 if (!s.categories.includes(v.name)) s.categories.push(v.name);
@@ -708,7 +731,7 @@ const actions = {
         if (!text) return;
         S().dump.push({ id: uid(), text, createdAt: new Date().toISOString() });
         view.dumpDraft = '';
-        toast('Выгружено. Можно спать 🌙');
+        toast('Saved');
         commit({ keepScroll: false });
     },
     'dump-to-feed'({ id }) {
@@ -718,7 +741,7 @@ const actions = {
         // Пост встаёт в ленту с исходным временем мысли — так видно, что думал в тот момент
         s.posts.push({ id: uid(), title: '', text: d.text, tags: [], createdAt: d.createdAt });
         s.dump = s.dump.filter((x) => x.id !== id);
-        toast('✨ Сохранено в ленту');
+        toast('Moved to library');
         commit();
     },
     // Идея, которая не ложится в ленту: заголовок — первая строка, всё остальное уходит в комментарий строчки
@@ -732,7 +755,7 @@ const actions = {
         if (title.length > 80) { note = d.text.trim(); title = `${title.slice(0, 79).trimEnd()}…`; }
         s.rows.push({ id: uid(), title, note, category: '', due: '' });
         s.dump = s.dump.filter((x) => x.id !== id);
-        toast('📥 Сохранено в Backlog');
+        toast('Moved to backlog');
         commit();
     },
     'dump-delete'({ id }) { S().dump = S().dump.filter((x) => x.id !== id); commit(); },
@@ -745,12 +768,12 @@ const actions = {
             || (src?.kind === 'sub' && find(find(s.cards, src.cardId)?.subtasks || [], src.id));
         if (!stillThere) s.rows.push({ id: uid(), title: f.text, category: s.categories[0] || '', due: '' });
         s.failed = s.failed.filter((x) => x.id !== id);
-        toast('Вернул в бэклог');
+        toast('Moved to backlog');
         commit();
     },
     'failed-delete'({ id }) { S().failed = S().failed.filter((x) => x.id !== id); commit(); },
     'failed-clear'() {
-        if (!confirm('Выбросить все невыполненные задачи?')) return;
+        if (!confirm('Discard all missed tasks?')) return;
         S().failed = [];
         commit();
     },
@@ -759,34 +782,34 @@ const actions = {
     // --- синхронизация
     async 'sync-login'() {
         const email = $('#syncEmail')?.value.trim();
-        if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Введи почту'); return; }
-        try { await signIn(email); } catch (e) { alert(`Не получилось отправить письмо: ${e.message}`); }
+        if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Enter your email'); return; }
+        try { await signIn(email); } catch (e) { alert(`Couldn't send the email: ${e.message}`); }
     },
     async 'sync-verify'() {
         const code = $('#syncCode')?.value.trim();
         if (!code) return;
-        try { await verifyCode(code); toast('Вход выполнен'); } catch (e) { alert(`Не получилось войти: ${e.message}`); }
+        try { await verifyCode(code); toast('Signed in'); } catch (e) { alert(`Couldn't sign in: ${e.message}`); }
     },
     async 'sync-login-password'() {
         const email = $('#syncEmail')?.value.trim();
         const password = $('#syncPassword')?.value;
-        if (!email || !password) { toast('Введи почту и пароль'); return; }
-        try { await signInWithPassword(email, password); toast('Вход выполнен'); } catch (e) { alert(`Не получилось войти: ${e.message}`); }
+        if (!email || !password) { toast('Enter email and password'); return; }
+        try { await signInWithPassword(email, password); toast('Signed in'); } catch (e) { alert(`Couldn't sign in: ${e.message}`); }
     },
     'sync-mode'({ mode }) { setLoginMode(mode); },
     'sync-set-password'() {
         openForm({
-            title: 'Пароль для входа',
-            note: 'С ним можно войти на новом устройстве или в приложении с экрана «Домой» без письма. Минимум 6 символов.',
+            title: 'Password',
+            note: 'Lets you sign in on a new device or in the Home Screen app without an email. Minimum 6 characters.',
             fields: [
-                { type: 'password', name: 'p1', label: 'Новый пароль' },
-                { type: 'password', name: 'p2', label: 'Ещё раз' },
+                { type: 'password', name: 'p1', label: 'New password' },
+                { type: 'password', name: 'p2', label: 'Repeat' },
             ],
             onSubmit: async (v) => {
-                if (v.p1.length < 6) { toast('Минимум 6 символов'); return false; }
-                if (v.p1 !== v.p2) { toast('Пароли не совпадают'); return false; }
-                try { await setPassword(v.p1); } catch (e) { alert(`Не получилось задать пароль: ${e.message}`); return false; }
-                toast('Пароль задан 🔑');
+                if (v.p1.length < 6) { toast('Minimum 6 characters'); return false; }
+                if (v.p1 !== v.p2) { toast("Passwords don't match"); return false; }
+                try { await setPassword(v.p1); } catch (e) { alert(`Couldn't set the password: ${e.message}`); return false; }
+                toast('Password set');
                 return { reopenSettings: true };
             },
         });
@@ -794,7 +817,7 @@ const actions = {
     'sync-cancel': () => cancelSignIn(),
     'sync-now': () => syncNow(),
     async 'sync-logout'() {
-        if (!confirm('Выйти? Данные останутся на этом устройстве, но перестанут синхронизироваться.')) return;
+        if (!confirm('Sign out? Data stays on this device but stops syncing.')) return;
         await signOut();
     },
 
@@ -821,7 +844,7 @@ const actions = {
     'delete-archive'({ id }) {
         const list = store.loadArchive();
         const entry = list.find((a) => a.id === id);
-        if (!entry || !confirm(`Удалить архив «${entry.state.season?.name}» навсегда?`)) return;
+        if (!entry || !confirm(`Delete archive “${entry.state.season?.name}” permanently?`)) return;
         store.saveArchive(list.filter((a) => a.id !== id));
         if (view.archive?.entry.id === id) view.archive = null;
         gcMedia();
@@ -831,8 +854,8 @@ const actions = {
     'manage-tags'() {
         const s = store.state;
         openForm({
-            title: 'Теги ленты',
-            note: 'Регламент тегов: по одному на строку. Эти теги предлагаются при создании поста.',
+            title: 'Tags',
+            note: 'One tag per line. These tags are offered when you create a post.',
             fields: [{ type: 'textarea', name: 'tags', value: s.tags.join('\n'), rows: 8 }],
             onSubmit: (v) => {
                 s.tags = [...new Set(lines(v.tags).map(cleanTag).filter(Boolean))];
@@ -861,7 +884,7 @@ const actions = {
     'tag-color'({ tag }) {
         const s = store.state;
         openForm({
-            title: `Цвет · #${tag}`,
+            title: `Color · #${tag}`,
             fields: [{ type: 'swatches', name: 'color', value: markerKey(s, 't', tag) || 'none' }],
             onSubmit: (v) => { s.colors[`t:${tag}`] = v.color; return { reopenSettings: true }; },
         });
@@ -916,6 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     store.load();
     WallpaperService.apply();
+    GlassService.apply();
 
     document.addEventListener('click', (e) => {
         const modal = e.target.closest('.modal');
@@ -926,7 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fn = actions[el.dataset.act];
         if (!fn) return;
         if (RO() && !READONLY_OK.has(el.dataset.act) && !el.closest('#settingsModal')) {
-            toast('Это архив — только просмотр');
+            toast('Archive is read-only');
             return;
         }
         fn(el.dataset, el, e);
@@ -961,6 +985,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const dx = e.changedTouches[0].clientX - touchX;
         touchX = null;
         if (Math.abs(dx) > 50) navViewer(dx < 0 ? 1 : -1);
+    });
+
+    // Матовость стекла: меняется на лету
+    document.addEventListener('input', (e) => {
+        if (e.target.id === 'glassRange') GlassService.set(e.target.value / 100);
     });
 
     // Порядок задач спринта: тянешь за «⠿». Остальные задачи плавно расступаются, порядок применяется при отпускании.
@@ -1044,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'bgFileInput' && e.target.files[0]) {
             try {
                 await WallpaperService.setFromFile(e.target.files[0]);
-                toast('Обои обновлены');
+                toast('Background updated');
                 openSettings();
             } catch (err) {
                 alert(err.message);
@@ -1054,15 +1083,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const data = JSON.parse(await e.target.files[0].text());
                 if (!data.state) throw new Error('bad file');
-                if (!confirm('Заменить текущие данные данными из файла?')) return;
+                if (!confirm('Replace current data with the file?')) return;
                 store.replace(data.state);
                 if (Array.isArray(data.archive)) store.saveArchive(data.archive);
                 view.archive = null;
                 closeModals();
                 render({ scrollToEnd: true });
-                toast('Данные восстановлены');
+                toast('Data restored');
             } catch {
-                alert('Не получилось прочитать файл резервной копии');
+                alert("Couldn't read the backup file");
             }
         }
     });
