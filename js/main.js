@@ -41,10 +41,19 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
         banner.innerHTML = `<span>Archive · ${esc(s.season.name)}</span><button data-act="exit-archive">Exit</button>`;
     }
 
+    // Карусели чипсов перерисовываются вместе с шапкой — запоминаем, где они были промотаны
+    const feedChipsLeft = $('#feedStickyHeader .search-tags')?.scrollLeft || 0;
+    const backlogChipsLeft = $('#backlogChipsSlot .chips-scroll')?.scrollLeft || 0;
+
     $('#feedStickyHeader').classList.toggle('hidden', view.tab !== 'feed');
     $('#backlogStickyHeader').classList.toggle('hidden', view.tab !== 'backlog');
     if (view.tab === 'feed') $('#feedStickyHeader .page-sticky-header-inner').innerHTML = renderFeedHeader(s, ro);
     if (view.tab === 'backlog') $('#backlogChipsSlot').innerHTML = renderBacklogChips(s, ro);
+
+    const feedChips = $('#feedStickyHeader .search-tags');
+    if (feedChips) feedChips.scrollLeft = feedChipsLeft;
+    const backlogChips = $('#backlogChipsSlot .chips-scroll');
+    if (backlogChips) backlogChips.scrollLeft = backlogChipsLeft;
 
     renderContent();
     autosizeDump();
@@ -99,16 +108,45 @@ function updateSearchCounter() {
     } else {
         el.textContent = '';
     }
-    document.querySelectorAll('[data-act="search-prev"], [data-act="search-next"]').forEach((b) => { b.disabled = ids.length < 2; });
+    // «вверх» недоступна на самом старом результате, «вниз» — на самом свежем; по кругу не листаем
+    document.querySelectorAll('[data-act="search-prev"]').forEach((b) => { b.disabled = view.searchIdx <= 0 || !ids.length; });
+    document.querySelectorAll('[data-act="search-next"]').forEach((b) => { b.disabled = view.searchIdx >= ids.length - 1 || !ids.length; });
     document.querySelectorAll('.post.is-current').forEach((p) => p.classList.remove('is-current'));
     const cur = ids[view.searchIdx];
     if (cur) document.querySelector(`.post[data-pid="${cur}"]`)?.classList.add('is-current');
 }
 
+let scrollAnim = 0;
+function scrollViewportTo(target, smooth) {
+    const vp = $('#scrollViewport');
+    cancelAnimationFrame(scrollAnim);
+    if (!smooth) { vp.scrollTop = target; return; }
+    const from = vp.scrollTop;
+    const dist = target - from;
+    const t0 = performance.now();
+    const DUR = 220;
+    const step = (now) => {
+        const k = Math.min(1, (now - t0) / DUR);
+        vp.scrollTop = from + dist * (1 - (1 - k) ** 3);   // easeOutCubic
+        if (k < 1) scrollAnim = requestAnimationFrame(step);
+    };
+    scrollAnim = requestAnimationFrame(step);
+}
+
 function goToMatch(smooth = true) {
     updateSearchCounter();
     const id = searchMatches(S())[view.searchIdx];
-    if (id) document.querySelector(`.post[data-pid="${id}"]`)?.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' });
+    const el = id && document.querySelector(`.post[data-pid="${id}"]`);
+    if (!el) return;
+    // Центрируем пост в видимой области: ниже плавающей шапки и выше нижних кнопок
+    const vp = $('#scrollViewport');
+    const topH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 0;
+    const r = el.getBoundingClientRect();
+    const vr = vp.getBoundingClientRect();
+    const visibleTop = vr.top + topH;
+    const visibleH = vr.height - topH - 90;
+    const delta = (r.top + r.height / 2) - (visibleTop + visibleH / 2);
+    scrollViewportTo(vp.scrollTop + delta, smooth);
 }
 
 // Шапка и подшапка лежат поверх ленты (как в Telegram): сообщаем CSS их суммарную высоту
@@ -624,13 +662,15 @@ const actions = {
     'search-prev'() {
         const n = searchMatches(S()).length;
         if (!n) return;
-        view.searchIdx = (view.searchIdx - 1 + n) % n;
+        if (view.searchIdx <= 0) return;
+        view.searchIdx -= 1;
         goToMatch();
     },
     'search-next'() {
         const n = searchMatches(S()).length;
         if (!n) return;
-        view.searchIdx = (view.searchIdx + 1) % n;
+        if (view.searchIdx >= n - 1) return;
+        view.searchIdx += 1;
         goToMatch();
     },
     'search-close'() {
@@ -934,6 +974,7 @@ const actions = {
         const s = store.state;
         openForm({
             title: 'Tags',
+            backToSettings: true,
             note: 'One tag per line. These tags are offered when you create a post.',
             fields: [{ type: 'textarea', name: 'tags', value: s.tags.join('\n'), rows: 8 }],
             onSubmit: (v) => {
@@ -953,7 +994,7 @@ const actions = {
     },
 
     // --- формы
-    'close-modal': () => closeModals(),
+    'close-modal': () => cancelModal(),
     'form-chip'(_, el) { el.classList.toggle('is-active'); },
     'form-swatch'({ value }, el) {
         const wrap = el.closest('.swatches');
@@ -964,6 +1005,7 @@ const actions = {
         const s = store.state;
         openForm({
             title: `Color · #${tag}`,
+            backToSettings: true,
             fields: [{ type: 'swatches', name: 'color', value: markerChoice(s, 't', tag) }],
             onSubmit: (v) => { s.colors[`t:${tag}`] = v.color; return { reopenSettings: true }; },
         });
@@ -998,6 +1040,13 @@ const actions = {
     },
 };
 
+// Крестик, тап по фону и Esc: формы, открытые из настроек, возвращают обратно в настройки
+function cancelModal() {
+    const back = currentForm?.backToSettings;
+    closeModals();
+    if (back) openSettings();
+}
+
 async function submitCurrentForm() {
     if (!currentForm || currentForm.busy) return;
     const form = currentForm;
@@ -1022,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', (e) => {
         const modal = e.target.closest('.modal');
-        if (modal && e.target === modal) { closeModals(); return; }
+        if (modal && e.target === modal) { cancelModal(); return; }
 
         const el = e.target.closest('[data-act]');
         if (!el || el.disabled) return;
@@ -1048,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'ArrowRight') navViewer(1);
             return;
         }
-        if (e.key === 'Escape') closeModals();
+        if (e.key === 'Escape') cancelModal();
         // Cmd/Ctrl+Enter — отправить форму или выгрузить Dump
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             if (currentForm) submitCurrentForm();

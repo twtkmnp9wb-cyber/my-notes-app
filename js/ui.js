@@ -216,22 +216,24 @@ export function renderFeedHeader(s, ro) {
                 <button class="icon-btn chev down" data-act="search-next" title="Next" aria-label="Next"></button>
                 <button class="icon-btn" data-act="search-close" title="Close">✕</button>
             </div>
-            ${allTags.length ? `<div class="chips-scroll search-tags">${allTags.map((t) =>
-                `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">${mk(s, 't', t)}#${esc(t)}</button>`).join('')}</div>` : ''}
+            ${allTags.length ? `<div class="search-tags-wrap"><div class="chips-scroll search-tags">${allTags.map((t) =>
+                `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">${mk(s, 't', t)}#${esc(t)}</button>`).join('')}</div></div>` : ''}
         ` : ''}
-        <img class="born-img" src="img/born-to-win.png" alt="Born to win." draggable="false">
     `;
 }
+
+// Надпись — точка отсчёта: стоит в самом начале ленты и уезжает вместе с постами
+const BORN = '<img class="born-img" src="img/born-to-win.png" alt="Born to win." draggable="false">';
 
 export function renderFeed(s, ro) {
     const q = view.search.trim().toLowerCase();
     const all = [...s.posts].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
     const posts = all;   // поиск как в Telegram: лента не фильтруется, результаты подсвечиваются и листаются стрелками
     if (!posts.length) {
-        return empty(ro ? 'No posts in this season.' : 'The library is empty. Tap + to write your first post.');
+        return BORN + empty(ro ? 'No posts in this season.' : 'The library is empty. Tap + to write your first post.');
     }
 
-    let out = '';
+    let out = BORN;
     let lastDay = '';
     for (const p of posts) {
         const day = calendarDayKey(p.createdAt);
@@ -376,12 +378,12 @@ export function cardHtml(s, c, ro) {
                 <div class="flip-face">
                     <div class="card-top">
                         <span class="pill">${mk(s, 'c', c.category)}${esc(c.category || '—')}</span>
-                        ${complete ? '' : `<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>`}
+                        ${complete ? (c.closedAt ? `<span class="dl dl-done"><i class="dot"></i>Closed ${esc(shortDate(c.closedAt))}</span>` : '') : `<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>`}
                     </div>
                     <h4 class="card-title">${esc(c.title)}</h4>
                     <div>
                         ${bar(pct)}
-                        <div class="card-foot"><span>${complete ? ([c.closedAt && `Closed ${shortDate(c.closedAt)}`, c.due && `Due ${shortDate(c.due)}`].filter(Boolean).join(' · ') || '100%') : total ? `${pct}%` : ''}</span></div>
+                        <div class="card-foot"><span>${complete ? (c.due ? `Due ${shortDate(c.due)}` : c.closedAt ? '' : '100%') : total ? `${pct}%` : ''}</span></div>
                     </div>
                 </div>
                 <div class="flip-face flip-back">
@@ -404,7 +406,7 @@ function rowHtml(s, r, ro) {
     const meta = [
         r.category ? `<span class="meta-cat">${mk(s, 'c', r.category)}${esc(r.category)}</span>` : '',
         ...(r.done
-            ? [r.doneAt ? `<span class="meta-plain">Closed ${esc(shortDate(r.doneAt))}</span>` : '',
+            ? [r.doneAt ? `<span class="dl dl-done"><i class="dot"></i>Closed ${esc(shortDate(r.doneAt))}</span>` : '',
                r.due ? `<span class="meta-plain">Due ${esc(shortDate(r.due))}</span>` : '']
             : [`<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>`]),
     ].filter(Boolean).join('');

@@ -91,12 +91,13 @@ export const GlassService = {
     },
 
     apply(t = this.get()) {
-        // Слева белое прозрачное стекло, к середине оно дымчатое, справа — плотное и матовое, но не чёрное
-        const c = Math.round(255 * (1 - Math.min(1, t * 2)));
-        const a = 0.08 + 0.42 * t;
+        // Слева почти прозрачное стекло, справа — матовое: цвет остаётся светлой дымкой, растут размытие и насыщенность фона
+        const c = Math.round(255 - 100 * t);
+        const a = 0.08 + 0.26 * t;
         const root = document.documentElement.style;
-        root.setProperty('--glass', `rgba(${c}, ${c}, ${c}, ${a.toFixed(3)})`);
-        root.setProperty('--blur', `blur(${Math.round(16 + 24 * t)}px) saturate(${(1 + 0.3 * t).toFixed(2)})`);
+        root.setProperty('--glass', `rgba(${c}, ${c}, ${c + 4}, ${a.toFixed(3)})`);
+        root.setProperty('--blur', `blur(${Math.round(16 + 34 * t)}px) saturate(${(1 + 0.45 * t).toFixed(2)})`);
+        root.setProperty('--line', `rgba(255, 255, 255, ${(0.14 + 0.1 * t).toFixed(3)})`);
     },
 
     set(t) {

@@ -449,10 +449,8 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 }
 
 /* Кнопка «⋯» поверх фото должна читаться на любой картинке */
-.post:has(> .album:nth-child(2)) .post-menu {
-    z-index: 1; top: 12px; right: 12px; color: #fff; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-}
+/* поверх фото «⋯» такая же, как у остальных постов, только читаемая на любом снимке */
+.post:has(> .album:nth-child(2)) .post-menu { z-index: 1; color: #fff; text-shadow: 0 1px 5px rgba(0, 0, 0, 0.75); }
 
 /* Статус синхронизации в настройках */
 .sync-line { display: inline-flex; align-items: center; gap: 6px; }
@@ -582,9 +580,10 @@ body[data-tab="feed"] .scroll-viewport {
 .post.is-current { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55), 0 8px 32px rgba(0, 0, 0, 0.3); }
 
 /* ================= ФОРМЫ: свой цвет, новый тег ================= */
-.swatch-custom { position: relative; display: inline-block; overflow: hidden; background: conic-gradient(#f43f5e, #fbbf24, #34d399, #22d3ee, #818cf8, #f472b6, #f43f5e); }
+.swatch-custom { position: relative; display: inline-block; clip-path: circle(50%); background: conic-gradient(#f43f5e, #fbbf24, #34d399, #22d3ee, #818cf8, #f472b6, #f43f5e); }
 .swatch-custom.is-active { background: var(--mk); }
-.swatch-custom input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: none; opacity: 0; cursor: pointer; }
+.swatch-custom input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: none; border-radius: 50%; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.swatch-custom.is-active { box-shadow: inset 0 0 0 2px #fff; }
 .field .chips-wrap .chip-input {
     flex: 0 0 auto; width: 96px; padding: 3px 12px; border: 1px dashed var(--line); border-radius: 99px;
     background: transparent; color: #fff; font-size: 16px; outline: none;
@@ -594,3 +593,15 @@ body[data-tab="feed"] .scroll-viewport {
 .meta-plain { font-size: 11px; color: var(--muted); }
 .btn-mini:disabled { opacity: 0.35; cursor: default; }
 .panel .btn-mini { margin-top: 12px; }
+
+/* ================= ДЕДЛАЙНЫ И ЗАКРЫТИЕ: у всех свой подсвеченный индикатор ================= */
+.dot { box-shadow: 0 0 6px rgba(255, 255, 255, 0.55); }
+.dl-done { color: var(--text-2); }
+.dl-done .dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+/* ================= КАРУСЕЛЬ ТЕГОВ В ПОИСКЕ: стеклянная подложка ================= */
+.search-tags-wrap {
+    padding: 5px 6px; border: 1px solid var(--line); border-radius: 9999px;
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+}
+.born-img { margin: 4px auto 18px; }
