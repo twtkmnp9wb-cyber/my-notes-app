@@ -208,6 +208,7 @@ export function renderFeedHeader(s, ro) {
             <span class="manifest-words">${words}</span>
         </button>
         ${view.searchOpen ? `
+            <div class="search-box">
             <div class="search-bar">
                 <span class="muted">🔍</span>
                 <input type="search" id="searchInput" class="search-input" placeholder="Search or #tag" value="${esc(view.search)}" autocomplete="off">
@@ -218,6 +219,7 @@ export function renderFeedHeader(s, ro) {
             </div>
             ${allTags.length ? `<div class="search-tags-wrap"><div class="chips-scroll search-tags">${allTags.map((t) =>
                 `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">${mk(s, 't', t)}#${esc(t)}</button>`).join('')}</div></div>` : ''}
+            </div>
         ` : ''}
     `;
 }
@@ -404,7 +406,7 @@ function rowHtml(s, r, ro) {
     const queued = inSprint(s, (src) => src.kind === 'row' && src.id === r.id);
     const open = view.openNotes.has(r.id);
     const meta = [
-        r.category ? `<span class="meta-cat">${mk(s, 'c', r.category)}${esc(r.category)}</span>` : '',
+        r.category ? `<span class="pill">${mk(s, 'c', r.category)}${esc(r.category)}</span>` : '',
         ...(r.done
             ? [r.doneAt ? `<span class="dl dl-done"><i class="dot"></i>Closed ${esc(shortDate(r.doneAt))}</span>` : '',
                r.due ? `<span class="meta-plain">Due ${esc(shortDate(r.due))}</span>` : '']
