@@ -5,12 +5,16 @@ const GLASS_KEY = 'app_glass';
 // Однотонные «глубокие» фоны: тёмная база и мягкое свечение сверху справа
 export const PRESETS = {
     oled: { name: 'OLED Black', css: '#000000' },
-    graphite: { name: 'Graphite', css: 'radial-gradient(120% 70% at 80% 0%, #2b2f38 0%, #14161b 45%, #07080a 100%)' },
-    midnight: { name: 'Midnight', css: 'radial-gradient(120% 70% at 85% 0%, #123a7a 0%, #0a1c40 38%, #050a18 100%)' },
-    violet: { name: 'Violet', css: 'radial-gradient(120% 70% at 85% 0%, #4a2090 0%, #20113f 40%, #0a0614 100%)' },
-    emerald: { name: 'Emerald', css: 'radial-gradient(120% 70% at 85% 0%, #1f7a5c 0%, #0f3b2f 40%, #04120e 100%)' },
-    bordeaux: { name: 'Bordeaux', css: 'radial-gradient(120% 70% at 85% 0%, #7a1d3a 0%, #3a0d1c 42%, #12050a 100%)' },
+    graphite: { name: 'Graphite', css: 'radial-gradient(120% 70% at 80% 0%, #23262d 0%, #0f1115 45%, #040506 100%)' },
+    ink: { name: 'Ink', css: 'radial-gradient(120% 70% at 85% 0%, #0d2147 0%, #070f24 42%, #02050d 100%)' },
+    forest: { name: 'Forest', css: 'radial-gradient(120% 70% at 85% 0%, #0c3a2c 0%, #061f17 42%, #020a07 100%)' },
+    aubergine: { name: 'Aubergine', css: 'radial-gradient(120% 70% at 85% 0%, #3b1850 0%, #190a28 42%, #07030d 100%)' },
+    oxblood: { name: 'Oxblood', css: 'radial-gradient(120% 70% at 85% 0%, #6b1530 0%, #330a17 42%, #0e0408 100%)' },
+    espresso: { name: 'Espresso', css: 'radial-gradient(120% 70% at 85% 0%, #4a2f22 0%, #26160f 42%, #0b0604 100%)' },
+    petrol: { name: 'Petrol', css: 'radial-gradient(120% 70% at 85% 0%, #0f4a53 0%, #08262c 42%, #020c0e 100%)' },
 };
+// Ключи из прошлой версии
+const LEGACY = { midnight: 'ink', violet: 'aubergine', emerald: 'forest', bordeaux: 'oxblood' };
 
 // Фото с телефона весит 3–10 МБ, а localStorage ~5 МБ на всё приложение,
 // поэтому перед сохранением ужимаем картинку до 1600px в JPEG.
@@ -35,7 +39,8 @@ function downscale(file, max = 1600, quality = 0.82) {
 export const WallpaperService = {
     // Фото важнее пресета; пресет — только если его id известен (ключ мог остаться от старой версии)
     preset() {
-        const id = localStorage.getItem(PRESET_KEY);
+        const raw = localStorage.getItem(PRESET_KEY);
+        const id = LEGACY[raw] || raw;
         return PRESETS[id] ? id : '';
     },
 
@@ -86,11 +91,12 @@ export const GlassService = {
     },
 
     apply(t = this.get()) {
-        const c = Math.round(255 * (1 - Math.min(1, t * 3)));   // белое стекло → дымчатое → чёрное
-        const a = 0.08 + 0.8 * t;
+        // Слева белое прозрачное стекло, к середине оно дымчатое, справа — плотное и матовое, но не чёрное
+        const c = Math.round(255 * (1 - Math.min(1, t * 2)));
+        const a = 0.08 + 0.42 * t;
         const root = document.documentElement.style;
         root.setProperty('--glass', `rgba(${c}, ${c}, ${c}, ${a.toFixed(3)})`);
-        root.setProperty('--blur', `blur(${Math.round(16 + 18 * t)}px)`);
+        root.setProperty('--blur', `blur(${Math.round(16 + 24 * t)}px) saturate(${(1 + 0.3 * t).toFixed(2)})`);
     },
 
     set(t) {

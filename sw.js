@@ -23,6 +23,7 @@ const SHELL = [
     'js/compress.js',
     'js/wallpaper.js',
     'js/screen-debug.js',
+    'img/born-to-win.png',
     'icons/apple-touch-icon.png',
     'icons/icon-192.png',
     'icons/icon-512.png',

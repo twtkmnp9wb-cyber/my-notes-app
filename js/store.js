@@ -79,6 +79,7 @@ function emptyState(season = makeSeason()) {
         dump: [],       // { id, text, createdAt }
         failed: [],     // задачи, провисевшие в спринте STRIKE_LIMIT дней: { id, text, source, failedOn }
         doneLog: [],    // журнал выполненного за сезон для счётчиков Roadmap: { id, category, at }
+        roadmapClosedAt: '',   // дата, когда Roadmap закрыли (все цели выполнены)
         colors: {},     // цветные маркеры чипсов: { 'c:Учёба': 'blue', 't:мысли': 'none' } (c — категория, t — тег)
         lastRollover: logicalDayKey(),
     };

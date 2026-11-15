@@ -1,12 +1,13 @@
 import { store, uid, normalize, seasonName, SEASON_KINDS, sprintDayFor, logDone, isCardDone } from './store.js';
 import {
-    view, esc, feedCounts,
+    view, esc, searchMatches,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
-    renderAttList, renderViewer, visualOf, renderSyncSection, cardHtml, markerKey, isTodayTask,
+    renderAttList, renderViewer, visualOf, renderSyncSection, cardHtml, markerChoice, freeColorKey, isTodayTask,
 } from './ui.js';
 import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn, signInWithPassword, setPassword, setLoginMode } from './sync.js';
 import { media, kindOf, measure } from './media.js';
+import { logicalDayKey } from './dates.js';
 import { compressImage, compressVideo } from './compress.js';
 import { openScreenDebug } from './screen-debug.js';
 import { WallpaperService, GlassService, PRESETS } from './wallpaper.js';
@@ -53,6 +54,7 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
 
     updateSearchCounter();
     updateChipFades();
+    syncTopHeight();
 
     if (scrollToEnd) viewport.scrollTop = viewport.scrollHeight;
     else if (keepScroll) viewport.scrollTop = prevScroll;
@@ -86,11 +88,52 @@ function autosizeDump() {
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
 }
 
+// Поиск как в Telegram: лента остаётся целой, результаты подсвечены, «N of M» и стрелки листают их
 function updateSearchCounter() {
     const el = $('#searchCounter');
     if (!el) return;
-    const { shown, total } = feedCounts(S());
-    el.textContent = view.search.trim() ? `${shown} / ${total}` : '';
+    const ids = searchMatches(S());
+    if (view.search.trim()) {
+        view.searchIdx = Math.min(Math.max(view.searchIdx, 0), Math.max(0, ids.length - 1));
+        el.textContent = ids.length ? `${view.searchIdx + 1} of ${ids.length}` : '0';
+    } else {
+        el.textContent = '';
+    }
+    document.querySelectorAll('[data-act="search-prev"], [data-act="search-next"]').forEach((b) => { b.disabled = ids.length < 2; });
+    document.querySelectorAll('.post.is-current').forEach((p) => p.classList.remove('is-current'));
+    const cur = ids[view.searchIdx];
+    if (cur) document.querySelector(`.post[data-pid="${cur}"]`)?.classList.add('is-current');
+}
+
+function goToMatch(smooth = true) {
+    updateSearchCounter();
+    const id = searchMatches(S())[view.searchIdx];
+    if (id) document.querySelector(`.post[data-pid="${id}"]`)?.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' });
+}
+
+// Шапка и подшапка лежат поверх ленты (как в Telegram): сообщаем CSS их суммарную высоту
+function syncTopHeight() {
+    const h = [...document.querySelectorAll('.fixed-top-bar, .page-sticky-header')].reduce((sum, el) => sum + el.offsetHeight, 0);
+    document.documentElement.style.setProperty('--top-h', `${h}px`);
+}
+
+// Новый тег прямо в форме поста
+function addTagFromInput(input) {
+    const name = input.value.trim().replace(/^#+/, '').toLowerCase().replace(/\s+/g, '-');
+    input.value = '';
+    if (!name) return;
+    const wrap = input.closest('.chips-wrap');
+    let chip = [...wrap.querySelectorAll('.chip')].find((c) => c.dataset.value === name);
+    if (!chip) {
+        chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.dataset.act = 'form-chip';
+        chip.dataset.value = name;
+        chip.textContent = `#${name}`;
+        wrap.insertBefore(chip, input);
+    }
+    chip.classList.add('is-active');
 }
 
 function commit(opts) {
@@ -192,6 +235,12 @@ function postForm(post) {
             }
             list.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview); });
             const attachments = list.map(({ id, name, type, size, kind, w, h }) => ({ id, name, type, size, kind, w, h }));
+            // Теги, созданные прямо в форме, попадают в общий список с неповторяющимся цветом
+            (v.tags || []).forEach((tag) => {
+                if (s.tags.includes(tag)) return;
+                s.colors[`t:${tag}`] = freeColorKey(s, 't');
+                s.tags.push(tag);
+            });
             if (post) {
                 Object.assign(post, { title: v.title, text: v.text, tags: v.tags, attachments, editedAt: new Date().toISOString() });
                 gcMedia();
@@ -316,7 +365,7 @@ function goalForm(goal) {
         onSubmit: (v) => {
             if (!v.text) return false;
             if (goal) Object.assign(goal, { text: v.text, category: v.category });
-            else s.goals.push({ id: uid(), text: v.text, category: v.category, done: false });
+            else { s.goals.push({ id: uid(), text: v.text, category: v.category, done: false }); s.roadmapClosedAt = ''; }
         },
     });
 }
@@ -443,11 +492,15 @@ function categoriesForm() {
     const s = store.state;
     openForm({
         title: 'Categories',
-        note: 'Clear a field to delete the category; its tasks stay under All. The circles below a name set its marker color.',
-        fields: s.categories.flatMap((c, i) => [
-            { type: 'text', name: `c${i}`, value: c },
-            { type: 'swatches', name: `k${i}`, value: markerKey(s, 'c', c) || 'none' },
-        ]),
+        note: 'Clear a field to delete the category; its tasks stay under All. The circles below a name set its marker color. The last row adds a new category.',
+        fields: [
+            ...s.categories.flatMap((c, i) => [
+                { type: 'text', name: `c${i}`, value: c },
+                { type: 'swatches', name: `k${i}`, value: markerChoice(s, 'c', c) },
+            ]),
+            { type: 'text', name: 'cNew', placeholder: 'New category' },
+            { type: 'swatches', name: 'kNew', value: freeColorKey(s, 'c') },
+        ],
         onSubmit: (v) => {
             const next = [];
             const colors = {};
@@ -457,6 +510,7 @@ function categoriesForm() {
                 if (view.backlogFilter === old) view.backlogFilter = name || 'all';
                 if (name && !next.includes(name)) { next.push(name); colors[`c:${name}`] = v[`k${i}`]; }
             });
+            if (v.cNew && !next.includes(v.cNew)) { next.push(v.cNew); colors[`c:${v.cNew}`] = v.kNew; }
             s.categories = next;
             // Цвета категорий пересобираем заново: переименованные и удалённые не оставляют мусора
             Object.keys(s.colors).filter((k) => k.startsWith('c:')).forEach((k) => delete s.colors[k]);
@@ -509,7 +563,7 @@ function closeSeasonForm() {
 // ================= ДЕЙСТВИЯ =================
 // Все клики идут через data-act. В архиве разрешены только действия из READONLY_OK.
 const READONLY_OK = new Set([
-    'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'filter', 'flip', 'dump-sub',
+    'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'search-prev', 'search-next', 'filter', 'flip', 'dump-sub',
     'exit-archive', 'close-modal', 'form-chip', 'form-swatch', 'stash-toggle', 'form-delete', 'open-media', 'media-nav', 'media-close',
     'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
     'toggle-note', 'toggle-learn', 'bg-preset',
@@ -567,6 +621,18 @@ const actions = {
         render();
         if (view.searchOpen) $('#searchInput')?.focus();
     },
+    'search-prev'() {
+        const n = searchMatches(S()).length;
+        if (!n) return;
+        view.searchIdx = (view.searchIdx - 1 + n) % n;
+        goToMatch();
+    },
+    'search-next'() {
+        const n = searchMatches(S()).length;
+        if (!n) return;
+        view.searchIdx = (view.searchIdx + 1) % n;
+        goToMatch();
+    },
     'search-close'() {
         view.searchOpen = false;
         view.search = '';
@@ -577,7 +643,9 @@ const actions = {
         view.tab = 'feed';
         view.searchOpen = true;
         view.search = view.search === q ? '' : q;
+        view.searchIdx = Infinity;   // начинаем с самого свежего результата
         render({ keepScroll: false });
+        goToMatch(false);
     },
     'edit-post'({ id }) { const p = find(S().posts, id); if (p) postForm(p); },
     'edit-manifest'() {
@@ -591,7 +659,14 @@ const actions = {
     },
 
     // --- roadmap
-    'toggle-goal'({ id }) { const g = find(S().goals, id); if (g) { g.done = !g.done; commit(); } },
+    'toggle-goal'({ id }) { const g = find(S().goals, id); if (g) { g.done = !g.done; S().roadmapClosedAt = ''; commit(); } },
+    // Закрыть Roadmap можно, только когда выполнены все цели
+    'close-roadmap'() {
+        const s = S();
+        if (!s.goals.length || s.goals.some((g) => !g.done)) return;
+        s.roadmapClosedAt = logicalDayKey();
+        commit();
+    },
     'edit-goal'({ id }) { const g = find(S().goals, id); if (g) goalForm(g); },
 
     // --- sprint
@@ -601,8 +676,10 @@ const actions = {
         if (!t) return;
         t.done = !t.done;
         if (t.source?.kind === 'sub') {
-            const sub = find(find(s.cards, t.source.cardId)?.subtasks || [], t.source.id);
+            const card = find(s.cards, t.source.cardId);
+            const sub = find(card?.subtasks || [], t.source.id);
             if (sub) sub.done = t.done;
+            if (card) { if (isCardDone(card)) card.closedAt = card.closedAt || logicalDayKey(); else delete card.closedAt; }
         }
         logTaskDone(s, t);
         commit();
@@ -634,6 +711,7 @@ const actions = {
         const r = find(s.rows, id);
         if (!r) return;
         r.done = !r.done;
+        if (r.done) r.doneAt = logicalDayKey(); else delete r.doneAt;
         logDone(s, r.id, r.category, r.done);
         if (r.done) s.sprint = s.sprint.filter((t) => !(t.source?.kind === 'row' && t.source.id === id));
         el.closest('.item')?.classList.toggle('is-done', r.done);
@@ -665,6 +743,7 @@ const actions = {
         s.sprint.forEach((t) => { if (t.source?.kind === 'sub' && t.source.id === id) t.done = sub.done; });
         logDone(s, id, c.category, sub.done);
         logDone(s, `card:${c.id}`, c.category, isCardDone(c));
+        if (isCardDone(c)) c.closedAt = c.closedAt || logicalDayKey(); else delete c.closedAt;
         store.save();
         refreshCard(c);
         if (wasComplete !== isCardDone(c)) refreshBacklogChips();
@@ -885,7 +964,7 @@ const actions = {
         const s = store.state;
         openForm({
             title: `Color · #${tag}`,
-            fields: [{ type: 'swatches', name: 'color', value: markerKey(s, 't', tag) || 'none' }],
+            fields: [{ type: 'swatches', name: 'color', value: markerChoice(s, 't', tag) }],
             onSubmit: (v) => { s.colors[`t:${tag}`] = v.color; return { reopenSettings: true }; },
         });
     },
@@ -1052,13 +1131,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('scroll', (e) => {
         if (e.target.classList?.contains('chips-scroll')) updateChipFades(e.target.parentElement);
     }, true);
-    window.addEventListener('resize', () => updateChipFades());
+    window.addEventListener('resize', () => { updateChipFades(); syncTopHeight(); });
+
+    const topObserver = new ResizeObserver(syncTopHeight);
+    document.querySelectorAll('.fixed-top-bar, .page-sticky-header').forEach((el) => topObserver.observe(el));
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        if (e.target.matches?.('[data-new-tag]')) { e.preventDefault(); addTagFromInput(e.target); }
+        else if (e.target.id === 'searchInput') { e.preventDefault(); actions['search-prev']?.(); }
+    });
+    document.addEventListener('focusout', (e) => {
+        if (e.target.matches?.('[data-new-tag]') && e.target.value.trim()) addTagFromInput(e.target);
+    });
 
     document.addEventListener('input', (e) => {
         if (e.target.id === 'searchInput') {
             view.search = e.target.value;
+            view.searchIdx = Infinity;
             renderContent();
-            updateSearchCounter();
+            goToMatch(false);
+        } else if (e.target.matches?.('[data-swatch-color]')) {
+            // Свой цвет: нативный выбор цвета рядом с палитрой
+            const label = e.target.closest('.swatch');
+            const wrap = e.target.closest('.swatches');
+            wrap.previousElementSibling.value = e.target.value;
+            wrap.querySelectorAll('.swatch').forEach((b) => b.classList.toggle('is-active', b === label));
+            label.style.setProperty('--mk', e.target.value);
         } else if (e.target.id === 'dumpInput') {
             view.dumpDraft = e.target.value;
             autosizeDump();

@@ -60,7 +60,7 @@ export function dayLabel(dateOrKey, todayKey = calendarDayKey()) {
 export const DEADLINE_HOT_DAYS = 3;
 export const DEADLINE_CALM_DAYS = 14;
 export function deadlineInfo(due) {
-    if (!isDateKey(due)) return { level: 'none', label: '', sort: 1e9 };
+    if (!isDateKey(due)) return { level: 'none', label: 'No deadline', sort: 1e9 };
     const days = daysBetween(logicalDayKey(), due);
     let label;
     if (days < 0) label = `${-days}d overdue`;

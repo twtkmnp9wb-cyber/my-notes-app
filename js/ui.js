@@ -1,4 +1,4 @@
-import { deadlineInfo, formatTime, dayLabel, calendarDayKey, logicalDayKey, daysBetween } from './dates.js';
+import { deadlineInfo, formatTime, dayLabel, calendarDayKey, logicalDayKey, daysBetween, shortDate } from './dates.js';
 import { DUMP_TTL_DAYS, STRIKE_LIMIT, SEASON_KINDS, cardProgress, isCardDone, doneCount } from './store.js';
 import { formatSize } from './media.js';
 
@@ -13,6 +13,7 @@ export const view = {
     dumpSub: 'thoughts',
     dumpDraft: '',
     learn: (() => { try { return localStorage.getItem('app_learn') === '1'; } catch { return false; } })(),   // режим обучения: показывает подсказки
+    searchIdx: 0,           // номер текущего результата поиска в ленте
     openNotes: new Set(),   // строчки Backlog с раскрытым комментарием
     showStash: false,       // Backlog: показывать склад закрытых карточек вместо активных
 };
@@ -38,28 +39,51 @@ const editBtn = (act, attrs) => `<button class="icon-btn" data-act="${act}" ${at
 // У каждой категории и тега есть цвет. Пока не выбран вручную (настройки / «✎» у категорий) —
 // берётся из палитры по названию, поэтому он всегда один и тот же. 'none' — без маркера.
 export const MARKER_COLORS = {
-    red: '#f43f5e', orange: '#fb923c', yellow: '#fbbf24', green: '#34d399',
-    cyan: '#22d3ee', blue: '#60a5fa', violet: '#a78bfa', pink: '#f472b6',
+    red: '#f43f5e', orange: '#fb923c', amber: '#fbbf24', lime: '#a3e635', green: '#34d399', teal: '#2dd4bf',
+    cyan: '#22d3ee', blue: '#60a5fa', indigo: '#818cf8', violet: '#a78bfa', pink: '#f472b6', slate: '#94a3b8',
 };
 const MARKER_KEYS = Object.keys(MARKER_COLORS);
+const hexOf = (v) => (v && v[0] === '#' ? v.toLowerCase() : (MARKER_COLORS[v] || '').toLowerCase());
 
-// kind: 'c' — категория, 't' — тег
-export function markerKey(s, kind, name) {
+// kind: 'c' — категория, 't' — тег. Выбранный вручную цвет — ключ палитры, свой #hex или 'none'.
+// Если цвет не выбран, чипсы получают по порядку цвета палитры, которые ещё никем не заняты.
+export function markerColor(s, kind, name) {
     if (!name) return '';
     const saved = s.colors?.[`${kind}:${name}`];
     if (saved === 'none') return '';
-    if (saved && MARKER_COLORS[saved]) return saved;
-    let h = 0;
+    if (saved) return hexOf(saved);
+    const names = (kind === 'c' ? s.categories : s.tags) || [];
+    const used = new Set(names.map((n) => hexOf(s.colors?.[`${kind}:${n}`])).filter(Boolean));
+    const free = MARKER_KEYS.map((k) => MARKER_COLORS[k]).filter((c) => !used.has(c));
+    const pos = names.filter((n) => !s.colors?.[`${kind}:${n}`]).indexOf(name);
+    if (pos >= 0) return free[pos] || MARKER_COLORS[MARKER_KEYS[pos % MARKER_KEYS.length]];
+    let h = 0;   // тег из текста поста, которого нет в списке: цвет по названию
     for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    return MARKER_KEYS[h % MARKER_KEYS.length];
+    return MARKER_COLORS[MARKER_KEYS[h % MARKER_KEYS.length]];
 }
+
+// Что показать выбранным в форме выбора цвета
+export function markerChoice(s, kind, name) {
+    const saved = s.colors?.[`${kind}:${name}`];
+    if (saved) return saved;
+    const c = markerColor(s, kind, name);
+    return MARKER_KEYS.find((k) => MARKER_COLORS[k] === c) || c || 'none';
+}
+
+// Первый цвет палитры, который не занят другими категориями/тегами — для новых чипсов
+export function freeColorKey(s, kind) {
+    const names = (kind === 'c' ? s.categories : s.tags) || [];
+    const used = new Set(names.map((n) => markerColor(s, kind, n)));
+    return MARKER_KEYS.find((k) => !used.has(MARKER_COLORS[k])) || MARKER_KEYS[names.length % MARKER_KEYS.length];
+}
+
 const mk = (s, kind, name) => {
-    const k = markerKey(s, kind, name);
-    return k ? `<i class="mk" style="--mk:${MARKER_COLORS[k]}"></i>` : '';
+    const c = markerColor(s, kind, name);
+    return c ? `<i class="mk" style="--mk:${c}"></i>` : '';
 };
 const tagStyle = (s, tag) => {
-    const k = markerKey(s, 't', tag);
-    return k ? `style="--mk:${MARKER_COLORS[k]}"` : '';
+    const c = markerColor(s, 't', tag);
+    return c ? `style="--mk:${c}"` : '';
 };
 
 // ================= ЛЕНТА =================
@@ -165,6 +189,13 @@ export function feedCounts(s) {
     return { shown: q ? s.posts.filter((p) => postMatches(p, q)).length : s.posts.length, total: s.posts.length };
 }
 
+// Идентификаторы постов, подходящих под запрос, от старых к новым (в порядке ленты)
+export function searchMatches(s) {
+    const q = view.search.trim().toLowerCase();
+    if (!q) return [];
+    return [...s.posts].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1)).filter((p) => postMatches(p, q)).map((p) => p.id);
+}
+
 export function renderFeedHeader(s, ro) {
     const words = s.manifest.length
         ? s.manifest.map((w) => `<span>#${esc(w)}</span>`).join('')
@@ -181,21 +212,23 @@ export function renderFeedHeader(s, ro) {
                 <span class="muted">🔍</span>
                 <input type="search" id="searchInput" class="search-input" placeholder="Search or #tag" value="${esc(view.search)}" autocomplete="off">
                 <span id="searchCounter" class="search-counter"></span>
+                <button class="icon-btn chev up" data-act="search-prev" title="Previous" aria-label="Previous"></button>
+                <button class="icon-btn chev down" data-act="search-next" title="Next" aria-label="Next"></button>
                 <button class="icon-btn" data-act="search-close" title="Close">✕</button>
             </div>
             ${allTags.length ? `<div class="chips-scroll search-tags">${allTags.map((t) =>
                 `<button class="chip ${q === '#' + t ? 'is-active' : ''}" data-act="search-tag" data-tag="${esc(t)}">${mk(s, 't', t)}#${esc(t)}</button>`).join('')}</div>` : ''}
         ` : ''}
-        <h2 class="born">Born to win.</h2>
+        <img class="born-img" src="img/born-to-win.png" alt="Born to win." draggable="false">
     `;
 }
 
 export function renderFeed(s, ro) {
     const q = view.search.trim().toLowerCase();
     const all = [...s.posts].sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
-    const posts = q ? all.filter((p) => postMatches(p, q)) : all;
+    const posts = all;   // поиск как в Telegram: лента не фильтруется, результаты подсвечиваются и листаются стрелками
     if (!posts.length) {
-        return q ? '<div class="empty">Nothing found</div>' : empty(ro ? 'No posts in this season.' : 'The library is empty. Tap + to write your first post.');
+        return empty(ro ? 'No posts in this season.' : 'The library is empty. Tap + to write your first post.');
     }
 
     let out = '';
@@ -209,7 +242,7 @@ export function renderFeed(s, ro) {
         const inline = new Set([...extractTags(p.title), ...extractTags(p.text)]);
         const extra = p.tags.filter((t) => !inline.has(t));
         out += `
-            <article class="post">
+            <article class="post ${q && postMatches(p, q) ? 'is-match' : ''}" data-pid="${p.id}">
                 ${ro ? '' : `<button class="post-menu" data-act="edit-post" data-id="${p.id}" title="Edit">⋯</button>`}
                 ${albumHtml(p)}
                 ${p.title ? `<h3 class="post-title">${richText(p.title, q, s)}</h3>` : ''}
@@ -226,6 +259,7 @@ export function renderFeed(s, ro) {
 // ================= ROADMAP =================
 export function renderRoadmap(s, ro) {
     const done = s.goals.filter((g) => g.done).length;
+    const closed = !!s.roadmapClosedAt && s.goals.length > 0 && done === s.goals.length;
     // Если у цели выбрана тема — под ней счётчик выполненных за сезон задач этой категории
     const items = s.goals.map((g) => `
         <div class="item ${g.done ? 'is-done' : ''}">
@@ -241,6 +275,9 @@ export function renderRoadmap(s, ro) {
             <span class="kicker">Goals</span>
             <h2 class="panel-title">${esc(s.season.name)}</h2>
             ${s.goals.length ? `${bar(Math.round((done / s.goals.length) * 100))}<div class="panel-sub">${done} / ${s.goals.length}</div>` : ''}
+            ${ro || !s.goals.length ? '' : closed
+                ? `<div class="panel-sub">Closed · ${esc(shortDate(s.roadmapClosedAt))}</div>`
+                : `<button class="btn-mini" data-act="close-roadmap" ${done === s.goals.length ? '' : 'disabled'}>Close roadmap</button>`}
         </section>
         <div class="scroll-area" data-scroll="goals">
             <div class="list">${items || empty('No goals yet. A good goal is one you can honestly answer with yes or no at the end of the season.')}</div>
@@ -310,15 +347,15 @@ export function renderBacklogChips(s, ro) {
             return `<button class="chip ${view.backlogFilter === c && !view.showStash ? 'is-active' : ''}" data-act="filter" data-cat="${esc(c)}">
                 ${c === 'all' ? 'All' : `${mk(s, 'c', c)}${esc(c)}`}${n ? `<span class="badge">${n}</span>` : ''}</button>`;
         }).join('')}
-        ${ro ? '' : `<button class="chip chip-ghost" data-act="add-category" title="New category">＋</button>
-                     <button class="chip chip-ghost" data-act="manage-categories" title="Edit categories">✎</button>`}
         ${doneTotal ? `<button class="chip chip-muted ${view.showStash ? 'is-active' : ''}" data-act="stash-toggle">Done</button>` : ''}
+        ${ro ? '' : '<button class="chip chip-ghost" data-act="manage-categories" title="Categories">✎</button>'}
     </div>`;
 }
 
 export function cardHtml(s, c, ro) {
     const dl = deadlineInfo(c.due);
     const { total, pct } = cardProgress(c);
+    const complete = isCardDone(c);
     const subs = c.subtasks.map((st) => {
         const queued = inSprint(s, (src) => src.kind === 'sub' && src.id === st.id);
         let tail = '';
@@ -339,12 +376,12 @@ export function cardHtml(s, c, ro) {
                 <div class="flip-face">
                     <div class="card-top">
                         <span class="pill">${mk(s, 'c', c.category)}${esc(c.category || '—')}</span>
-                        ${dl.label ? `<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>` : ''}
+                        ${complete ? '' : `<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>`}
                     </div>
                     <h4 class="card-title">${esc(c.title)}</h4>
                     <div>
                         ${bar(pct)}
-                        <div class="card-foot"><span>${total ? `${pct}%` : ''}</span></div>
+                        <div class="card-foot"><span>${complete ? ([c.closedAt && `Closed ${shortDate(c.closedAt)}`, c.due && `Due ${shortDate(c.due)}`].filter(Boolean).join(' · ') || '100%') : total ? `${pct}%` : ''}</span></div>
                     </div>
                 </div>
                 <div class="flip-face flip-back">
@@ -366,7 +403,10 @@ function rowHtml(s, r, ro) {
     const open = view.openNotes.has(r.id);
     const meta = [
         r.category ? `<span class="meta-cat">${mk(s, 'c', r.category)}${esc(r.category)}</span>` : '',
-        dl.label ? `<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>` : '',
+        ...(r.done
+            ? [r.doneAt ? `<span class="meta-plain">Closed ${esc(shortDate(r.doneAt))}</span>` : '',
+               r.due ? `<span class="meta-plain">Due ${esc(shortDate(r.due))}</span>` : '']
+            : [`<span class="dl dl-${dl.level}"><i class="dot"></i>${esc(dl.label)}</span>`]),
     ].filter(Boolean).join('');
     return `
         <div class="item row-item ${r.done ? 'is-done' : ''} ${open ? 'is-open' : ''}">
@@ -464,8 +504,7 @@ export function renderDump(s, ro) {
                     <div class="dump-text">${esc(d.text)}</div>
                     <div class="dump-actions">
                         <span class="muted small">${formatTime(d.createdAt)}</span>
-                        ${ro ? '' : `<button class="btn-mini" data-act="dump-to-backlog" data-id="${d.id}">To backlog</button>
-                                     <button class="btn-mini" data-act="dump-to-feed" data-id="${d.id}">To library ↗</button>
+                        ${ro ? '' : `<button class="btn-mini" data-act="dump-to-feed" data-id="${d.id}">To library ↗</button>
                                      <button class="icon-btn danger" data-act="dump-delete" data-id="${d.id}" title="Delete">✕</button>`}
                     </div>
                 </div>`).join('')}
@@ -622,16 +661,21 @@ export function renderForm(cfg) {
         case 'chips':
             return `<div class="field">${label}<div class="chips-wrap" data-chips="${f.name}">${f.options.map((o) =>
                 `<button type="button" class="chip ${(f.value || []).includes(o) ? 'is-active' : ''}" data-act="form-chip" data-value="${esc(o)}">#${esc(o)}</button>`).join('')
-                || tip('<span class="muted small">No tags yet — add them in Settings.</span>')}</div></div>`;
+                }<input class="chip-input" data-new-tag placeholder="＋ tag" maxlength="24" autocomplete="off" autocapitalize="none" enterkeyhint="done"></div></div>`;
         case 'attachments':
             return `<div class="field">${label}
                 <div id="attList" class="att-list">${renderAttList(f.value || [])}</div>
                 <label class="btn-wide ghost attach-btn">📎 Attach<input type="file" id="attInput" multiple hidden></label>
             </div>`;
-        case 'swatches':
-            return `<div class="field">${label}<input type="hidden" name="${f.name}" value="${esc(f.value || 'none')}">
+        case 'swatches': {
+            const val = f.value || 'none';
+            const custom = val.startsWith('#');
+            return `<div class="field">${label}<input type="hidden" name="${f.name}" value="${esc(val)}">
                 <div class="swatches">${['none', ...MARKER_KEYS].map((k) =>
-                    `<button type="button" class="swatch ${k === (f.value || 'none') ? 'is-active' : ''}" data-act="form-swatch" data-value="${k}" style="--mk:${MARKER_COLORS[k] || 'transparent'}" aria-label="${k}">${k === 'none' ? '∅' : ''}</button>`).join('')}</div></div>`;
+                    `<button type="button" class="swatch ${k === val ? 'is-active' : ''}" data-act="form-swatch" data-value="${k}" style="--mk:${MARKER_COLORS[k] || 'transparent'}" aria-label="${k}">${k === 'none' ? '∅' : ''}</button>`).join('')}
+                    <label class="swatch swatch-custom ${custom ? 'is-active' : ''}" style="--mk:${custom ? esc(val) : '#888888'}" title="Custom color"><input type="color" value="${custom ? esc(val) : '#888888'}" data-swatch-color></label>
+                </div></div>`;
+        }
         case 'checkbox':
             return `<label class="field field-check"><input type="checkbox" name="${f.name}" ${f.value ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
         default:

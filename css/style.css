@@ -67,7 +67,7 @@ button { font: inherit; color: inherit; }
    разрешении, и надписи в капсуле мылились. Кнопки и так влезают, на узком экране — сжимаются. */
 .menu-list {
     display: flex; gap: 2px; padding: 4px; width: 100%; max-width: var(--col);
-    background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border: 1px solid var(--line); border-radius: 9999px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
@@ -105,7 +105,8 @@ button { font: inherit; color: inherit; }
 /* Поиск в стиле Telegram */
 .search-bar {
     display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 8px 6px 14px;
-    background: rgba(20, 20, 20, 0.9); border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--line); border-radius: var(--radius);
 }
 .search-input { flex: 1; min-width: 0; background: transparent; border: none; color: #fff; font-size: 14px; outline: none; }
 .search-input::placeholder { color: rgba(255, 255, 255, 0.4); }
@@ -170,7 +171,7 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 .panel-title { margin: 0; font-size: 15px; font-weight: 600; }
 .panel-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
 .panel .bar { margin-top: 12px; }
-.panel-sprint { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.25); }
+.panel-sprint { background: linear-gradient(rgba(244, 63, 94, 0.1), rgba(244, 63, 94, 0.1)), var(--glass); border-color: rgba(244, 63, 94, 0.25); }
 .panel-sprint .kicker { color: #fda4af; }
 .panel-sprint .bar i { background: var(--hot); }
 
@@ -228,7 +229,7 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 
 /* ================= ЛЕНТА ================= */
 .day-sep { display: flex; justify-content: center; margin: 14px 0 10px; }
-.day-sep span { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.45); color: var(--text-2); backdrop-filter: var(--blur); }
+.day-sep span { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; background: var(--glass); border: 1px solid var(--line); color: var(--text-2); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
 .post {
     position: relative; padding: 14px 16px 8px; margin-bottom: 8px; word-break: break-word;
     background: var(--glass); border: 1px solid var(--line); border-radius: 22px 22px 22px 8px;
@@ -240,8 +241,12 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 .post-meta { font-size: 10px; color: var(--muted); text-align: right; margin-top: 4px; }
 .post-menu { position: absolute; top: 6px; right: 8px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 8px; }
 .post-menu:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
-.hashtag { background: none; border: none; padding: 0; color: var(--mk, var(--accent)); cursor: pointer; font-size: inherit; }
-.hashtag:hover { text-decoration: underline; }
+.hashtag {
+    display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px 1px 8px; border: none; border-radius: 99px;
+    background: rgba(255, 255, 255, 0.1); color: var(--text); font: inherit; font-size: 0.86em; line-height: 1.5; cursor: pointer;
+}
+.hashtag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--mk, var(--muted)); }
+.hashtag:hover { background: rgba(255, 255, 255, 0.16); }
 mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
 
 /* ================= ВЛОЖЕНИЯ В ПОСТАХ =================
@@ -316,7 +321,7 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
     backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
 }
-.flip-back { transform: rotateY(180deg); justify-content: flex-start; background: rgba(20, 20, 20, 0.75); }
+.flip-back { transform: rotateY(180deg); justify-content: flex-start; background: color-mix(in srgb, var(--glass) 55%, rgba(12, 12, 14, 0.8)); }
 .flip.is-complete .flip-face:first-child { border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .pill { font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 99px; color: #ccc; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -338,7 +343,8 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .segmented button.is-active { background: rgba(255, 255, 255, 0.2); color: #fff; }
 .composer-bar {
     display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; padding: 5px 5px 5px 14px;
-    background: rgba(20, 20, 20, 0.9); border: 1px solid var(--line); border-radius: 24px;
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--line); border-radius: 24px;
 }
 .composer-bar textarea {
     flex: 1; min-width: 0; resize: none; max-height: 140px; padding: 8px 0; background: transparent; border: none; outline: none;
@@ -352,7 +358,7 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
     width: 100%; resize: vertical; min-height: 90px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line);
     border-radius: 14px; padding: 12px; color: #fff; font: inherit; font-size: 14px; line-height: 1.45; outline: none;
 }
-.dump-note { padding: 12px 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }
+.dump-note { padding: 12px 14px; background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
 .dump-text { font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--text-2); }
 .dump-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .dump-actions .small { flex: 1; }
@@ -365,8 +371,8 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .footer-container { display: flex; gap: 12px; flex-direction: column; align-items: flex-end; max-width: 440px; margin: 0 auto; }
 .action-btn {
     pointer-events: auto; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--line); color: #fff; font-size: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     transition: transform 0.15s ease, background 0.2s ease;
 }
 .action-btn.add-btn { font-size: 26px; font-weight: 300; }
@@ -381,8 +387,9 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .modal-content {
     width: 100%; max-width: 420px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overflow-x: hidden; padding: 20px;
     background: rgba(25, 25, 25, 0.92); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-    animation: pop 0.18s ease-out;
+    animation: pop 0.18s ease-out; scrollbar-width: none;
 }
+.modal-content::-webkit-scrollbar { display: none; }
 @keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -442,7 +449,10 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 }
 
 /* Кнопка «⋯» поверх фото должна читаться на любой картинке */
-.post:has(> .album:nth-child(2)) .post-menu { z-index: 1; top: 12px; right: 12px; color: #fff; background: rgba(0, 0, 0, 0.45); }
+.post:has(> .album:nth-child(2)) .post-menu {
+    z-index: 1; top: 12px; right: 12px; color: #fff; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
 
 /* Статус синхронизации в настройках */
 .sync-line { display: inline-flex; align-items: center; gap: 6px; }
@@ -466,7 +476,7 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 
 
 /* ================= ЦВЕТНЫЕ МАРКЕРЫ ЧИПСОВ ================= */
-.mk { flex: 0 0 auto; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--mk); box-shadow: 0 0 6px var(--mk); }
+.mk { flex: 0 0 auto; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--mk); }
 .pill { display: inline-flex; align-items: center; gap: 4px; }
 .pill .mk { width: 6px; height: 6px; box-shadow: none; }
 .item-meta .mk { margin-right: 4px; vertical-align: 1px; }
@@ -528,3 +538,59 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 
 /* чип Done — приглушённый, в ряду категорий */
 .chip.chip-muted:not(.is-active) { color: var(--muted); }
+
+/* ================= BORN TO WIN ================= */
+.born-img { display: block; width: 200px; max-width: 60%; height: auto; margin: 10px auto 2px; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6)); pointer-events: none; user-select: none; -webkit-user-select: none; }
+
+/* ================= ЧИПСЫ: плавное затухание краёв =================
+   Затухание включается классами fade-l / fade-r, а ширина градиента анимируется, поэтому край не «выскакивает» при прокрутке. */
+@property --fl { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --fr { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.chips-scroll {
+    transition: --fl 0.25s ease, --fr 0.25s ease;
+    -webkit-mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.4) calc(var(--fl) * 0.45), #000 var(--fl), #000 calc(100% - var(--fr)), rgba(0, 0, 0, 0.4) calc(100% - var(--fr) * 0.45), transparent);
+    mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.4) calc(var(--fl) * 0.45), #000 var(--fl), #000 calc(100% - var(--fr)), rgba(0, 0, 0, 0.4) calc(100% - var(--fr) * 0.45), transparent);
+}
+.chips-scroll.fade-l { --fl: 40px; }
+.chips-scroll.fade-r { --fr: 40px; }
+
+/* ================= ЛЕНТА ПОД ШАПКОЙ (как в Telegram) =================
+   Меню, манифест и поиск плавают над лентой: посты заезжают под них снизу, а у самого верхнего края плавно растворяются. */
+body[data-tab="feed"] .fixed-top-bar,
+body[data-tab="feed"] .page-sticky-header { pointer-events: none; }
+body[data-tab="feed"] .menu-list,
+body[data-tab="feed"] .archive-banner,
+body[data-tab="feed"] .page-sticky-header-inner > * { pointer-events: auto; }
+body[data-tab="feed"] .page-sticky-header { position: relative; z-index: 149; }
+body[data-tab="feed"] .born-img { pointer-events: none; }
+body[data-tab="feed"] .scroll-viewport {
+    margin-top: calc(-1 * var(--top-h, 0px));
+    padding-top: calc(var(--top-h, 0px) + 8px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.5) calc(env(safe-area-inset-top, 0px) + 18px), #000 calc(env(safe-area-inset-top, 0px) + 48px));
+    mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.5) calc(env(safe-area-inset-top, 0px) + 18px), #000 calc(env(safe-area-inset-top, 0px) + 48px));
+}
+
+/* ================= ПОИСК ================= */
+.chev { position: relative; width: 28px; height: 28px; padding: 0; }
+.chev::before {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+}
+.chev.down::before { transform: translate(-50%, -75%) rotate(45deg); }
+.chev.up::before { transform: translate(-50%, -25%) rotate(-135deg); }
+.chev:disabled { opacity: 0.3; cursor: default; }
+.post.is-current { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55), 0 8px 32px rgba(0, 0, 0, 0.3); }
+
+/* ================= ФОРМЫ: свой цвет, новый тег ================= */
+.swatch-custom { position: relative; display: inline-block; overflow: hidden; background: conic-gradient(#f43f5e, #fbbf24, #34d399, #22d3ee, #818cf8, #f472b6, #f43f5e); }
+.swatch-custom.is-active { background: var(--mk); }
+.swatch-custom input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: none; opacity: 0; cursor: pointer; }
+.field .chips-wrap .chip-input {
+    flex: 0 0 auto; width: 96px; padding: 3px 12px; border: 1px dashed var(--line); border-radius: 99px;
+    background: transparent; color: #fff; font-size: 16px; outline: none;
+}
+
+/* ================= СТРОЧКИ: закрытые, Roadmap ================= */
+.meta-plain { font-size: 11px; color: var(--muted); }
+.btn-mini:disabled { opacity: 0.35; cursor: default; }
+.panel .btn-mini { margin-top: 12px; }
