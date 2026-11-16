@@ -139,8 +139,6 @@ button { font: inherit; color: inherit; }
 /* Лента прокручивается целиком, а у верхнего края контент плавно растворяется под шапкой */
 .scroll-viewport {
     flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 0 120px;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
-    mask-image: linear-gradient(to bottom, transparent, #000 20px);
 }
 .scroll-viewport::-webkit-scrollbar { width: 0; }
 .content-wrapper { max-width: calc(var(--col) + 32px); margin: 0 auto; padding: 0 16px; }
@@ -154,8 +152,6 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 .pane > .scroll-area {
     flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
     padding: 10px 4px 16px; margin: -10px -4px 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 16px), transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 10px, #000 calc(100% - 16px), transparent);
 }
 .pane > .scroll-area::-webkit-scrollbar { display: none; }
 /* Backlog: обе области делят высоту пропорционально содержимому, но не схлопываются меньше одного ряда */
@@ -171,7 +167,7 @@ body[data-tab="dump"] .pane { padding-bottom: calc(16px + env(safe-area-inset-bo
 .panel-title { margin: 0; font-size: 15px; font-weight: 600; }
 .panel-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
 .panel .bar { margin-top: 12px; }
-.panel-sprint { background: rgba(244, 63, 94, calc(0.12 + var(--glass-a, 0.08) * 0.9)); border-color: rgba(244, 63, 94, 0.3); }
+.panel-sprint { background: rgba(244, 63, 94, 0.2); border-color: rgba(244, 63, 94, 0.32); }
 .panel-sprint .kicker { color: #fda4af; }
 .panel-sprint .bar i { background: var(--hot); }
 
@@ -437,10 +433,10 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
    области (правила выше) остаётся — оно сглаживает линию обреза. */
 @supports (animation-timeline: view()) {
     @keyframes edge-blur {
-        entry 0%   { filter: blur(6px); opacity: 0.15; }
-        entry 60%  { filter: none; opacity: 1; }
-        exit 40%   { filter: none; opacity: 1; }
-        exit 100%  { filter: blur(10px); opacity: 0; }
+        entry 0%   { opacity: 0.1; }
+        entry 60%  { opacity: 1; }
+        exit 40%   { opacity: 1; }
+        exit 100%  { opacity: 0; }
     }
     .post, .day-sep, .item, .flip, .dump-note, .pane > .scroll-area .section-head, .pane > .scroll-area .hint {
         animation: edge-blur linear both;
@@ -564,8 +560,6 @@ body[data-tab="feed"] .born-img { pointer-events: none; }
 body[data-tab="feed"] .scroll-viewport {
     margin-top: calc(-1 * var(--top-h, 0px));
     padding-top: calc(var(--top-h, 0px) + 8px);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.5) calc(env(safe-area-inset-top, 0px) + 18px), #000 calc(env(safe-area-inset-top, 0px) + 48px));
-    mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.5) calc(env(safe-area-inset-top, 0px) + 18px), #000 calc(env(safe-area-inset-top, 0px) + 48px));
 }
 
 /* ================= ПОИСК ================= */
@@ -613,3 +607,10 @@ body[data-tab="feed"] .scroll-viewport {
 
 /* ================= СТРОЧКИ: категория — та же плашка, что на карточке ================= */
 .row-meta .pill { font-size: 9px; padding: 3px 8px; max-width: none; }
+
+/* Мягкая вуаль у верхнего края экрана: посты уходят под шапку плавно (вместо маски, которая ломала размытие) */
+body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; z-index: 130; pointer-events: none;
+    height: calc(env(safe-area-inset-top, 0px) + 36px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.2) 60%, transparent);
+}

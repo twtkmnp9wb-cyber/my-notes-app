@@ -91,15 +91,13 @@ export const GlassService = {
     },
 
     apply(t = this.get()) {
-        // Слева почти прозрачное стекло, справа — матовое, как «материал» в iOS: светлая дымка, сильное размытие,
-        // фон за стеклом чуть светлее и насыщеннее. Поэтому матовость видна даже на ровном градиенте.
-        const c = Math.round(255 - 20 * t);
-        const a = 0.08 + 0.16 * t;
+        // Матовость — это размытие того, что лежит за стеклом: растёт радиус и насыщенность фона.
+        // Цвет стекла почти не меняется, поэтому ничего не белеет и не темнеет.
+        const a = 0.08 + 0.04 * t;
         const root = document.documentElement.style;
-        root.setProperty('--glass', `rgba(${c}, ${c}, ${c}, ${a.toFixed(3)})`);
+        root.setProperty('--glass', `rgba(255, 255, 255, ${a.toFixed(3)})`);
         root.setProperty('--glass-a', a.toFixed(3));
-        root.setProperty('--blur', `blur(${Math.round(16 + 34 * t)}px) saturate(${(1 + 0.5 * t).toFixed(2)}) brightness(${(1 + 0.28 * t).toFixed(2)})`);
-        root.setProperty('--line', `rgba(255, 255, 255, ${(0.14 + 0.1 * t).toFixed(3)})`);
+        root.setProperty('--blur', `blur(${Math.round(16 + 44 * t)}px) saturate(${(1 + 0.35 * t).toFixed(2)})`);
     },
 
     set(t) {
