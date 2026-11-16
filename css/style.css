@@ -625,3 +625,56 @@ body[data-tab="feed"]::before {
 .chips-bar .chip:not(.is-active), .search-tags-wrap .chip:not(.is-active) { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.1); }
 .range-end { padding: 0; border: none; background: none; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
 .range-end:active { color: #fff; }
+
+
+/* ================= НОУТБУК / ПЛАНШЕТ В АЛЬБОМНОЙ ОРИЕНТАЦИИ =================
+   Верхняя капсула меню становится боковой панелью, колонка шире, «+» и поиск — внизу по центру.
+   Телефон (< 900px) не затрагивается.
+   Контейнер .fixed-top-bar получает высоту 0, а панель позиционируется внутри него, поэтому
+   высота ленты (--top-h в main.js) считается верно и правок в JS не нужно. */
+@media (min-width: 900px) {
+    :root { --col: 640px; --side-w: 232px; }
+
+    .app-container { padding-left: var(--side-w); }
+
+    /* Боковая панель */
+    .fixed-top-bar,
+    html.is-standalone .fixed-top-bar {
+        position: absolute; top: 0; left: 0; width: var(--side-w); height: 0; padding: 0; gap: 0;
+    }
+    .menu-list {
+        position: absolute; top: 16px; bottom: 16px; left: 16px; width: calc(var(--side-w) - 16px);
+        flex-direction: column; max-width: none; gap: 4px; padding: 12px 10px; border-radius: 28px;
+    }
+    .menu-btn { flex: 0 0 auto; text-align: left; padding: 11px 14px; font-size: 14px; border-radius: 14px; }
+    .menu-btn:not(.active):hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+    .menu-btn[data-act="settings"] { margin-top: auto; }
+    .menu-btn[data-act="settings"]::after { content: ' Settings'; }
+
+    /* Плашка архива: над контентом по центру */
+    .archive-banner {
+        position: absolute; top: 8px; z-index: 200;
+        left: calc(var(--side-w) + (100vw - var(--side-w)) / 2); transform: translateX(-50%);
+    }
+
+    /* Подшапки и области прокрутки начинаются у самого верха */
+    .page-sticky-header { padding-top: 16px; }
+    body:is([data-tab="roadmap"], [data-tab="sprint"], [data-tab="dump"]) .scroll-viewport { padding-top: 16px; }
+
+    /* Затемнение под шапкой ленты не заходит под боковую панель */
+    body[data-tab="feed"]::before { left: var(--side-w); }
+
+    /* «+» и поиск: в ряд, по центру колонки, «+» слева */
+    .app-footer { left: var(--side-w); padding-bottom: 20px; }
+    .footer-container { flex-direction: row-reverse; justify-content: center; align-items: center; max-width: var(--col); }
+
+    .born-img { width: 260px; }
+    .album-1 { max-height: min(70dvh, 620px); }
+    .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .modal-content { max-width: 480px; }
+}
+
+/* Большой монитор */
+@media (min-width: 1500px) {
+    :root { --col: 720px; --side-w: 260px; }
+}
