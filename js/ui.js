@@ -697,3 +697,14 @@ export function renderForm(cfg) {
             </div>
         </form>`;
 }
+
+// Манифест для боковой панели (ноутбук): та же кнопка, что и в шапке ленты
+export function renderManifest(s, ro) {
+    const words = s.manifest.length
+        ? s.manifest.map((w) => `<span>#${esc(w)}</span>`).join('')
+        : `<span class="muted">${ro ? '' : '+'}</span>`;
+    return `<button class="manifest" data-act="edit-manifest" ${ro ? 'disabled' : ''}>
+        <span class="kicker">Manifest</span>
+        <span class="manifest-words">${words}</span>
+    </button>`;
+}

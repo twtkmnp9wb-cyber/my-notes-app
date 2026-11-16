@@ -3,7 +3,7 @@ import {
     view, esc, searchMatches,
     renderFeedHeader, renderFeed, renderRoadmap, renderSprint,
     renderBacklogChips, renderBacklog, renderDump, renderSettings, renderForm,
-    renderAttList, renderViewer, visualOf, renderSyncSection, cardHtml, markerChoice, freeColorKey, isTodayTask,
+    renderAttList, renderViewer, visualOf, renderSyncSection, cardHtml, markerChoice, freeColorKey, isTodayTask, renderManifest,
 } from './ui.js';
 import { initSync, syncStatus, syncNow, signIn, verifyCode, signOut, cancelSignIn, signInWithPassword, setPassword, setLoginMode } from './sync.js';
 import { media, kindOf, measure } from './media.js';
@@ -55,6 +55,8 @@ function render({ scrollToEnd = false, keepScroll = true } = {}) {
     const backlogChips = $('#backlogChipsSlot .chips-scroll');
     if (backlogChips) backlogChips.scrollLeft = backlogChipsLeft;
 
+    const sideM = $('#sideManifest');
+    if (sideM) sideM.innerHTML = renderManifest(s, ro);
     renderContent();
     autosizeDump();
 
