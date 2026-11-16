@@ -345,7 +345,7 @@ export function hotCount(s, cat) {
 export function renderBacklogChips(s, ro) {
     const cats = ['all', ...s.categories];
     const doneTotal = s.cards.filter(isCardDone).length + s.rows.filter((r) => r.done).length;
-    return `<div class="chips-scroll">
+    return `<div class="chips-bar"><div class="chips-scroll">
         ${cats.map((c) => {
             const n = hotCount(s, c);
             return `<button class="chip ${view.backlogFilter === c && !view.showStash ? 'is-active' : ''}" data-act="filter" data-cat="${esc(c)}">
@@ -353,7 +353,7 @@ export function renderBacklogChips(s, ro) {
         }).join('')}
         ${doneTotal ? `<button class="chip chip-muted ${view.showStash ? 'is-active' : ''}" data-act="stash-toggle">Done</button>` : ''}
         ${ro ? '' : '<button class="chip chip-ghost" data-act="manage-categories" title="Categories">✎</button>'}
-    </div>`;
+    </div></div>`;
 }
 
 export function cardHtml(s, c, ro) {
@@ -605,7 +605,7 @@ export function renderSettings(s, archive, hasWallpaper, syncSt, usage, look = {
             ${hasWallpaper || look.preset ? '<button class="btn-wide ghost" data-act="reset-wallpaper">Reset background</button>' : ''}
             <label class="range-row"><span>Glass</span>
                 <input type="range" id="glassRange" min="0" max="100" value="${glass}">
-                <span class="range-ends"><i>Clear</i><i>Matte</i></span>
+                <span class="range-ends"><button type="button" class="range-end" data-act="glass-set" data-v="0">Clear</button><button type="button" class="range-end" data-act="glass-set" data-v="100">Matte</button></span>
             </label>
             <button class="btn-wide ghost" data-act="toggle-learn">Learning mode · ${look.learn ? 'On' : 'Off'}</button>
         </div>

@@ -87,17 +87,17 @@ export const WallpaperService = {
 export const GlassService = {
     get() {
         const v = parseFloat(localStorage.getItem(GLASS_KEY));
-        return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+        return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.6;   // без выбора — умеренно матовое
     },
 
     apply(t = this.get()) {
-        // Матовость — это размытие того, что лежит за стеклом: растёт радиус и насыщенность фона.
+        // 0 — почти прозрачное стекло без размытия, 1 — матовое: сильное размытие того, что за стеклом.
         // Цвет стекла почти не меняется, поэтому ничего не белеет и не темнеет.
-        const a = 0.08 + 0.04 * t;
+        const a = 0.03 + 0.09 * t;
         const root = document.documentElement.style;
         root.setProperty('--glass', `rgba(255, 255, 255, ${a.toFixed(3)})`);
         root.setProperty('--glass-a', a.toFixed(3));
-        root.setProperty('--blur', `blur(${Math.round(16 + 44 * t)}px) saturate(${(1 + 0.35 * t).toFixed(2)})`);
+        root.setProperty('--blur', `blur(${Math.round(48 * t)}px) saturate(${(1 + 0.35 * t).toFixed(2)})`);
     },
 
     set(t) {

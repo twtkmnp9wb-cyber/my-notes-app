@@ -334,7 +334,7 @@ mark { background: rgba(251, 191, 36, 0.35); color: inherit; border-radius: 3px;
 .sub-add { background: none; border: none; color: var(--accent); font-size: 10px; cursor: pointer; padding: 2px 0 0; text-align: left; }
 
 /* ================= DUMP ================= */
-.segmented { display: flex; gap: 4px; padding: 4px; background: var(--glass); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 12px; }
+.segmented { display: flex; gap: 4px; padding: 4px; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 12px; }
 .segmented button { flex: 1; display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 8px; border: none; border-radius: 12px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
 .segmented button.is-active { background: rgba(255, 255, 255, 0.2); color: #fff; }
 .composer-bar {
@@ -608,9 +608,20 @@ body[data-tab="feed"] .scroll-viewport {
 /* ================= СТРОЧКИ: категория — та же плашка, что на карточке ================= */
 .row-meta .pill { font-size: 9px; padding: 3px 8px; max-width: none; }
 
-/* Мягкая вуаль у верхнего края экрана: посты уходят под шапку плавно (вместо маски, которая ломала размытие) */
-body::before {
+
+/* ================= ЗАТЕМНЕНИЕ ЗА ШАПКОЙ ЛЕНТЫ =================
+   Просто градиент, без размытия и масок (маска ломает размытие у постов). Закрывает промежутки между плашками:
+   текст постов там больше не читается, а у самой нижней плашки затухает. */
+body[data-tab="feed"]::before {
     content: ''; position: fixed; top: 0; left: 0; right: 0; z-index: 130; pointer-events: none;
-    height: calc(env(safe-area-inset-top, 0px) + 36px);
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.2) 60%, transparent);
+    height: calc(var(--top-h, 0px) + 10px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.84) 0, rgba(0, 0, 0, 0.76) calc(100% - 44px), transparent 100%);
 }
+
+/* ================= ЧИПСЫ НА ОБЩЕЙ ПОДЛОЖКЕ =================
+   Маска затухания делает прокручиваемый ряд «корнем фона», и чипсы внутри него не размывали обои.
+   Поэтому размытие сидит на подложке-капсуле, а чипсы внутри — просто светлые таблетки. */
+.chips-bar { padding: 5px 6px; border: 1px solid var(--line); border-radius: 9999px; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+.chips-bar .chip:not(.is-active), .search-tags-wrap .chip:not(.is-active) { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.1); }
+.range-end { padding: 0; border: none; background: none; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+.range-end:active { color: #fff; }

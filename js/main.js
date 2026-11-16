@@ -604,7 +604,7 @@ const READONLY_OK = new Set([
     'tab', 'settings', 'search-toggle', 'search-close', 'search-tag', 'search-prev', 'search-next', 'filter', 'flip', 'dump-sub',
     'exit-archive', 'close-modal', 'form-chip', 'form-swatch', 'stash-toggle', 'form-delete', 'open-media', 'media-nav', 'media-close',
     'edit-season', 'close-season', 'open-archive', 'delete-archive', 'manage-tags', 'reset-wallpaper', 'export',
-    'toggle-note', 'toggle-learn', 'bg-preset',
+    'toggle-note', 'toggle-learn', 'bg-preset', 'glass-set',
 ]);
 
 const find = (list, id) => list.find((x) => x.id === id);
@@ -769,6 +769,12 @@ const actions = {
         openSettings();
     },
     'bg-preset'({ id }) { WallpaperService.setPreset(id); openSettings(); },
+    // «Clear» и «Matte» под ползунком — быстрые положения
+    'glass-set'({ v }) {
+        GlassService.set(Number(v) / 100);
+        const range = $('#glassRange');
+        if (range) range.value = v;
+    },
     flip({ id }) {
         if (view.flipped.has(id)) view.flipped.delete(id); else view.flipped.add(id);
         $(`.flip[data-id="${id}"]`)?.classList.toggle('is-flipped');
